@@ -1,5 +1,5 @@
 ##
-# Copyright 2014-2015 Nimble Storage, Inc.  All rights reserved.
+# Copyright 2019 Hewlett Packard Enterprise Development LP.
 #
 ##
 ACTION!="add|change", GOTO="nimble_tuning_end"
