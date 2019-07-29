@@ -1,0 +1,145 @@
+hash: bd22b4a72309f9c6776c18ef5fc83a4011d18bd18231dc337dd4f972ea112063
+updated: 2019-07-26T10:13:21.203655-07:00
+imports:
+- name: github.com/coreos/etcd
+  version: 98d308426819d892e149fe45f6fd542464cb1f9d
+  subpackages:
+  - auth/authpb
+  - clientv3
+  - clientv3/concurrency
+  - etcdserver/api/v3rpc/rpctypes
+  - etcdserver/etcdserverpb
+  - mvcc/mvccpb
+  - pkg/types
+- name: github.com/go-ole/go-ole
+  version: 97b6244175ae18ea6eef668034fd6565847501c9
+  subpackages:
+  - oleutil
+- name: github.com/gogo/protobuf
+  version: ba06b47c162d49f2af050fb4c75bcbc86a159d5c
+  subpackages:
+  - gogoproto
+  - proto
+  - protoc-gen-gogo/descriptor
+- name: github.com/golang/protobuf
+  version: 6c65a5562fc06764971b7c5d05c76c75e84bdbf7
+  subpackages:
+  - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/timestamp
+- name: github.com/gorilla/context
+  version: 8559d4a6b87e4f517ec1846eb90a192b8748cc89
+- name: github.com/gorilla/mux
+  version: e3702bed27f0d39777b0b37b664b6280e8ef8fbf
+- name: github.com/hectane/go-acl
+  version: dfeb47f3e2ef7e235d6cc6f42514a37b9767e41d
+  subpackages:
+  - api
+- name: github.com/kardianos/service
+  version: 56787a3ea05e9b262708192e7ce3b500aba73561
+- name: github.com/konsorten/go-windows-terminal-sequences
+  version: f55edac94c9bbba5d6182a4be46d86a2c9b5b50e
+- name: github.com/mitchellh/mapstructure
+  version: 3536a929edddb9a5b34bd6861dc4a9647cb459fe
+- name: github.com/satori/go.uuid
+  version: f58768cc1a7a7e77a3bd49e98cdd21419399b6a3
+- name: github.com/Scalingo/go-etcd-lock
+  version: fecab5a750cc9a7c7665e5f83943b4d40ae227c5
+  subpackages:
+  - lock
+- name: github.com/sirupsen/logrus
+  version: 839c75faf7f98a33d445d181f3018b5c3409a45e
+- name: golang.org/x/crypto
+  version: 4def268fd1a49955bfb3dda92fe3db4f924f2285
+  subpackages:
+  - ssh/terminal
+- name: golang.org/x/net
+  version: 66aacef3dd8a676686c7ae3716979581e8b03c47
+  subpackages:
+  - context
+  - http/httpguts
+  - http2
+  - http2/hpack
+  - idna
+  - internal/timeseries
+  - lex/httplex
+  - trace
+- name: golang.org/x/sys
+  version: a43fa875dd822b81eb6d2ad538bc1f4caba169bd
+  subpackages:
+  - unix
+  - windows
+  - windows/registry
+  - windows/svc
+  - windows/svc/debug
+  - windows/svc/eventlog
+  - windows/svc/mgr
+- name: golang.org/x/text
+  version: b19bf474d317b857955b12035d2c5acb57ce8b01
+  subpackages:
+  - secure/bidirule
+  - transform
+  - unicode/bidi
+  - unicode/norm
+- name: google.golang.org/genproto
+  version: 09f6ed296fc66555a25fe4ce95173148778dfa85
+  subpackages:
+  - googleapis/rpc/status
+- name: google.golang.org/grpc
+  version: 25c4f928eaa6d96443009bd842389fb4fa48664e
+  subpackages:
+  - balancer
+  - balancer/base
+  - balancer/roundrobin
+  - binarylog/grpc_binarylog_v1
+  - codes
+  - connectivity
+  - credentials
+  - credentials/internal
+  - encoding
+  - encoding/proto
+  - grpclog
+  - health
+  - health/grpc_health_v1
+  - internal
+  - internal/backoff
+  - internal/balancerload
+  - internal/binarylog
+  - internal/channelz
+  - internal/envconfig
+  - internal/grpcrand
+  - internal/grpcsync
+  - internal/syscall
+  - internal/transport
+  - keepalive
+  - metadata
+  - naming
+  - peer
+  - resolver
+  - resolver/dns
+  - resolver/passthrough
+  - stats
+  - status
+  - tap
+  - transport
+- name: gopkg.in/errgo.v1
+  version: 08dc5b27f5ced65786776ec936b4298445ec70cf
+- name: gopkg.in/natefinch/lumberjack.v2
+  version: a96e63847dc3c67d17befa69c303767e2f84e54f
+testImports:
+- name: github.com/davecgh/go-spew
+  version: d8f796af33cc11cb798c1aaeb27a4ebc5099927d
+  subpackages:
+  - spew
+- name: github.com/pmezard/go-difflib
+  version: 5d4384ee4fb2527b0a1256a821ebfc92f91efefc
+  subpackages:
+  - difflib
+- name: github.com/stretchr/testify
+  version: 221dbe5ed46703ee255b1da0dec05086f5035f62
+  subpackages:
+  - assert
+- name: gopkg.in/yaml.v2
+  version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b

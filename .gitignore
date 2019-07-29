@@ -1,0 +1,23 @@
+# Binaries for programs and plugins
+*.exe
+*.dll
+*.so
+*.dylib
+
+# OSX fun
+.DS_Store
+
+# vendor
+vendor/
+
+# Test binary, build with `go test -c`
+*.test
+csi/csi-test.log
+storageprovider/fake/fake-storage-provider-test.log
+storageprovider/storage-provider-test.log
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Project-local glide cache, RE: https://github.com/Masterminds/glide/issues/736
+.glide/

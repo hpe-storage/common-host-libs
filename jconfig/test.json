@@ -1,0 +1,12 @@
+{
+    "someString": "some string",
+    "stringNumber": "23",
+    "smallNumber":40,
+    "actualNumber":10737418240,
+    "badIntNumber":2.3,
+    "someStrings": ["first", "2nd", "c"],
+    "boolean": true,
+    "stringBool": "True",
+    "someMaps": [{"first":1}, {"second": 2}],
+    "simpleMap": {"first":1, "second": 2}
+}
