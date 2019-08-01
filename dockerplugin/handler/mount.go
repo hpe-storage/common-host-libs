@@ -204,6 +204,21 @@ func handleDelayedCreateAndMountFilesystem(chapiClient *chapi.Client, volume *mo
 	return MountResponse{MountPoint: mountPoint, Err: ""}
 }
 
+func removeMountConflictMetadata(containerProviderClient *connectivity.Client, pluginReq *PluginRequest, volName string) error {
+	log.Tracef(">>> removeMountConflictMetadata called for %s", volName)
+	defer log.Tracef("<<<< removeMountConflictMetadata")
+	pluginReq.Opts = make(map[string]interface{})
+	//reset mountConflict to 0
+	pluginReq.Opts["mountConflictDelay"] = "0"
+	var cr *CreateResponse
+	_, err := containerProviderClient.DoJSON(&connectivity.Request{Action: "POST", Path: provider.UpdateURI, Payload: &pluginReq, Response: &cr, ResponseError: &cr})
+	if err != nil {
+		err = fmt.Errorf("unable to remove mountConflictDelay from volume metadata (%s)", err.Error())
+		return err
+	}
+	return nil
+}
+
 func removeDelayedCreateMetadata(pluginReq *PluginRequest, volume *model.Volume) error {
 	log.Tracef("removeDelayedCreateMetadata to remove delayedCreate opt for %s", volume.Name)
 	pluginReq.Opts = make(map[string]interface{})
@@ -433,6 +448,9 @@ func processMountConflictDelay(volName string, containerProviderClient *connecti
 		// Got a timeout! return
 		case <-timeout:
 			log.Infof("mountConflictDelay timeout occurred after %d seconds for %s. Returning", mountConflictDelay, volName)
+			// best effort to reset the mountConflictDelay on the array to 0 so that we don't process mountconflict delay there
+			removeMountConflictMetadata(containerProviderClient, pluginReq, volName)
+
 			return
 		// Got a tick, we should check on nimbleGetVolumeInfo()
 		case <-tick:
