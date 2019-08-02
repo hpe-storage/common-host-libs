@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/model"
 	"github.com/hpe-storage/common-host-libs/storageprovider"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -109,8 +109,8 @@ func _TestPluginSuite(t *testing.T) {
 func realCsp(t *testing.T) *ContainerStorageProvider {
 	provider, err := NewContainerStorageProvider(
 		&storageprovider.Credentials{
-			ArrayIP:     getArrayIP(t),
-			Port:        443,
+			Backend:     getArrayIP(t),
+			ServicePort: 443,
 			ContextPath: "/csp",
 			Username:    "admin",
 			Password:    "admin",
