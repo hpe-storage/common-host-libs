@@ -26,7 +26,7 @@ const (
 	// MountBaseDir represents base directory for plugin volume mounts
 	MountBaseDir = "/var/lib/kubelet/plugins/hpe.com/mounts/"
 	// PluginLogFile represents plugin log location
-	PluginLogFile = "/var/log/hpe-flexvolume-plugin.log"
+	PluginLogFile = "/var/log/hpe-docker-plugin.log"
 	// ManagedPluginSocketName represents plugin socket name for managed plugins
 	ManagedPluginSocketName = "hpe-plugin.sock"
 )
