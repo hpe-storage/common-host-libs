@@ -709,6 +709,9 @@ func getCspClient(credentials *storageprovider.Credentials) (*connectivity.Clien
 
 	// On-Array CSP
 	if credentials.ServiceName == "" {
+		if credentials.ContextPath == "" {
+			credentials.ContextPath = storageprovider.DefaultContextPath
+		}
 		cspURI := fmt.Sprintf("https://%s:%d%s", credentials.ArrayIP, credentials.Port, credentials.ContextPath)
 
 		log.Tracef(">>>>> getCspClient (direct-connect) using URI %s and username %s", cspURI, credentials.Username)

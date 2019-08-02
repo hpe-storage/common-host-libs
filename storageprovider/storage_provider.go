@@ -10,12 +10,14 @@ import (
 )
 
 const (
-	arrayIPKey     = "arrayIp"
+	arrayIPKey     = "backend"
 	usernameKey    = "username"
 	passwordKey    = "password"
-	portKey        = "port"
+	portKey        = "servicePort"
 	contextPathKey = "path"
 	serviceNameKey = "serviceName"
+	// DefaultContextPath if not set for on-array csp
+	DefaultContextPath = "/csp"
 )
 
 // StorageProvider defines the interface to any storage related operations required by CSI and hopefully docker
