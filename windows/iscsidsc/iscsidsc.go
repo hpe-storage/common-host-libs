@@ -6,6 +6,7 @@
 package iscsidsc
 
 import (
+	"math"
 	"syscall"
 	"unsafe"
 
@@ -19,6 +20,8 @@ const (
 
 // iSCSI definitions
 const (
+	ISCSI_ALL_INITIATOR_PORTS    = uint32(math.MaxUint32)
+	ISCSI_ANY_INITIATOR_PORT     = uint32(math.MaxUint32)
 	MAX_ISCSI_ALIAS_LEN          = 255
 	MAX_ISCSI_HBANAME_LEN        = 256
 	MAX_ISCSI_NAME_LEN           = 223
@@ -211,6 +214,7 @@ const (
 // Lazy load the iSCSI DLL APIs
 var (
 	iscsidsc                             = windows.NewLazySystemDLL("iscsidsc.dll")
+	procAddIScsiSendTargetPortalW        = iscsidsc.NewProc("AddIScsiSendTargetPortalW")
 	procGetDevicesForIScsiSessionW       = iscsidsc.NewProc("GetDevicesForIScsiSessionW")
 	procGetIScsiInitiatorNodeNameW       = iscsidsc.NewProc("GetIScsiInitiatorNodeNameW")
 	procGetIScsiSessionListW             = iscsidsc.NewProc("GetIScsiSessionListW")

@@ -32,7 +32,7 @@ func GetIscsiSessionList() (iscsiSessions []*ISCSI_SESSION_INFO, err error) {
 		var bufferSizeNeeded, sessionCount uint32
 		iscsiErr, _, _ = procGetIScsiSessionListW.Call(uintptr(unsafe.Pointer(&bufferSizeNeeded)), uintptr(unsafe.Pointer(&sessionCount)), uintptr(0))
 
-		if (iscsiErr == uintptr(syscall.ERROR_INSUFFICIENT_BUFFER)) && (sessionCount > 0) {
+		if (iscsiErr == uintptr(syscall.ERROR_INSUFFICIENT_BUFFER)) && ((sessionCount > 0) || (bufferSizeNeeded > 0)) {
 
 			// NWT-3303.  Additional safety measure we'll add to deal with NWT-3303 is to bump
 			// up the size of the buffer we'll allocate.  That way, in the unlikely event the

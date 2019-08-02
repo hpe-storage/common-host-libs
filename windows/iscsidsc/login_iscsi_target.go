@@ -146,8 +146,8 @@ func loginIScsiTarget(targetName string, initiatorInstance string, initiatorPort
 		uintptr(0), // KeySize is not supported
 		uintptr(0), // key is not supported
 		uintptr(isPersistentInt),
-		uintptr(unsafe.Pointer(&uniqueSessionID)),
-		uintptr(unsafe.Pointer(&uniqueConnectionID)))
+		uintptr(unsafe.Pointer(uniqueSessionID)),
+		uintptr(unsafe.Pointer(uniqueConnectionID)))
 
 	if iscsiErr != ERROR_SUCCESS {
 		// If an unexpected error occurs, initialize error object and log failure
