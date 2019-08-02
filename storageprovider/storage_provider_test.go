@@ -12,54 +12,70 @@ func TestCreateCredentials(t *testing.T) {
 		secrets map[string]string
 	}
 
-	// Valid On-Array params
+	// Valid Off-Array params
 	map1 := map[string]string{
 		usernameKey:    "admin",
 		passwordKey:    "admin",
-		arrayIPKey:     "1.1.1.1",
+		backendKey:     "1.1.1.1",
 		serviceNameKey: "csp-service",
-		portKey:        "8080",
+		servicePortKey: "8080",
 	}
-	// Valid On-Array credential
+	// Valid Off-Array credential
 	cred1 := &Credentials{
 		Username:    "admin",
 		Password:    "admin",
-		ArrayIP:     "1.1.1.1",
+		Backend:     "1.1.1.1",
 		ServiceName: "csp-service",
-		Port:        8080,
+		ServicePort: 8080,
 	}
 
-	// Valid Off-Array params
+	// Valid On-Array params
 	map2 := map[string]string{
 		usernameKey:    "admin",
 		passwordKey:    "admin",
-		arrayIPKey:     "1.1.1.1",
+		backendKey:     "1.1.1.1",
 		contextPathKey: "/csp",
-		portKey:        "443",
+		servicePortKey: "443",
 	}
-	// Valid Off-Array credential
+	// Valid On-Array credential
 	cred2 := &Credentials{
 		Username:    "admin",
 		Password:    "admin",
-		ArrayIP:     "1.1.1.1",
+		Backend:     "1.1.1.1",
 		ContextPath: "/csp",
-		Port:        443,
+		ServicePort: 443,
 	}
 
-	// Invalid params (Missing Port)
+	// Invalid params (Missing Port/Off-Array)
 	map3 := map[string]string{
 		usernameKey:    "admin",
 		passwordKey:    "admin",
-		arrayIPKey:     "1.1.1.1",
+		backendKey:     "1.1.1.1",
 		serviceNameKey: "csp-service",
 	}
 
-	// Invalid params (Missing serviceName/contextPath)
+	// Invalid params (Missing backend)
 	map4 := map[string]string{
-		usernameKey: "admin",
-		passwordKey: "admin",
-		arrayIPKey:  "1.1.1.1",
-		portKey:     "443",
+		usernameKey:    "admin",
+		passwordKey:    "admin",
+		contextPathKey: "/csp",
+		servicePortKey: "443",
+	}
+
+	// Invalid params (Missing username)
+	map5 := map[string]string{
+		passwordKey:    "admin",
+		backendKey:     "1.1.1.1",
+		contextPathKey: "/csp",
+		servicePortKey: "443",
+	}
+
+	// Invalid params (Missing password)
+	map6 := map[string]string{
+		usernameKey:    "admin",
+		backendKey:     "1.1.1.1",
+		contextPathKey: "/csp",
+		servicePortKey: "443",
 	}
 
 	tests := []struct {
@@ -71,7 +87,9 @@ func TestCreateCredentials(t *testing.T) {
 		{"Test valid on-array args", args{map1}, cred1, false},
 		{"Test valid off-array args", args{map2}, cred2, false},
 		{"Test missing/invalid port", args{map3}, nil, true},
-		{"Test missing serviceName/contextPath", args{map4}, nil, true},
+		{"Test missing backend", args{map4}, nil, true},
+		{"Test missing username", args{map5}, nil, true},
+		{"Test missing password", args{map6}, nil, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
