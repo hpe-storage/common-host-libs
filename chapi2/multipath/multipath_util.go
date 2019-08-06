@@ -43,15 +43,15 @@ type iscsiTarget struct {
 
 // NewTargetTypeCache allocates a new TargetTypeCache object with default settings
 func NewTargetTypeCache() *TargetTypeCache {
-	log.Info(">>>>> NewTargetTypeCache")
-	defer log.Info("<<<<< NewTargetTypeCache")
+	log.Trace(">>>>> NewTargetTypeCache")
+	defer log.Trace("<<<<< NewTargetTypeCache")
 	return NewCustomTargetTypeCache(defaultTargetMaxEntries, defaultTargetExpiration, defaultCleanupFrequency)
 }
 
 // NewCustomTargetTypeCache allocates a new TargetTypeCache object with the specified settings
 func NewCustomTargetTypeCache(maxCachedEntries int, expiration time.Duration, threadSleep time.Duration) *TargetTypeCache {
-	log.Infof(">>>>> NewCustomTargetTypeCache, maxCachedEntries=%v, expiration=%v, threadSleep=%v", maxCachedEntries, expiration, threadSleep)
-	defer log.Info("<<<<< NewCustomTargetTypeCache")
+	log.Tracef(">>>>> NewCustomTargetTypeCache, maxCachedEntries=%v, expiration=%v, threadSleep=%v", maxCachedEntries, expiration, threadSleep)
+	defer log.Trace("<<<<< NewCustomTargetTypeCache")
 
 	// Allocate the TargetTypeCache object
 	c := &TargetTypeCache{
@@ -93,8 +93,8 @@ func (c *TargetTypeCache) len() int {
 // GetTargetType returns the cached target type for the given iSCSI iqn.  If no cache entry was
 // found, an empty string is returned.
 func (c *TargetTypeCache) GetTargetType(targetIqn string) string {
-	log.Infof(">>>>> GetTargetType, targetIqn=%v", targetIqn)
-	defer log.Info("<<<<< GetTargetType")
+	log.Tracef(">>>>> GetTargetType, targetIqn=%v", targetIqn)
+	defer log.Trace("<<<<< GetTargetType")
 
 	// Lock for thread safety
 	c.lock.RLock()
@@ -108,15 +108,15 @@ func (c *TargetTypeCache) GetTargetType(targetIqn string) string {
 
 	// Update the last accessed time and return the cached target type
 	target.lastAccessed = time.Now()
-	log.Infof("targetIqn=%v, targetType=%v", targetIqn, target.targetType)
+	log.Tracef("targetIqn=%v, targetType=%v", targetIqn, target.targetType)
 	return target.targetType
 }
 
 // SetTargetType sets the cached target type for the given iSCSI iqn.  If "targetType" is an empty
 // string, any cache entry for the given iqn is removed.
 func (c *TargetTypeCache) SetTargetType(targetIqn, targetType string) {
-	log.Infof(">>>>> SetTargetType, targetIqn=%v, targetType=%v", targetIqn, targetType)
-	defer log.Info("<<<<< SetTargetType")
+	log.Tracef(">>>>> SetTargetType, targetIqn=%v, targetType=%v", targetIqn, targetType)
+	defer log.Trace("<<<<< SetTargetType")
 
 	// Lock for thread safety
 	c.lock.Lock()
@@ -148,8 +148,8 @@ func (c *TargetTypeCache) SetTargetType(targetIqn, targetType string) {
 
 // maintainCacheThread is our background cache maintenance thread
 func (c *TargetTypeCache) maintainCacheThread() {
-	log.Info(">>>>> maintainCacheThread")
-	defer log.Info("<<<<< maintainCacheThread")
+	log.Trace(">>>>> maintainCacheThread")
+	defer log.Trace("<<<<< maintainCacheThread")
 
 	// Determine how long the thread should sleep before waking and performing a maintenance pass.
 	timeChan := time.Tick(c.threadSleep)
@@ -158,7 +158,7 @@ func (c *TargetTypeCache) maintainCacheThread() {
 		select {
 		case <-timeChan:
 			// Cache frequency period has expired
-			log.Infof("Periodic cache maintenance signal received, sleepTime=%v", c.threadSleep)
+			log.Tracef("Periodic cache maintenance signal received, sleepTime=%v", c.threadSleep)
 			c.maintainCache(true)
 		}
 	}
@@ -168,8 +168,8 @@ func (c *TargetTypeCache) maintainCacheThread() {
 // that have expired, or if the number of cache entries has exceeds its limits, this routine will
 // perform the necessary cleanup.
 func (c *TargetTypeCache) maintainCache(lockNeeded bool) {
-	log.Info(">>>>> maintainCache")
-	defer log.Info("<<<<< maintainCache")
+	log.Trace(">>>>> maintainCache")
+	defer log.Trace("<<<<< maintainCache")
 
 	// Lock for thread safety
 	if lockNeeded {
@@ -212,7 +212,7 @@ func (c *TargetTypeCache) maintainCache(lockNeeded bool) {
 				break
 			}
 			// Remove the expired entry from the cache
-			log.Infof("Cached target type entry expired, iqn=%v, lastAccessed=%v", ss[i].Key, ss[i].Value)
+			log.Tracef("Cached target type entry expired, iqn=%v, lastAccessed=%v", ss[i].Key, ss[i].Value)
 			delete(c.cache, ss[i].Key)
 		}
 	}
@@ -220,7 +220,7 @@ func (c *TargetTypeCache) maintainCache(lockNeeded bool) {
 	// Remove any entries needed to stay within the cache limits
 	if len(c.cache) > c.maxCachedEntries {
 		for i := c.maxCachedEntries; i < len(ss); i++ {
-			log.Infof("Removing cached target entry, iqn=%v, lastAccessed=%v", ss[i].Key, ss[i].Value)
+			log.Tracef("Removing cached target entry, iqn=%v, lastAccessed=%v", ss[i].Key, ss[i].Value)
 			delete(c.cache, ss[i].Key)
 		}
 	}
