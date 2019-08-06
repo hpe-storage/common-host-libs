@@ -103,9 +103,9 @@ func (provider *ContainerStorageProvider) login() (int, error) {
 		Password: provider.Credentials.Password,
 	}
 
-	// If serviceName is not specified (i.e, Off-Array), then pass the array IP address as well.
+	// If serviceName is not specified (i.e, Off-Array), then pass the backend IP address as well.
 	if provider.Credentials.ServiceName != "" {
-		token.ArrayIP = provider.Credentials.Backend
+		token.Backend = provider.Credentials.Backend
 	}
 
 	status, err := provider.Client.DoJSON(
