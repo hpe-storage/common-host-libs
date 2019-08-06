@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	arrayIP = ""
+	backend = ""
 )
 
 func TestPluginSuite(t *testing.T) {
@@ -27,15 +27,15 @@ func TestPluginSuite(t *testing.T) {
 	// _TestPluginSuite(t)
 }
 
-func getArrayIP(t *testing.T) string {
-	ip, isSet := os.LookupEnv("ARRAY_IP")
+func getBackend(t *testing.T) string {
+	ip, isSet := os.LookupEnv("BACKEND")
 	if isSet {
-		arrayIP = ip
+		backend = ip
 	}
-	if arrayIP == "" {
-		t.Fatal("valid array IP is required for integration tests. This can be set using ARRAY_IP env")
+	if backend == "" {
+		t.Fatal("valid backend IP is required for integration tests. This can be set using BACKEND env")
 	}
-	return arrayIP
+	return backend
 }
 
 // nolint: gocyclo
@@ -109,7 +109,7 @@ func _TestPluginSuite(t *testing.T) {
 func realCsp(t *testing.T) *ContainerStorageProvider {
 	provider, err := NewContainerStorageProvider(
 		&storageprovider.Credentials{
-			Backend:     getArrayIP(t),
+			Backend:     getBackend(t),
 			ServicePort: 443,
 			ContextPath: "/csp",
 			Username:    "admin",
