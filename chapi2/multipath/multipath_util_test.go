@@ -11,7 +11,7 @@ import (
 
 const (
 	minCacheEntries  = 10                       // Minimum number of cached entries we'll test
-	maxCacheEntries  = 512                      // Maximum number of cached entries we'll test
+	maxCacheEntries  = 32                       // Maximum number of cached entries we'll test
 	targetExpiration = (2 * time.Second)        // Amount of time to keep cache entry around if not accessed
 	cleanupFrequency = (100 * time.Millisecond) // Background thread cache cleanup frequency
 )
