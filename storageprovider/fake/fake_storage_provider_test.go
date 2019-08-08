@@ -4,9 +4,9 @@ package fake
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/model"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -25,7 +25,7 @@ func TestPluginSuite(t *testing.T) {
 	// create a parent volume
 	config := make(map[string]interface{})
 	config["test"] = "test"
-	volume, err := provider.CreateVolume(volumeName, volumeSize, config)
+	volume, err := provider.CreateVolume(volumeName, volumeName, volumeSize, config)
 	if err != nil {
 		t.Fatal("Failed to create volume " + volumeName)
 	}
@@ -71,7 +71,7 @@ func TestPluginSuite(t *testing.T) {
 	deleteSnapshot(t, provider, snapshot)
 
 	// Create a new snapshot manually
-	snapshot, err = provider.CreateSnapshot(snapshotName, volume.ID)
+	snapshot, err = provider.CreateSnapshot(snapshotName, snapshotName, volume.ID)
 	if err != nil {
 		t.Fatal("Failed to create snapshot " + snapshotName)
 	}
@@ -98,7 +98,7 @@ func fakeCsp() *StorageProvider {
 func createClone(t *testing.T, provider *StorageProvider, sourceVolumeID, snapshotID string) *model.Volume {
 	config := make(map[string]interface{})
 	config["test"] = "test"
-	clone, err := provider.CloneVolume(cloneName, sourceVolumeID, snapshotID, config)
+	clone, err := provider.CloneVolume(cloneName, cloneName, sourceVolumeID, snapshotID, config)
 	if err != nil {
 		t.Fatal("Failed to clone volume")
 	}
