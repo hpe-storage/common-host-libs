@@ -38,7 +38,7 @@ type StorageProvider interface {
 	GetSnapshot(id string) (*model.Snapshot, error)
 	GetSnapshotByName(name string, sourceVolID string) (*model.Snapshot, error)
 	GetSnapshots(sourceVolID string) ([]*model.Snapshot, error)
-	CreateSnapshot(name, description, sourceVolID string) (*model.Snapshot, error)
+	CreateSnapshot(name, description, sourceVolID string, opts map[string]interface{}) (*model.Snapshot, error)
 	DeleteSnapshot(id string) error
 }
 

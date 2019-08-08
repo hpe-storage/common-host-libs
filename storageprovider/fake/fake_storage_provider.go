@@ -70,7 +70,7 @@ func (provider *StorageProvider) CloneVolume(name, description, sourceID, snapsh
 		}
 	} else if snapshotID == "" {
 		snapshotName := "testSnapshot"
-		snapshot, err = provider.CreateSnapshot(snapshotName, snapshotName, sourceID)
+		snapshot, err = provider.CreateSnapshot(snapshotName, snapshotName, sourceID, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -186,7 +186,7 @@ func (provider *StorageProvider) GetSnapshot(id string) (*model.Snapshot, error)
 }
 
 // CreateSnapshot returns a fake snapshot
-func (provider *StorageProvider) CreateSnapshot(name, description, sourceID string) (*model.Snapshot, error) {
+func (provider *StorageProvider) CreateSnapshot(name, description, sourceID string, opts map[string]interface{}) (*model.Snapshot, error) {
 	if _, ok := provider.snapshots[name]; ok {
 		return nil, fmt.Errorf("Snapshot named %s already exists", name)
 	}
