@@ -361,7 +361,7 @@ func (provider *ContainerStorageProvider) PublishVolume(id, nodeID, accessProtoc
 
 	status, err := provider.invoke(
 		&connectivity.Request{
-			Action:        "POST",
+			Action:        "PUT",
 			Path:          fmt.Sprintf("/containers/v1/volumes/%s/actions/publish", id),
 			Payload:       &DataWrapper{Data: publishOptions},
 			Response:      &dataResponse,
@@ -381,7 +381,7 @@ func (provider *ContainerStorageProvider) UnpublishVolume(id, nodeID string) err
 
 	status, err := provider.invoke(
 		&connectivity.Request{
-			Action:        "POST",
+			Action:        "PUT",
 			Path:          fmt.Sprintf("/containers/v1/volumes/%s/actions/unpublish", id),
 			Payload:       &DataWrapper{Data: &model.PublishOptions{NodeID: nodeID}},
 			Response:      nil,
