@@ -71,7 +71,10 @@ func TestPluginSuite(t *testing.T) {
 	deleteSnapshot(t, provider, snapshot)
 
 	// Create a new snapshot manually
-	snapshot, err = provider.CreateSnapshot(snapshotName, snapshotName, volume.ID)
+	snapshotConfig := make(map[string]interface{})
+	snapshotConfig["test"] = "test"
+
+	snapshot, err = provider.CreateSnapshot(snapshotName, snapshotName, volume.ID, snapshotConfig)
 	if err != nil {
 		t.Fatal("Failed to create snapshot " + snapshotName)
 	}
