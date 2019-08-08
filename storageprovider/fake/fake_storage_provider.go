@@ -99,14 +99,14 @@ func (provider *StorageProvider) DeleteVolume(id string) error {
 }
 
 // PublishVolume returns fake publish data
-func (provider *StorageProvider) PublishVolume(id, nodeID, accessProtocol string) (*model.PublishInfo, error) {
+func (provider *StorageProvider) PublishVolume(id, hostID, accessProtocol string) (*model.PublishInfo, error) {
 	return &model.PublishInfo{
 		SerialNumber: "eui.fake",
 	}, nil
 }
 
 // UnpublishVolume does nothing
-func (provider *StorageProvider) UnpublishVolume(id, nodeID string) error {
+func (provider *StorageProvider) UnpublishVolume(id, hostID string) error {
 	return nil
 }
 

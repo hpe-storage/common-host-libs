@@ -346,8 +346,8 @@ func (provider *ContainerStorageProvider) DeleteVolume(id string) error {
 	return err
 }
 
-// PublishVolume will make a volume visible (add an ACL) to the given node
-func (provider *ContainerStorageProvider) PublishVolume(id, nodeID, accessProtocol string) (*model.PublishInfo, error) {
+// PublishVolume will make a volume visible (add an ACL) to the given host
+func (provider *ContainerStorageProvider) PublishVolume(id, hostID, accessProtocol string) (*model.PublishInfo, error) {
 	dataResponse := &DataWrapper{
 		Data: &model.PublishInfo{},
 	}
@@ -355,7 +355,7 @@ func (provider *ContainerStorageProvider) PublishVolume(id, nodeID, accessProtoc
 	var errorResponse *ErrorsPayload
 
 	publishOptions := &model.PublishOptions{
-		NodeID:         nodeID,
+		HostID:         hostID,
 		AccessProtocol: accessProtocol,
 	}
 
@@ -375,15 +375,15 @@ func (provider *ContainerStorageProvider) PublishVolume(id, nodeID, accessProtoc
 	return dataResponse.Data.(*model.PublishInfo), err
 }
 
-// UnpublishVolume will make a volume invisible (remove an ACL) from the given node
-func (provider *ContainerStorageProvider) UnpublishVolume(id, nodeID string) error {
+// UnpublishVolume will make a volume invisible (remove an ACL) from the given host
+func (provider *ContainerStorageProvider) UnpublishVolume(id, hostID string) error {
 	var errorResponse *ErrorsPayload
 
 	status, err := provider.invoke(
 		&connectivity.Request{
 			Action:        "PUT",
 			Path:          fmt.Sprintf("/containers/v1/volumes/%s/actions/unpublish", id),
-			Payload:       &DataWrapper{Data: &model.PublishOptions{NodeID: nodeID}},
+			Payload:       &DataWrapper{Data: &model.PublishOptions{HostID: hostID}},
 			Response:      nil,
 			ResponseError: errorResponse,
 		},
