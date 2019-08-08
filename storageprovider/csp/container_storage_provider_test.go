@@ -47,7 +47,7 @@ func _TestPluginSuite(t *testing.T) {
 	// create a parent volume
 	config := make(map[string]interface{})
 	config["test"] = "test"
-	volume, err := provider.CreateVolume(volumeName, volumeSize, config)
+	volume, err := provider.CreateVolume(volumeName, volumeName, volumeSize, config)
 	if err != nil {
 		t.Fatal("Failed to create volume " + volumeName)
 	}
@@ -87,7 +87,7 @@ func _TestPluginSuite(t *testing.T) {
 	deleteSnapshot(t, provider, snapshot)
 
 	// Create a new snapshot manually
-	snapshot, err = provider.CreateSnapshot(snapshotName, volume.ID)
+	snapshot, err = provider.CreateSnapshot(snapshotName, snapshotName, volume.ID, nil)
 	if err != nil {
 		t.Fatal("Failed to create snapshot " + snapshotName)
 	}
@@ -126,7 +126,7 @@ func realCsp(t *testing.T) *ContainerStorageProvider {
 func createClone(t *testing.T, provider *ContainerStorageProvider, sourceVolumeID, snapshotID string) *model.Volume {
 	config := make(map[string]interface{})
 	config["test"] = "test"
-	clone, err := provider.CloneVolume(cloneName, sourceVolumeID, snapshotID, config)
+	clone, err := provider.CloneVolume(cloneName, cloneName, sourceVolumeID, snapshotID, config)
 	if err != nil {
 		t.Fatal("Failed to clone volume")
 	}
