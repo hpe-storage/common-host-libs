@@ -45,9 +45,13 @@ func GetDeviceBySerial(serialNumber string) (device *model.Device, err error) {
 			}
 			device := &model.Device{}
 			// ../../sdb
+
 			devNames := strings.Split(pathName, "/")
-			device.Pathname = "/dev/" + devNames[2]
-			device.AltFullPathName = "/dev/" + devNames[2]
+			if len(devNames) == 0 {
+				return nil, fmt.Errorf("unable to get device details from symlink %s and path %s", diskBySerial+f.Name(), pathName)
+			}
+			device.Pathname = "/dev/" + devNames[len(devNames)-1]
+			device.AltFullPathName = "/dev/" + devNames[len(devNames)-1]
 			device.SerialNumber = serialNumber
 			return device, nil
 		}
