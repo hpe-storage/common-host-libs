@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"unsafe"
 
-	log "github.rtplab.nimblestorage.com/dcs/common/logger"
+	log "github.com/hpe-storage/common-host-libs/logger"
 )
 
 // AddIScsiSendTargetPortal - Go wrapped Win32 API - AddIScsiSendTargetPortalW()

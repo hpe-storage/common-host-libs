@@ -24,6 +24,10 @@ type Path struct {
 type NetworkPrivate struct {
 }
 
+// TargetPortalPrivate provides model.TargetPortal platform specific private data
+type TargetPortalPrivate struct {
+}
+
 // DevicePrivate provides model.Device platform specific private data
 type DevicePrivate struct {
 	Paths []Path `json:"-"` // Physical path details (used internally by CHAPI server)

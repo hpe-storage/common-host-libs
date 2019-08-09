@@ -4,10 +4,9 @@ package multipath
 
 import (
 	"fmt"
-	"net"
-	"strconv"
 
 	"github.com/hpe-storage/common-host-libs/chapi2/cerrors"
+	"github.com/hpe-storage/common-host-libs/chapi2/iscsi"
 	"github.com/hpe-storage/common-host-libs/chapi2/model"
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/windows/ioctl"
@@ -66,7 +65,7 @@ func (plugin *MultipathPlugin) getAllDeviceDetails(serialNumber string) ([]*mode
 	// On a Group Scoped Target (GST), a single target could have multiple LUNs.  To speed the
 	// enumerate of a device's target ports, we'll cache the iqn target ports so that they can
 	// be used on other GST LUNs (if present).
-	cachedTargetPortals := make(map[string][]model.TargetPortal)
+	cachedTargetPortals := make(map[string][]*model.TargetPortal)
 
 	// Loop through and create a fully populated array of model.Device objects
 	var devices []*model.Device
@@ -178,7 +177,7 @@ func (plugin *MultipathPlugin) createFileSystem(device model.Device, filesystem 
 // this routine can cache the last enumerated target ports.  This routine first checks the cache to
 // see if the target values are known.  If not, then the target is queried to retrieve this
 // information and update the cache.
-func (plugin *MultipathPlugin) getIscsiTarget(devicePathID string, targetMappings []*iscsidsc.ISCSI_TARGET_MAPPING, cachedTargetPortals map[string][]model.TargetPortal) (*model.IscsiTarget, error) {
+func (plugin *MultipathPlugin) getIscsiTarget(devicePathID string, targetMappings []*iscsidsc.ISCSI_TARGET_MAPPING, cachedTargetPortals map[string][]*model.TargetPortal) (*model.IscsiTarget, error) {
 	log.Infof(">>>>> getIscsiTarget, devicePathID=%v", devicePathID)
 	defer log.Info("<<<<< getIscsiTarget")
 
@@ -190,6 +189,9 @@ func (plugin *MultipathPlugin) getIscsiTarget(devicePathID string, targetMapping
 
 	// Define the IscsiTarget object we'll return
 	var iscsiTarget *model.IscsiTarget
+
+	// Allocate an iSCSI plugin object
+	iscsiPlugin := iscsi.NewIscsiPlugin()
 
 	// Loop through our enumerated iSCSI target mappings looking for a match
 	for _, targetMapping := range targetMappings {
@@ -218,7 +220,7 @@ func (plugin *MultipathPlugin) getIscsiTarget(devicePathID string, targetMapping
 		// the target portals from the device.
 		iscsiTarget.TargetPortals = cachedTargetPortals[targetMapping.TargetName]
 		if iscsiTarget.TargetPortals == nil {
-			iscsiTarget.TargetPortals, _ = plugin.getTargetPortals(targetMapping.InitiatorName, targetMapping.TargetName)
+			iscsiTarget.TargetPortals, _ = iscsiPlugin.GetTargetPortals(targetMapping.TargetName, true)
 			if iscsiTarget.TargetPortals != nil {
 				cachedTargetPortals[targetMapping.TargetName] = iscsiTarget.TargetPortals
 			}
@@ -236,33 +238,4 @@ func (plugin *MultipathPlugin) getIscsiTarget(devicePathID string, targetMapping
 	}
 
 	return iscsiTarget, nil
-}
-
-// getTargetPortals enumerates the target portals for the given initiator/target
-func (plugin *MultipathPlugin) getTargetPortals(initiatorName, targetName string) (chapiTargetPortals []model.TargetPortal, err error) {
-	log.Infof(">>>>> getTargetPortals, initiatorName=%v, targetName=%v", initiatorName, targetName)
-	defer log.Info("<<<<< getTargetPortals")
-
-	// Retrieve the target portals from the iSCSI initiator
-	var targetPortals []*iscsidsc.ISCSI_TARGET_PORTAL
-	targetPortals, err = iscsidsc.ReportIScsiTargetPortals(initiatorName, targetName, true)
-	if err != nil {
-		return nil, err
-	}
-
-	// Target portals have been enumerated, map iscsidsc.ISCSI_TARGET_PORTAL
-	// objects into model.TargetPortal array.
-	chapiTargetPortals = make([]model.TargetPortal, 0)
-	for _, targetPortalWindows := range targetPortals {
-
-		if ipv4Addr := net.ParseIP(targetPortalWindows.Address); ipv4Addr.To4() != nil {
-			chapiTargetPortal := model.TargetPortal{
-				Address: targetPortalWindows.Address,
-				Port:    strconv.Itoa(int(targetPortalWindows.Socket)),
-			}
-			chapiTargetPortals = append(chapiTargetPortals, chapiTargetPortal)
-		}
-	}
-
-	return chapiTargetPortals, nil
 }

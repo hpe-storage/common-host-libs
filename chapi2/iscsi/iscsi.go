@@ -36,8 +36,10 @@ func (plugin *IscsiPlugin) GetDiscoveredTargets() ([]*model.IscsiTarget, error) 
 func (plugin *IscsiPlugin) GetAllLoggedInTargets() ([]*model.IscsiTarget, error) {
 	return nil, nil
 }
-func (plugin *IscsiPlugin) GetTargetPortals(targetName string) ([]string, error) {
-	return nil, nil
+func (plugin *IscsiPlugin) GetTargetPortals(targetName string, ipv4Only bool) ([]*model.TargetPortal, error) {
+	log.Infof(">>> GetTargetPortals, targetName=%v, ipv4Only=%v", targetName, ipv4Only)
+	defer log.Infoln("<<< GetTargetPortals")
+	return plugin.getTargetPortals(targetName, ipv4Only)
 }
 func (plugin *IscsiPlugin) GetSessionProperties(targetName string, sessionId string) (map[string]string, error) {
 	return nil, nil

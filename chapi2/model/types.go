@@ -22,7 +22,18 @@ package model
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 const (
-	TargetScopeGroup  = "group"  // TargetScopeGroup Group Scoped Target (GST)
+	// AccessProtocolIscsi - iSCSI volume
+	AccessProtocolIscsi = "iscsi"
+
+	// AccessProtocolFC - Fibre Channel volume
+	AccessProtocolFC = "fc"
+)
+
+const (
+	// TargetScopeGroup - Multi-LUN capable target, Group Scoped Target (GST)
+	TargetScopeGroup = "group" // Group Scoped Target (GST)
+
+	// TargetScopeVolume - Single LUN capable target, Volume Scoped Target (VST)
 	TargetScopeVolume = "volume" // Volume Scoped Target (VST)
 )
 
@@ -73,16 +84,17 @@ type Initiator struct {
 
 // IscsiTarget struct
 type IscsiTarget struct {
-	Name          string         `json:"name,omitempty"`           // Target iSCSI iqn
-	TargetPortals []TargetPortal `json:"target_portals,omitempty"` // Target portals
-	TargetScope   string         `json:"target_scope,omitempty"`   // GST="group", VST="volume" or empty if unknown scope or FC
+	Name          string          `json:"name,omitempty"`           // Target iSCSI iqn
+	TargetPortals []*TargetPortal `json:"target_portals,omitempty"` // Target portals
+	TargetScope   string          `json:"target_scope,omitempty"`   // GST="group", VST="volume" or empty if unknown scope or FC
 }
 
 // TargetPortal provides information for a single iSCSI target portal (i.e. Data IP)
 type TargetPortal struct {
-	Address string `json:"address,omitempty"` // Target port IP address
-	Port    string `json:"port,omitempty"`    // Target port socket
-	Tag     string `json:"tag,omitempty"`     // Target port tag
+	Address string               `json:"address,omitempty"` // Target port IP address
+	Port    string               `json:"port,omitempty"`    // Target port socket
+	Tag     string               `json:"tag,omitempty"`     // Target port tag
+	Private *TargetPortalPrivate `json:"-"`                 // Private TargetPortal properties used internally by CHAPI
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
