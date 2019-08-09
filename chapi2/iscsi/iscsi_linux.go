@@ -33,7 +33,7 @@ func getIscsiInitiators() (init *model.Initiator, err error) {
 		return nil, cerrors.NewChapiError(cerrors.NotFound, errorMessageEmptyIqnFound)
 	}
 	log.Infof("got iscsi initiator name as %s", initiators[0])
-	init = &model.Initiator{AccessProtocol: "iscsi", Init: initiators}
+	init = &model.Initiator{AccessProtocol: model.AccessProtocolIscsi, Init: initiators}
 	return init, err
 }
 
@@ -48,4 +48,10 @@ func getTargetScope(targetName string) (targetScope string, err error) {
 func rescanIscsiTarget(lunID string) error {
 	// TODO
 	return nil
+}
+
+// getTargetPortals enumerates the target portals for the given iSCSI target
+func (plugin *IscsiPlugin) getTargetPortals(targetName string, ipv4Only bool) ([]*model.TargetPortal, error) {
+	// TODO
+	return nil, nil
 }

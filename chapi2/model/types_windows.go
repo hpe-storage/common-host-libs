@@ -3,6 +3,7 @@
 package model
 
 import (
+	"github.com/hpe-storage/common-host-libs/windows/iscsidsc"
 	"github.com/hpe-storage/common-host-libs/windows/wmi"
 )
 
@@ -15,6 +16,11 @@ type KeyFileInfo struct {
 type NetworkPrivate struct {
 	InitiatorInstance   string // WMI MSiSCSI_PortalInfoClass->InstanceName
 	InitiatorPortNumber uint32 // WMI MSiSCSI_PortalInfoClass->ISCSI_PortalInfo->Index
+}
+
+// TargetPortalPrivate provides model.TargetPortal platform specific private data
+type TargetPortalPrivate struct {
+	WindowsTargetPortal *iscsidsc.ISCSI_TARGET_PORTAL `json:"-"` // Windows iSCSI target portal object
 }
 
 // DevicePrivate provides model.Device platform specific private data
