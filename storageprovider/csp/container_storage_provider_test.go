@@ -16,6 +16,7 @@ const (
 	volumeSize   = 1024 * 1024 * 1024
 	snapshotName = "testCspSnapshot"
 	cloneName    = "testCspVolClone"
+	cloneSize    = 2 * 1024 * 1024 * 1024
 )
 
 var (
@@ -71,7 +72,7 @@ func _TestPluginSuite(t *testing.T) {
 	assert.True(t, len(volumes) != 0)
 
 	// CloneVolume without a source snapshot ID will indirectly test snapshot creation
-	clone := createClone(t, provider, volume.ID, "")
+	clone := createClone(t, provider, volume.ID, "", cloneSize)
 
 	// Get the auto created snapshot
 	snapshot, err := provider.GetSnapshot(clone.BaseSnapID)
@@ -94,7 +95,7 @@ func _TestPluginSuite(t *testing.T) {
 	assert.Equal(t, snapshot.VolumeID, volume.ID)
 
 	// Clone from that snapshot
-	clone = createClone(t, provider, "", snapshot.ID)
+	clone = createClone(t, provider, "", snapshot.ID, cloneSize)
 
 	// Delete the clone
 	deleteVolume(t, provider, clone)
@@ -123,14 +124,15 @@ func realCsp(t *testing.T) *ContainerStorageProvider {
 	return provider
 }
 
-func createClone(t *testing.T, provider *ContainerStorageProvider, sourceVolumeID, snapshotID string) *model.Volume {
+func createClone(t *testing.T, provider *ContainerStorageProvider, sourceVolumeID, snapshotID string, size int64) *model.Volume {
 	config := make(map[string]interface{})
 	config["test"] = "test"
-	clone, err := provider.CloneVolume(cloneName, cloneName, sourceVolumeID, snapshotID, config)
+	clone, err := provider.CloneVolume(cloneName, cloneName, sourceVolumeID, snapshotID, size, config)
 	if err != nil {
 		t.Fatal("Failed to clone volume")
 	}
 	assert.Equal(t, clone.Name, cloneName)
+	assert.Equal(t, clone.Size, cloneSize)
 
 	snapshot, err := provider.GetSnapshot(clone.BaseSnapID)
 	if err != nil {
