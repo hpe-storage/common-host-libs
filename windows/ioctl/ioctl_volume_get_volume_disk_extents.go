@@ -23,8 +23,8 @@ type DISK_EXTENT struct {
 // GetVolumeDiskExtents issues an IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS to the given volume and
 // returns back the volume's DISK_EXTENT array.
 func GetVolumeDiskExtents(volumePathID string) (diskExtents []DISK_EXTENT, err error) {
-	log.Infof(">>>>> GetVolumeDiskExtents, volumePathID=%v", volumePathID)
-	defer log.Info("<<<<< GetVolumeDiskExtents")
+	log.Tracef(">>>>> GetVolumeDiskExtents, volumePathID=%v", volumePathID)
+	defer log.Trace("<<<<< GetVolumeDiskExtents")
 
 	// Convert volume path to a UTF16 string (strip any trailing backslash)
 	volumePathID = strings.TrimRight(volumePathID, `\`)
@@ -85,7 +85,7 @@ func GetVolumeDiskExtents(volumePathID string) (diskExtents []DISK_EXTENT, err e
 	// Log the results
 	if err == nil {
 		for _, extent := range diskExtents {
-			log.Infof("DiskNumber=%v, StartingOffset=%v, ExtentLength=%v", extent.DiskNumber, extent.StartingOffset, extent.ExtentLength)
+			log.Tracef("DiskNumber=%v, StartingOffset=%v, ExtentLength=%v", extent.DiskNumber, extent.StartingOffset, extent.ExtentLength)
 		}
 	} else {
 		// Log error on failure

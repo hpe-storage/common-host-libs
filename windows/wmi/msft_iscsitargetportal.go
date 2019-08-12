@@ -21,8 +21,8 @@ type MSFT_iSCSITargetPortal struct {
 
 // GetMSFTiSCSITargetPortal enumerates this host's MSFT_iSCSITargetPortal objects
 func GetMSFTiSCSITargetPortal(whereOperator string) (portals []*MSFT_iSCSITargetPortal, err error) {
-	log.Infof(">>>>> GetMSFTiSCSITargetPortal, whereOperator=%v", whereOperator)
-	log.Info("<<<<< GetMSFTiSCSITargetPortal")
+	log.Tracef(">>>>> GetMSFTiSCSITargetPortal, whereOperator=%v", whereOperator)
+	log.Trace("<<<<< GetMSFTiSCSITargetPortal")
 
 	// Form the WMI query
 	wmiQuery := "SELECT * FROM MSFT_iSCSITargetPortal"

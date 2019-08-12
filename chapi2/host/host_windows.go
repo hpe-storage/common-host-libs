@@ -31,8 +31,8 @@ var (
 
 //getNetworkInterfaces : get the array of network interfaces
 func getNetworkInterfaces() ([]*model.Network, error) {
-	log.Info(">>>>> getNetworkInterfaces")
-	defer log.Info("<<<<< getNetworkInterfaces")
+	log.Trace(">>>>> getNetworkInterfaces")
+	defer log.Trace("<<<<< getNetworkInterfaces")
 
 	// Start with an empty array of NICs to return
 	var nics []*model.Network
@@ -91,7 +91,7 @@ func getNetworkInterfaces() ([]*model.Network, error) {
 
 			// Skip any cluster IP
 			if isClusterIP {
-				log.Infof("Ignoring cluster IP %v", ipAddress)
+				log.Tracef("Ignoring cluster IP %v", ipAddress)
 				continue
 			}
 
@@ -154,8 +154,8 @@ func getNetworkInterfaces() ([]*model.Network, error) {
 // map of syscall.IpAdapterInfo objects is returned to the caller with the index to the map being
 // the NIC index.
 func getAdaptersInfo() (adapters map[int]*syscall.IpAdapterInfo, err error) {
-	log.Info(">>>>> getAdaptersInfo")
-	defer log.Info("<<<<< getAdaptersInfo")
+	log.Trace(">>>>> getAdaptersInfo")
+	defer log.Trace("<<<<< getAdaptersInfo")
 
 	// We don't know the size of the buffer we'll need to retrieve the information from the Win32
 	// API.  We'll start at 0 and increase as we start enumerating adapters from the API.
@@ -269,7 +269,7 @@ func getDomainName() (string, error) {
 	// We don't expect the query to fail.  If it does, log an informational entry and return an
 	// empty domain string with no error.
 	if err != nil {
-		log.Infof("Domain query failure, computer probably not part of a domain, error=%v", err)
+		log.Tracef("Domain query failure, computer probably not part of a domain, error=%v", err)
 		return "", nil
 	}
 

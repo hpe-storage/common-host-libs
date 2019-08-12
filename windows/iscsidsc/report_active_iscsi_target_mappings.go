@@ -15,8 +15,8 @@ import (
 // ReportActiveIScsiTargetMappings - Go wrapped Win32 API - ReportActiveIScsiTargetMappingsW()
 // https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-reportactiveiscsitargetmappingsw
 func ReportActiveIScsiTargetMappings() (targetMappings []*ISCSI_TARGET_MAPPING, err error) {
-	log.Info(">>>>> ReportActiveIScsiTargetMappings")
-	defer log.Info("<<<<< ReportActiveIScsiTargetMappings")
+	log.Trace(">>>>> ReportActiveIScsiTargetMappings")
+	defer log.Trace("<<<<< ReportActiveIScsiTargetMappings")
 
 	// Call ReportActiveIScsiTargetMappingsW  to find the required buffer size
 	var bufferSize, mappingCount uint32
@@ -46,11 +46,11 @@ func ReportActiveIScsiTargetMappings() (targetMappings []*ISCSI_TARGET_MAPPING, 
 	} else {
 		// Log the target mappings
 		for index, targetMapping := range targetMappings {
-			log.Infof("targetMappings[%v], TargetName=%v, OSDeviceName=%v, SessionId=%x-%x, OSBusNumber=%02Xh, OSTargetNumber=%02Xh",
+			log.Tracef("targetMappings[%v], TargetName=%v, OSDeviceName=%v, SessionId=%x-%x, OSBusNumber=%02Xh, OSTargetNumber=%02Xh",
 				index, targetMapping.TargetName, targetMapping.OSDeviceName, targetMapping.SessionId.AdapterUnique, targetMapping.SessionId.AdapterSpecific,
 				targetMapping.OSBusNumber, targetMapping.OSTargetNumber)
 			for index2, lun := range targetMapping.LUNList {
-				log.Infof("    LUNList[%v], OSLUN=%02Xh, TargetLUN=%04Xh", index2, lun.OSLUN, lun.TargetLUN)
+				log.Tracef("    LUNList[%v], OSLUN=%02Xh, TargetLUN=%04Xh", index2, lun.OSLUN, lun.TargetLUN)
 			}
 
 		}

@@ -16,8 +16,8 @@ import (
 // ReportIscsiTargets - Go wrapped Win32 API - ReportIscsiTargets()
 // https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-reportiscsitargetsw
 func ReportIscsiTargets(forceUpdate bool) (targets []string, err error) {
-	log.Infof(">>>>> ReportIscsiTargets, forceUpdate=%v", forceUpdate)
-	defer log.Info("<<<<< ReportIscsiTargets")
+	log.Tracef(">>>>> ReportIscsiTargets, forceUpdate=%v", forceUpdate)
+	defer log.Trace("<<<<< ReportIscsiTargets")
 
 	//
 	// Note that the algorithm employed below is ported from C# ReportTargetIqns() including
@@ -98,7 +98,7 @@ func ReportIscsiTargets(forceUpdate bool) (targets []string, err error) {
 	} else {
 		// Log the enumerated targets
 		for index, target := range targets {
-			log.Infof("targets[%v]=%v", index, target)
+			log.Tracef("targets[%v]=%v", index, target)
 		}
 	}
 

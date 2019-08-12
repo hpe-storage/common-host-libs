@@ -16,8 +16,8 @@ import (
 // ReportIScsiTargetPortals - Go wrapped Win32 API - ReportIScsiTargetPortalsW()
 // https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-reportiscsitargetportalsw
 func ReportIScsiTargetPortals(initiatorName string, targetName string, ipv4Only bool) (targetPortals []*ISCSI_TARGET_PORTAL, err error) {
-	log.Infof(">>>>> ReportIScsiTargetPortals, initiatorName=%v, targetName=%v, ipv4Only=%v", initiatorName, targetName, ipv4Only)
-	defer log.Info("<<<<< ReportIScsiTargetPortals")
+	log.Tracef(">>>>> ReportIScsiTargetPortals, initiatorName=%v, targetName=%v, ipv4Only=%v", initiatorName, targetName, ipv4Only)
+	defer log.Trace("<<<<< ReportIScsiTargetPortals")
 
 	// Get UTF16 versions of initiatorName and targetName
 	initiatorNameUTF16 := syscall.StringToUTF16(initiatorName)
@@ -58,7 +58,7 @@ func ReportIScsiTargetPortals(initiatorName string, targetName string, ipv4Only 
 	} else {
 		// Log the enumerated target portals
 		for index, targetPortal := range targetPortals {
-			log.Infof("targetPortals[%v], Address=%v, Socket=%v", index, targetPortal.Address, targetPortal.Socket)
+			log.Tracef("targetPortals[%v], Address=%v, Socket=%v", index, targetPortal.Address, targetPortal.Socket)
 		}
 	}
 

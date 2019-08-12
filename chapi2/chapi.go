@@ -105,7 +105,7 @@ func NewRouter() *mux.Router {
 		//         {                                                      {
 		//              "access_protocol":  "iscsi",                           "access_protocol":  "iscsi",
 		//              "initiator":  [                                        "initiator":  [
-		//                  "iqn.1994-05.com.redhat:32b8e991e082"                  "iqn.1991-05.com.microsoft:hitdev-win011.mikeb.local"
+		//                  "iqn.1994-05.com.redhat:32b8e991e082"                  "iqn.1991-05.com.microsoft:hitdev-win011.local"
 		//             ]                                                      ]
 		//         }                                                      }
 		//     ]                                                      ]

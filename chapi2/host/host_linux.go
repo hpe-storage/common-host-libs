@@ -40,7 +40,7 @@ func getHostId() (string, error) {
 
 // getIPV4NetworkAddress returns network address for given ipv4 address and netmask
 func getIPV4NetworkAddress(ipv4Address, netMask string) (networkAddress string, err error) {
-	log.Info("GetIPV4NetworkAddress called with ", ipv4Address, " mask ", netMask)
+	log.Trace("GetIPV4NetworkAddress called with ", ipv4Address, " mask ", netMask)
 	if ipv4Address == "" || netMask == "" {
 		return "", cerrors.NewChapiErrorf(cerrors.InvalidArgument, errorMessageInvalidIpv4Address)
 	}
@@ -69,22 +69,22 @@ func getIPV4NetworkAddress(ipv4Address, netMask string) (networkAddress string, 
 		networkOctets[index] = strconv.FormatUint(networkOctet, 10)
 	}
 	networkAddress = fmt.Sprintf("%s.%s.%s.%s", networkOctets[0], networkOctets[1], networkOctets[2], networkOctets[3])
-	log.Info("network address being returned ", networkAddress)
+	log.Trace("network address being returned ", networkAddress)
 	return networkAddress, nil
 }
 
 //getNetworkInterfaces : get the array of network interfaces
 func getNetworkInterfaces() ([]*model.Network, error) {
-	log.Info(">>>>> GetNetworkInterfaces")
-	defer log.Info("<<<<< GetNetworkInterfaces")
+	log.Trace(">>>>> GetNetworkInterfaces")
+	defer log.Trace("<<<<< GetNetworkInterfaces")
 
 	interfaces, err := getInterfacesIPAddr()
 	return interfaces, err
 }
 
 func getMaskString(intMask int) string {
-	log.Info(">>>>> getMaskString called with ", intMask)
-	defer log.Info("<<<<< getMaskString")
+	log.Trace(">>>>> getMaskString called with ", intMask)
+	defer log.Trace("<<<<< getMaskString")
 
 	var mask uint64
 	mask = (0xFFFFFFFF << (32 - uint64(intMask))) & 0xFFFFFFFF //intMask is for eg: /24
@@ -97,14 +97,14 @@ func getMaskString(intMask int) string {
 		dmask -= 8
 	}
 	maskV4 := fmt.Sprintf(maskFmt, localmask[0], localmask[1], localmask[2], localmask[3])
-	log.Infof("mask(v4): %s", maskV4)
+	log.Tracef("mask(v4): %s", maskV4)
 
 	return maskV4
 }
 
 func getInterfacesIPAddr() ([]*model.Network, error) {
-	log.Info(">>>>> getInterfacesIpAddr")
-	defer log.Info("<<<<< getInterfacesIPAddr")
+	log.Trace(">>>>> getInterfacesIpAddr")
+	defer log.Trace("<<<<< getInterfacesIPAddr")
 
 	var nics []*model.Network
 	var nic *model.Network
@@ -115,17 +115,17 @@ func getInterfacesIPAddr() ([]*model.Network, error) {
 	}
 	outArr := strings.Split(out, "\n")
 	for _, line := range outArr {
-		log.Info("line :", line)
+		log.Trace("line :", line)
 		r := regexp.MustCompile(nameMtuStateKeyPattern)
 		if r.MatchString(line) {
 			matchedMap := util.FindStringSubmatchMap(line, r)
 			if nic != nil {
 				nics = append(nics, nic)
-				log.Info("Added :", nic.Name)
+				log.Trace("Added :", nic.Name)
 			}
 			mtu, er := strconv.ParseInt(matchedMap["Mtu"], 10, 32)
 			if er != nil {
-				log.Info("Err :", err)
+				log.Trace("Err :", err)
 				return nics, er
 			}
 			if matchedMap["UP"] == up {
@@ -147,7 +147,7 @@ func getInterfacesIPAddr() ([]*model.Network, error) {
 	}
 	if nic != nil {
 		nics = append(nics, nic)
-		log.Infof("getInterfacesIpAddr added %v to slice of NICs", nic)
+		log.Tracef("getInterfacesIpAddr added %v to slice of NICs", nic)
 	}
 	return nics, err
 }
@@ -159,7 +159,7 @@ func getInterfaceStatus(name string) bool {
 	if err != nil {
 		return false
 	}
-	log.Infoln("Obtained link status using ethtool for", name)
+	log.Traceln("Obtained link status using ethtool for", name)
 	r := regexp.MustCompile(linkStatusPattern)
 	lines := strings.Split(out, "\n")
 	for _, line := range lines {
@@ -171,13 +171,13 @@ func getInterfaceStatus(name string) bool {
 }
 
 func matchIPPattern(line string, nic *model.Network) (*model.Network, error) {
-	log.Infof(">>>> matchIPPattern called with %s", line)
-	defer log.Info("<<<<< matchIPPattern")
+	log.Tracef(">>>> matchIPPattern called with %s", line)
+	defer log.Trace("<<<<< matchIPPattern")
 
 	r := regexp.MustCompile(ipv4AddrKeyPattern)
 	if r.MatchString(line) {
 		matchedMap := util.FindStringSubmatchMap(line, r)
-		log.Info("matched out Map:", matchedMap)
+		log.Trace("matched out Map:", matchedMap)
 
 		mask, er := strconv.ParseInt(matchedMap["Mask"], 10, 64)
 		if er != nil {
@@ -191,7 +191,7 @@ func matchIPPattern(line string, nic *model.Network) (*model.Network, error) {
 		if r.MatchString(line) {
 			matchedMap := util.FindStringSubmatchMap(line, r)
 
-			log.Info("matched out map:", matchedMap)
+			log.Trace("matched out map:", matchedMap)
 			nic.Mac = matchedMap["Mac"]
 
 		} else {
@@ -199,7 +199,7 @@ func matchIPPattern(line string, nic *model.Network) (*model.Network, error) {
 			if r.MatchString(line) {
 				matchedMap := util.FindStringSubmatchMap(line, r)
 
-				log.Info("matched out map:", matchedMap)
+				log.Trace("matched out map:", matchedMap)
 				mask, er := strconv.ParseInt(matchedMap["Mask"], 10, 64)
 				if er != nil {
 					return nic, er
@@ -210,7 +210,7 @@ func matchIPPattern(line string, nic *model.Network) (*model.Network, error) {
 		}
 	}
 
-	log.Infof("matchIPPattern returning %v", nic)
+	log.Tracef("matchIPPattern returning %v", nic)
 	return nic, nil
 }
 

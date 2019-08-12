@@ -476,8 +476,8 @@ func Cleanup() {
 // ExecQuery executes the given WMI query, in the given namespace, and returns JSON objects
 func ExecQuery(wqlQuery string, namespace string, dst interface{}) (err error) {
 
-	log.Infof(">>>>> ExecQuery, wqlQuery=%v, namespace=%v", wqlQuery, namespace)
-	defer log.Info("<<<<< ExecQuery")
+	log.Tracef(">>>>> ExecQuery, wqlQuery=%v, namespace=%v", wqlQuery, namespace)
+	defer log.Trace("<<<<< ExecQuery")
 
 	// If our package init routine was unable to initialize COM, immediately fail the request
 	if wmiWbemLocator == nil {
@@ -514,7 +514,7 @@ func ExecQuery(wqlQuery string, namespace string, dst interface{}) (err error) {
 	}
 
 	// Log details about the destination object
-	log.Infof("Destination object, dstType=%v, dstPath=%v, isSlicePtr=%v", dstType.Name(), dstPath, isSlicePtr)
+	log.Tracef("Destination object, dstType=%v, dstPath=%v, isSlicePtr=%v", dstType.Name(), dstPath, isSlicePtr)
 
 	// How we execute WMI queries from Go is modeled from Microsoft's sample C++ code
 	// https://docs.microsoft.com/en-us/windows/desktop/wmisdk/example--getting-wmi-data-from-the-local-computer
@@ -556,7 +556,7 @@ func ExecQuery(wqlQuery string, namespace string, dst interface{}) (err error) {
 		// If WMI namespace isn't present on this host, we don't consider that an error and log the
 		// result as informational, else it's logged as an error.
 		if hres == WBEM_E_INVALID_NAMESPACE {
-			log.Info(msg)
+			log.Trace(msg)
 		} else {
 			log.Error(msg)
 		}
@@ -615,7 +615,7 @@ func ExecQuery(wqlQuery string, namespace string, dst interface{}) (err error) {
 		}
 
 		// Log the number of WMI classes enumerated thus far
-		log.Infof("Enumerating WMI class object %v", itemCount)
+		log.Tracef("Enumerating WMI class object %v", itemCount)
 
 		// Allocate a new Go object for the WMI class and then unmarshall the WMI class into the Go object
 		dstObject := reflect.New(dstType)
@@ -689,8 +689,6 @@ func getInterfaceType(dst interface{}) (dstPath string, dstType reflect.Type) {
 // of the caller to pass in a pointer to the Go object in order for this routine to populate
 // the object accordingly.
 func wmiClassToGoObject(wmiClass *ole.IUnknown, goObject interface{}, classProperty string) (err error) {
-	log.Infof(">>>>> wmiClassToGoObject, classProperty=%v", classProperty)
-	defer log.Info("<<<<< wmiClassToGoObject")
 
 	// Traverse the Go object to build up a key/value map of its fields
 	fieldMap, err := interfaceToFieldMap(goObject)
@@ -720,7 +718,7 @@ func wmiClassToGoObject(wmiClass *ole.IUnknown, goObject interface{}, classPrope
 
 	// Convert the WMI class name to text and log results
 	className := syscall.UTF16ToString((*[1024]uint16)(unsafe.Pointer(uintptr(vtProp.Val)))[:])
-	log.Infof("Enumerated WMI class name, __CLASS=%v", className)
+	log.Tracef("Enumerated WMI class name, __CLASS=%v", className)
 	ole.VariantClear(&vtProp)
 
 	// Query the WMI class property names
@@ -768,7 +766,7 @@ func wmiClassToGoObject(wmiClass *ole.IUnknown, goObject interface{}, classPrope
 				f := goObjectValue.Field(v.index)
 				f.Set(reflect.ValueOf(v.nilValue))
 			}
-			log.Infof(`Field "%v" defined in Go object but not supported by WMI on this host, nilValue=%v`, k, v.nilValue)
+			log.Tracef(`Field "%v" defined in Go object but not supported by WMI on this host, nilValue=%v`, k, v.nilValue)
 		}
 	}
 
@@ -780,7 +778,7 @@ func wmiClassToGoObject(wmiClass *ole.IUnknown, goObject interface{}, classPrope
 		if !ok {
 			// If there is no Go field definition, for the enumerated WMI property, log as informational
 			// so that we can add the property to the Go definition.
-			log.Infof(`Property "%v" returned by WMI but not defined in Go object`, classProperty)
+			log.Tracef(`Property "%v" returned by WMI but not defined in Go object`, classProperty)
 			continue
 		}
 

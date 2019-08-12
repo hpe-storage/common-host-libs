@@ -67,8 +67,8 @@ type Win32_DiskDrive struct {
 
 // GetWin32DiskDrive enumerates this host's Win32_DiskDrive objects
 func GetWin32DiskDrive(whereOperator string) (diskDevices []*Win32_DiskDrive, err error) {
-	log.Infof(">>>>> GetWin32DiskDrive, whereOperator=%v", whereOperator)
-	defer log.Info("<<<<< GetWin32DiskDrive")
+	log.Tracef(">>>>> GetWin32DiskDrive, whereOperator=%v", whereOperator)
+	defer log.Trace("<<<<< GetWin32DiskDrive")
 
 	// Form the WMI query
 	wmiQuery := "SELECT * FROM Win32_DiskDrive"
@@ -87,7 +87,7 @@ func GetWin32DiskDrive(whereOperator string) (diskDevices []*Win32_DiskDrive, er
 		if diskDevice.Index != ^uint32(0) {
 			capacity, _ := ioctl.GetDiskCapacity(diskDevice.Index)
 			if capacity > diskDevice.Size {
-				log.Infof("Adjusting disk capacity from %v to true size of %v", diskDevice.Size, capacity)
+				log.Tracef("Adjusting disk capacity from %v to true size of %v", diskDevice.Size, capacity)
 				diskDevice.Size = capacity
 			}
 		}

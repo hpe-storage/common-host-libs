@@ -15,8 +15,8 @@ import (
 // ReportIScsiSendTargetPortals - Go wrapped Win32 API - ReportIScsiSendTargetPortalsW()
 // https://docs.microsoft.com/is-is/windows/desktop/api/iscsidsc/nf-iscsidsc-reportiscsisendtargetportalsw
 func ReportIScsiSendTargetPortals() (targetPortals []*ISCSI_TARGET_PORTAL_INFO, err error) {
-	log.Info(">>>>> ReportIScsiSendTargetPortals")
-	defer log.Info("<<<<< ReportIScsiSendTargetPortals")
+	log.Trace(">>>>> ReportIScsiSendTargetPortals")
+	defer log.Trace("<<<<< ReportIScsiSendTargetPortals")
 
 	// Determine the target portal count on this host
 	var portalCount uint32
@@ -45,7 +45,7 @@ func ReportIScsiSendTargetPortals() (targetPortals []*ISCSI_TARGET_PORTAL_INFO, 
 	} else {
 		// Log the enumerated target portals
 		for index, targetPortal := range targetPortals {
-			log.Infof("targetPortals[%v], Address=%v, InitiatorPortNumber=%v", index, targetPortal.Address, int32(targetPortal.InitiatorPortNumber))
+			log.Tracef("targetPortals[%v], Address=%v, InitiatorPortNumber=%v", index, targetPortal.Address, int32(targetPortal.InitiatorPortNumber))
 		}
 	}
 

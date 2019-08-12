@@ -15,8 +15,8 @@ import (
 // GetIScsiInitiatorNodeName - Go wrapped Win32 API - GetIScsiInitiatorNodeNameW()
 // https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-getiscsiinitiatornodenamew
 func GetIScsiInitiatorNodeName() (initiatorNodeName string, err error) {
-	log.Info(">>>>> GetIScsiInitiatorNodeName")
-	defer log.Info("<<<<< GetIScsiInitiatorNodeName")
+	log.Trace(">>>>> GetIScsiInitiatorNodeName")
+	defer log.Trace("<<<<< GetIScsiInitiatorNodeName")
 
 	// Allocate a data buffer large enough to hold the initiator name
 	dataBuffer := make([]uint16, MAX_ISCSI_NAME_LEN+1)
@@ -25,7 +25,7 @@ func GetIScsiInitiatorNodeName() (initiatorNodeName string, err error) {
 	if iscsiErr, _, _ := procGetIScsiInitiatorNodeNameW.Call(uintptr(unsafe.Pointer(&dataBuffer[0]))); iscsiErr == ERROR_SUCCESS {
 		// Convert initiator name from UTF16 into a Go string
 		initiatorNodeName = syscall.UTF16ToString(dataBuffer[:])
-		log.Info("initiatorNodeName=", initiatorNodeName)
+		log.Trace("initiatorNodeName=", initiatorNodeName)
 	} else {
 		// If an unexpected error occurs, initialize error object and log failure
 		err = syscall.Errno(iscsiErr)
