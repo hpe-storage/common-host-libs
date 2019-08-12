@@ -55,3 +55,16 @@ func (plugin *IscsiPlugin) getTargetPortals(targetName string, ipv4Only bool) ([
 	// TODO
 	return nil, nil
 }
+
+// loginTarget is called to connect to the given iSCSI target.  The parent LoginTarget() routine
+// has already validated that target iqn and blockDev.IscsiAccessInfo are provided.
+func (plugin *IscsiPlugin) loginTarget(blockDev model.BlockDeviceAccessInfo) (err error) {
+	// TODO
+	return nil
+}
+
+// isTargetLoggedIn checks to see if the given iSCSI target is already logged in.
+func (plugin *IscsiPlugin) isTargetLoggedIn(targetName string) (bool, error) {
+	// TODO
+	return false, nil
+}

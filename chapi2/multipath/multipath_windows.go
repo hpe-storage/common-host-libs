@@ -18,8 +18,8 @@ import (
 // getDevices enumerates all the Nimble volumes while only providing basic details (e.g. serial number).
 // If a "serialNumber" is passed in, only that specific serial number is enumerated.
 func (plugin *MultipathPlugin) getDevices(serialNumber string) ([]*model.Device, error) {
-	log.Infof(">>>>> getDevices, serialNumber=%v", serialNumber)
-	defer log.Info("<<<<< getDevices")
+	log.Tracef(">>>>> getDevices, serialNumber=%v", serialNumber)
+	defer log.Trace("<<<<< getDevices")
 
 	// Enumerate all Nimble volumes
 	nimbleDisks, err := wmi.GetNimbleMSFTDisk(serialNumber)
@@ -34,8 +34,13 @@ func (plugin *MultipathPlugin) getDevices(serialNumber string) ([]*model.Device,
 			SerialNumber: nimbleDisk.SerialNumber,
 			Private:      &model.DevicePrivate{WindowsDisk: nimbleDisk},
 		}
-		log.Infof("SerialNumber=%v, Number=%v, IsOffline=%v, IsReadOnly=%v", nimbleDisk.SerialNumber, nimbleDisk.Number, nimbleDisk.IsOffline, nimbleDisk.IsReadOnly)
+		log.Tracef("SerialNumber=%v, Number=%v, IsOffline=%v, IsReadOnly=%v", nimbleDisk.SerialNumber, nimbleDisk.Number, nimbleDisk.IsOffline, nimbleDisk.IsReadOnly)
 		devices = append(devices, device)
+	}
+
+	// Make sure duplicate serial numbers are not detected (e.g. misconfigured MPIO)
+	if err = plugin.checkDuplicateSerialNumbers(devices); err != nil {
+		return nil, err
 	}
 
 	return devices, nil
@@ -44,8 +49,8 @@ func (plugin *MultipathPlugin) getDevices(serialNumber string) ([]*model.Device,
 // getDevices enumerates all the Nimble volumes while providing full details about the device.
 // If a "serialNumber" is passed in, only that specific serial number is enumerated.
 func (plugin *MultipathPlugin) getAllDeviceDetails(serialNumber string) ([]*model.Device, error) {
-	log.Info(">>>>> getAllDeviceDetails")
-	defer log.Info("<<<<< getAllDeviceDetails")
+	log.Trace(">>>>> getAllDeviceDetails")
+	defer log.Trace("<<<<< getAllDeviceDetails")
 
 	// Enumerate all Nimble volumes
 	nimbleDisks, err := wmi.GetNimbleMSFTDisk(serialNumber)
@@ -94,15 +99,15 @@ func (plugin *MultipathPlugin) getAllDeviceDetails(serialNumber string) ([]*mode
 		}
 
 		// Log the device details
-		log.Infof("Device %v, SerialNumber=%v, Pathname=%v, BusType=%v, Size=%v, IsOffline=%v, IsReadOnly=%v",
+		log.Tracef("Device %v, SerialNumber=%v, Pathname=%v, BusType=%v, Size=%v, IsOffline=%v, IsReadOnly=%v",
 			deviceIndex, device.SerialNumber, device.Pathname, nimbleDisk.BusType, device.Size, nimbleDisk.IsOffline, nimbleDisk.IsReadOnly)
 
 		// If it's an iSCSI target, log the iSCSI details
 		if device.IscsiTarget != nil {
-			log.Infof("    IQN   - %v", device.IscsiTarget.Name)
-			log.Infof("    Scope - %v", device.IscsiTarget.TargetScope)
+			log.Tracef("    IQN   - %v", device.IscsiTarget.Name)
+			log.Tracef("    Scope - %v", device.IscsiTarget.TargetScope)
 			for _, targetPortal := range device.IscsiTarget.TargetPortals {
-				log.Infof("    Port  - %v:%v", targetPortal.Address, targetPortal.Port)
+				log.Tracef("    Port  - %v:%v", targetPortal.Address, targetPortal.Port)
 			}
 		}
 
@@ -110,13 +115,33 @@ func (plugin *MultipathPlugin) getAllDeviceDetails(serialNumber string) ([]*mode
 		devices = append(devices, device)
 	}
 
+	// Make sure duplicate serial numbers are not detected (e.g. misconfigured MPIO)
+	if err = plugin.checkDuplicateSerialNumbers(devices); err != nil {
+		return nil, err
+	}
+
 	return devices, nil
+}
+
+// checkDuplicateSerialNumbers scans the array of CHAPI devices for any duplicate serial numbers.
+// If any are found, an error object is returned (e.g. misconfigured MPIO) else nil is returned.
+func (plugin *MultipathPlugin) checkDuplicateSerialNumbers(devices []*model.Device) error {
+	m := make(map[string]bool)
+	for _, device := range devices {
+		if m[device.SerialNumber] == true {
+			err := cerrors.NewChapiErrorf(cerrors.Internal, errorMessageMisconfiguredMultipathIO, device.SerialNumber)
+			log.Error(err)
+			return err
+		}
+		m[device.SerialNumber] = true
+	}
+	return nil
 }
 
 // getPartitionInfo enumerates the partitions on the given volume
 func (plugin *MultipathPlugin) getPartitionInfo(serialNumber string) ([]*model.DevicePartition, error) {
-	log.Infof(">>>>> getPartitionInfo, serialNumber=%v", serialNumber)
-	defer log.Info("<<<<< getPartitionInfo")
+	log.Tracef(">>>>> getPartitionInfo, serialNumber=%v", serialNumber)
+	defer log.Trace("<<<<< getPartitionInfo")
 
 	// Enumerate the one serial number
 	device, err := plugin.getDevices(serialNumber)
@@ -126,7 +151,7 @@ func (plugin *MultipathPlugin) getPartitionInfo(serialNumber string) ([]*model.D
 
 	// Fail request if volume not found
 	if len(device) != 1 {
-		return nil, cerrors.NewChapiError(cerrors.NotFound, errorMessageVolumeNotFound)
+		return nil, cerrors.NewChapiError(cerrors.NotFound, errorMessageDeviceNotFound)
 	}
 
 	// Enumerate the volume's partitions
@@ -144,7 +169,7 @@ func (plugin *MultipathPlugin) getPartitionInfo(serialNumber string) ([]*model.D
 			Partitiontype: win32Partition.Type,
 			Size:          win32Partition.Size,
 		}
-		log.Infof("Name=%v, Partitiontype=%v, Size=%v", partition.Name, partition.Partitiontype, partition.Size)
+		log.Tracef("Name=%v, Partitiontype=%v, Size=%v", partition.Name, partition.Partitiontype, partition.Size)
 		partitions = append(partitions, partition)
 	}
 
@@ -154,8 +179,8 @@ func (plugin *MultipathPlugin) getPartitionInfo(serialNumber string) ([]*model.D
 
 // offlineDevice is called to offline the given device
 func (plugin *MultipathPlugin) offlineDevice(device model.Device) error {
-	log.Infof(">>>>> offlineDevice, Path=%v", device.Private.WindowsDisk.Path)
-	defer log.Info("<<<<< offlineDevice")
+	log.Tracef(">>>>> offlineDevice, Path=%v", device.Private.WindowsDisk.Path)
+	defer log.Trace("<<<<< offlineDevice")
 
 	// Use PowerShell to offline the disk
 	_, _, err := powershell.SetDiskOffline(device.Private.WindowsDisk.Path, true)
@@ -164,8 +189,8 @@ func (plugin *MultipathPlugin) offlineDevice(device model.Device) error {
 
 // createFileSystem is called to create a file system on the given device
 func (plugin *MultipathPlugin) createFileSystem(device model.Device, filesystem string) error {
-	log.Infof(">>>>> createFileSystem, Path=%v, filesystem=%v", device.Private.WindowsDisk.Path, filesystem)
-	defer log.Info("<<<<< createFileSystem")
+	log.Tracef(">>>>> createFileSystem, Path=%v, filesystem=%v", device.Private.WindowsDisk.Path, filesystem)
+	defer log.Trace("<<<<< createFileSystem")
 
 	// Use PowerShell to format the disk
 	_, _, err := powershell.PartitionAndFormatVolume(device.Private.WindowsDisk.Path, filesystem)
@@ -178,8 +203,8 @@ func (plugin *MultipathPlugin) createFileSystem(device model.Device, filesystem 
 // see if the target values are known.  If not, then the target is queried to retrieve this
 // information and update the cache.
 func (plugin *MultipathPlugin) getIscsiTarget(devicePathID string, targetMappings []*iscsidsc.ISCSI_TARGET_MAPPING, cachedTargetPortals map[string][]*model.TargetPortal) (*model.IscsiTarget, error) {
-	log.Infof(">>>>> getIscsiTarget, devicePathID=%v", devicePathID)
-	defer log.Info("<<<<< getIscsiTarget")
+	log.Tracef(">>>>> getIscsiTarget, devicePathID=%v", devicePathID)
+	defer log.Trace("<<<<< getIscsiTarget")
 
 	// Start by enumerating the device SCSI address; abort if unable to enumerate
 	scsiAddress, err := ioctl.GetScsiAddress(devicePathID)
