@@ -75,8 +75,8 @@ type MSCluster_Property_Resource_IP_Address struct {
 
 // GetClusterIPs enumerates this host's cluster IPs
 func GetClusterIPs() (clusterIPs []*MSCluster_Resource_IP_Address, err error) {
-	log.Info(">>>>> GetClusterIPs")
-	defer log.Info("<<<<< GetClusterIPs")
+	log.Trace(">>>>> GetClusterIPs")
+	defer log.Trace("<<<<< GetClusterIPs")
 
 	// Form the WMI query
 	wmiQuery := `SELECT * FROM MSCluster_Resource WHERE Type="IP Address"`
@@ -88,7 +88,7 @@ func GetClusterIPs() (clusterIPs []*MSCluster_Resource_IP_Address, err error) {
 	if err == nil {
 		for _, clusterIP := range clusterIPs {
 			if clusterIP.PrivateProperties != nil {
-				log.Infof("Cluster IP address detected, %v", clusterIP.PrivateProperties.Address)
+				log.Tracef("Cluster IP address detected, %v", clusterIP.PrivateProperties.Address)
 			}
 		}
 	}

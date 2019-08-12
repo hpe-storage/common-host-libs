@@ -15,8 +15,8 @@ import (
 // GetIscsiSessionList - Go wrapped Win32 API - GetIScsiSessionListW()
 // https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-getiscsisessionlistw
 func GetIscsiSessionList() (iscsiSessions []*ISCSI_SESSION_INFO, err error) {
-	log.Info(">>>>> GetIscsiSessionList")
-	defer log.Info("<<<<< GetIscsiSessionList")
+	log.Trace(">>>>> GetIscsiSessionList")
+	defer log.Trace("<<<<< GetIscsiSessionList")
 
 	// NWT-3303.  We're seeing Win32 GetIscsiSessionList return ERROR_INSUFFICIENT_BUFFER during
 	// an array failover. The first call to GetIScsiSessionListW returns ERROR_INSUFFICIENT_BUFFER
@@ -64,12 +64,12 @@ func GetIscsiSessionList() (iscsiSessions []*ISCSI_SESSION_INFO, err error) {
 	} else {
 		// Log the sessions
 		for index, iscsiSession := range iscsiSessions {
-			log.Infof("iscsiSession[%v], SessionId=%x-%x, TargetName=%v, ConnectionCount=%v",
+			log.Tracef("iscsiSession[%v], SessionId=%x-%x, TargetName=%v, ConnectionCount=%v",
 				index, iscsiSession.SessionID.AdapterUnique, iscsiSession.SessionID.AdapterSpecific,
 				iscsiSession.TargetName, len(iscsiSession.Connections))
 			// Log the connections per session
 			for _, iscsiConnection := range iscsiSession.Connections {
-				log.Infof("    ConnectionIdId=%x-%x, InitiatorAddress=%v, InitiatorSocket=%v, TargetAddress=%v, TargetSocket=%v",
+				log.Tracef("    ConnectionIdId=%x-%x, InitiatorAddress=%v, InitiatorSocket=%v, TargetAddress=%v, TargetSocket=%v",
 					iscsiConnection.ConnectionID.AdapterUnique, iscsiConnection.ConnectionID.AdapterSpecific,
 					iscsiConnection.InitiatorAddress, iscsiConnection.InitiatorSocket,
 					iscsiConnection.TargetAddress, iscsiConnection.TargetSocket)

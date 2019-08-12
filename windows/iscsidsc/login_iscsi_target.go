@@ -17,8 +17,8 @@ import (
 // LoginIScsiTargetEx is similar to our C# WindowsBridge.cs LoginTarget() routine.  It will both log
 // into the iSCSI target as well as make a persistent connection (if requested)
 func LoginIScsiTargetEx(targetName string, initiatorInstance string, initiatorPortNumber uint32, targetPortal *ISCSI_TARGET_PORTAL, headerDigest ISCSI_DIGEST_TYPES, dataDigest ISCSI_DIGEST_TYPES, chapUsername string, chapPassword string, isPersistent bool) (uniqueSessionID *ISCSI_UNIQUE_SESSION_ID, uniqueConnectionID *ISCSI_UNIQUE_CONNECTION_ID, err error) {
-	log.Info(">>>>> LoginIScsiTargetEx")
-	defer log.Info("<<<<< LoginIScsiTargetEx")
+	log.Trace(">>>>> LoginIScsiTargetEx")
+	defer log.Trace("<<<<< LoginIScsiTargetEx")
 
 	// Start by calling our base loginIScsiTarget routine with "isPersistent" set to false.  We do this
 	// so that we actually make a connection.  If we set "isPersistent" to true, it would just make a
@@ -44,9 +44,9 @@ func LoginIScsiTargetEx(targetName string, initiatorInstance string, initiatorPo
 // loginIScsiTarget wraps the iSCSI discovery LoginIScsiTarget() API.  It's only for internal
 // package use as we recommend the public LoginIScsiTarget() function be used instead.
 func loginIScsiTarget(targetName string, initiatorInstance string, initiatorPortNumber uint32, targetPortal *ISCSI_TARGET_PORTAL, headerDigest ISCSI_DIGEST_TYPES, dataDigest ISCSI_DIGEST_TYPES, chapUsername string, chapPassword string, isPersistent bool) (uniqueSessionID *ISCSI_UNIQUE_SESSION_ID, uniqueConnectionID *ISCSI_UNIQUE_CONNECTION_ID, err error) {
-	log.Infof(">>>>> loginIScsiTarget, targetName=%v, initiatorPortNumber=%v, targetPortal=%v, headerDigest=%v, dataDigest=%v, CHAP=%v:%v, isPersistent=%v",
+	log.Tracef(">>>>> loginIScsiTarget, targetName=%v, initiatorPortNumber=%v, targetPortal=%v, headerDigest=%v, dataDigest=%v, CHAP=%v:%v, isPersistent=%v",
 		targetName, initiatorPortNumber, targetPortal, headerDigest, dataDigest, chapUsername != "", chapPassword != "", isPersistent)
-	defer log.Info("<<<<< loginIScsiTarget")
+	defer log.Trace("<<<<< loginIScsiTarget")
 
 	// iscsiLoginOptions is composed of ISCSI_LOGIN_OPTIONS plus additional storage for any CHAP
 	// username/password we need to pass to the Windows iSCSI initiator.  Nimble Storage has a
@@ -155,8 +155,8 @@ func loginIScsiTarget(targetName string, initiatorInstance string, initiatorPort
 		log.Error(logIscsiFailure, err.Error())
 	} else {
 		// Log the return data
-		log.Infof("uniqueSessionID=%x-%x", uniqueSessionID.AdapterUnique, uniqueSessionID.AdapterSpecific)
-		log.Infof("uniqueConnectionID=%x-%x", uniqueConnectionID.AdapterUnique, uniqueConnectionID.AdapterSpecific)
+		log.Tracef("uniqueSessionID=%x-%x", uniqueSessionID.AdapterUnique, uniqueSessionID.AdapterSpecific)
+		log.Tracef("uniqueConnectionID=%x-%x", uniqueConnectionID.AdapterUnique, uniqueConnectionID.AdapterSpecific)
 	}
 
 	// If an error occurred, we'll clear the session/connection IDs

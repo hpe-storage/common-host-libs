@@ -47,8 +47,8 @@ type MSFT_Partition struct {
 
 // GetMSFTPartition enumerates this host's MSFTPartition objects
 func GetMSFTPartition(whereOperator string) (diskPartitions []*MSFT_Partition, err error) {
-	log.Infof(">>>>> GetMSFTPartition, whereOperator=%v", whereOperator)
-	defer log.Info("<<<<< GetMSFTPartition")
+	log.Tracef(">>>>> GetMSFTPartition, whereOperator=%v", whereOperator)
+	defer log.Trace("<<<<< GetMSFTPartition")
 
 	// Form the WMI query
 	wmiQuery := "SELECT * FROM MSFT_Partition"

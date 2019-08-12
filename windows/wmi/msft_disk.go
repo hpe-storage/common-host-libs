@@ -85,8 +85,8 @@ type MSFT_Disk struct {
 
 // GetMSFTDisk enumerates this host's MSFT_Disk objects
 func GetMSFTDisk(whereOperator string) (diskDevices []*MSFT_Disk, err error) {
-	log.Infof(">>>>> GetMSFTDisk, whereOperator=%v", whereOperator)
-	defer log.Info("<<<<< GetMSFTDisk")
+	log.Tracef(">>>>> GetMSFTDisk, whereOperator=%v", whereOperator)
+	defer log.Trace("<<<<< GetMSFTDisk")
 
 	// Form the WMI query
 	wmiQuery := "SELECT * FROM MSFT_Disk"

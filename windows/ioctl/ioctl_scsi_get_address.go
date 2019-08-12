@@ -24,8 +24,8 @@ type SCSI_ADDRESS struct {
 // GetScsiAddress issues an IOCTL_SCSI_GET_ADDRESS to the given device and returns back the
 // device's SCSI_ADDRESS struct.
 func GetScsiAddress(devicePathID string) (scsiAddress *SCSI_ADDRESS, err error) {
-	log.Infof(">>>>> GetScsiAddress, devicePathID=%v", devicePathID)
-	defer log.Info("<<<<< GetScsiAddress")
+	log.Tracef(">>>>> GetScsiAddress, devicePathID=%v", devicePathID)
+	defer log.Trace("<<<<< GetScsiAddress")
 
 	// Convert device path to a UTF16 string (strip any trailing backslash)
 	devicePathID = strings.TrimRight(devicePathID, `\`)
@@ -59,7 +59,7 @@ func GetScsiAddress(devicePathID string) (scsiAddress *SCSI_ADDRESS, err error) 
 
 	// Log the results
 	if err == nil {
-		log.Infof("SCSI_ADDRESS Lengh=%v, ID=%02X:%02X:%02X:%02X", scsiAddress.Length, scsiAddress.PortNumber, scsiAddress.PathId, scsiAddress.TargetId, scsiAddress.Lun)
+		log.Tracef("SCSI_ADDRESS Lengh=%v, ID=%02X:%02X:%02X:%02X", scsiAddress.Length, scsiAddress.PortNumber, scsiAddress.PathId, scsiAddress.TargetId, scsiAddress.Lun)
 	} else {
 		// Log error on failure
 		log.Errorf("Error=%v", err)

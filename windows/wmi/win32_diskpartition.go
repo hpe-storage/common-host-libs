@@ -51,8 +51,8 @@ type Win32_DiskPartition struct {
 
 // GetWin32DiskPartition enumerates this host's Win32_DiskPartition objects
 func GetWin32DiskPartition(whereOperator string) (diskPartitions []*Win32_DiskPartition, err error) {
-	log.Infof(">>>>> GetWin32DiskPartition, whereOperator=%v", whereOperator)
-	defer log.Info("<<<<< GetWin32DiskPartition")
+	log.Tracef(">>>>> GetWin32DiskPartition, whereOperator=%v", whereOperator)
+	defer log.Trace("<<<<< GetWin32DiskPartition")
 
 	// Form the WMI query
 	wmiQuery := "SELECT * FROM Win32_DiskPartition"

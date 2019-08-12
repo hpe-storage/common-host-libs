@@ -47,8 +47,8 @@ type MSiSCSI_PortalInfoClass struct {
 
 // GetMSiSCSIPortalInfoClass enumerates this host's MSiSCSI_PortalInfoClass object
 func GetMSiSCSIPortalInfoClass() (portals *MSiSCSI_PortalInfoClass, err error) {
-	log.Info(">>>>> GetMSiSCSIPortalInfoClass")
-	defer log.Info("<<<<< GetMSiSCSIPortalInfoClass")
+	log.Trace(">>>>> GetMSiSCSIPortalInfoClass")
+	defer log.Trace("<<<<< GetMSiSCSIPortalInfoClass")
 
 	// Execute the WMI query
 	err = ExecQuery("SELECT * FROM MSiSCSI_PortalInfoClass", rootWMI, &portals)
