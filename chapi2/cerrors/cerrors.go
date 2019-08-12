@@ -25,7 +25,9 @@ const (
 	Internal          ChapiErrorCode = 10
 	DataLoss          ChapiErrorCode = 11
 	Unauthenticated   ChapiErrorCode = 12
-	_maxCode          ChapiErrorCode = 13
+	Timeout           ChapiErrorCode = 13
+	ConnectionFailed  ChapiErrorCode = 14
+	_maxCode          ChapiErrorCode = 15
 )
 
 const (
@@ -162,6 +164,10 @@ func (c ChapiErrorCode) String() string {
 		return "DataLoss"
 	case Unauthenticated:
 		return "Unauthenticated"
+	case Timeout:
+		return "Timeout"
+	case ConnectionFailed:
+		return "ConnectionFailed"
 	default:
 		return "Code(" + strconv.FormatInt(int64(c), 10) + ")"
 	}
