@@ -79,8 +79,8 @@ type Win32_OperatingSystem struct {
 
 // GetWin32OperatingSystem enumerates this host's Win32_OperatingSystem object
 func GetWin32OperatingSystem() (operatingSystem *Win32_OperatingSystem, err error) {
-	log.Info(">>>>> GetWin32OperatingSystem")
-	defer log.Info("<<<<< GetWin32OperatingSystem")
+	log.Trace(">>>>> GetWin32OperatingSystem")
+	defer log.Trace("<<<<< GetWin32OperatingSystem")
 
 	// Execute the WMI query
 	err = ExecQuery("SELECT * FROM Win32_OperatingSystem", rootCIMV2, &operatingSystem)

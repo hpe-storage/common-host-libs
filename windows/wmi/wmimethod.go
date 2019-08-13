@@ -15,8 +15,8 @@ import (
 // ExecWmiMethod is used to execute a WMI method.  A VARIANT is returned from the WMI method as well
 // as an error should the WMI method be executed.
 func ExecWmiMethod(className, methodName, namespace string, params ...interface{}) (result *ole.VARIANT, err error) {
-	log.Infof(">>>>> ExecWmiMethod, className=%v, methodName=%v, namespace=%v", className, methodName, namespace)
-	defer log.Info("<<<<< ExecWmiMethod")
+	log.Tracef(">>>>> ExecWmiMethod, className=%v, methodName=%v, namespace=%v", className, methodName, namespace)
+	defer log.Trace("<<<<< ExecWmiMethod")
 
 	// Only support one WMI query at a time
 	lock.Lock()

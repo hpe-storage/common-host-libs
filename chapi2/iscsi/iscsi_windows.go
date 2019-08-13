@@ -3,6 +3,7 @@
 package iscsi
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/hpe-storage/common-host-libs/chapi2/cerrors"
@@ -30,7 +31,7 @@ func getIscsiInitiators() (init *model.Initiator, err error) {
 	log.Infof("got iscsi initiator name as %s", initiatorNodeName)
 
 	initiators := []string{initiatorNodeName}
-	init = &model.Initiator{AccessProtocol: "iscsi", Init: initiators}
+	init = &model.Initiator{AccessProtocol: model.AccessProtocolIscsi, Init: initiators}
 	return init, err
 }
 
@@ -122,4 +123,28 @@ func rescanIscsiTarget(lunID string) error {
 	// Unlike Linux, Windows does not have Target/LUN specific rescan capabilities so a synchronous
 	// disk rescan is initiated and the lunID is ignored.
 	return wmi.RescanDisks()
+}
+
+// getTargetPortals enumerates the target portals for the given iSCSI target
+func (plugin *IscsiPlugin) getTargetPortals(targetName string, ipv4Only bool) ([]*model.TargetPortal, error) {
+
+	// Retrieve the target portals from the iSCSI initiator
+	targetPortalsWindows, err := iscsidsc.ReportIScsiTargetPortals("", targetName, ipv4Only)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the Win32 ISCSI_TARGET_PORTAL array to an array of model.TargetPortal objects
+	var targetPortals []*model.TargetPortal
+	for _, targetPortalWindows := range targetPortalsWindows {
+		targetPortal := &model.TargetPortal{
+			Address: targetPortalWindows.Address,
+			Port:    strconv.Itoa(int(targetPortalWindows.Socket)),
+			Private: &model.TargetPortalPrivate{
+				WindowsTargetPortal: targetPortalWindows,
+			},
+		}
+		targetPortals = append(targetPortals, targetPortal)
+	}
+	return targetPortals, nil
 }

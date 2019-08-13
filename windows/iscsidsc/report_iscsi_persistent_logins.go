@@ -15,8 +15,8 @@ import (
 // ReportIScsiPersistentLogins - Go wrapped Win32 API - ReportIScsiPersistentLoginsW()
 // https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-reportiscsipersistentloginsw
 func ReportIScsiPersistentLogins() (persistentLogins []*PERSISTENT_ISCSI_LOGIN_INFO, err error) {
-	log.Info(">>>>> ReportIScsiPersistentLogins")
-	defer log.Info("<<<<< ReportIScsiPersistentLogins")
+	log.Trace(">>>>> ReportIScsiPersistentLogins")
+	defer log.Trace("<<<<< ReportIScsiPersistentLogins")
 
 	// Determine the persistent login count on this host
 	var count, bufferSizeNeeded uint32
@@ -55,7 +55,7 @@ func ReportIScsiPersistentLogins() (persistentLogins []*PERSISTENT_ISCSI_LOGIN_I
 	} else {
 		// Log the enumerated persistent logins
 		for index, persistentLogin := range persistentLogins {
-			log.Infof("persistentLogins[%v], TargetName=%v, InitiatorPortNumber=%v, TargetPortal.Address=%v, Mapping=%v, InformationSpecified=%v, LoginFlags=%v",
+			log.Tracef("persistentLogins[%v], TargetName=%v, InitiatorPortNumber=%v, TargetPortal.Address=%v, Mapping=%v, InformationSpecified=%v, LoginFlags=%v",
 				index, persistentLogin.TargetName,
 				persistentLogin.InitiatorPortNumber, persistentLogin.TargetPortal.Address, persistentLogin.Mappings != nil,
 				persistentLogin.LoginOptions.InformationSpecified, persistentLogin.LoginOptions.LoginFlags)

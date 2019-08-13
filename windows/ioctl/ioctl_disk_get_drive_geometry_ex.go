@@ -91,8 +91,8 @@ type DISK_GEOMETRY_EX struct {
 // GetDiskGeometry issues an IOCTL_VOLUME_GET_VOLUME_DISK_EXTENTS to the given volume and
 // returns back the volume's geometry details.
 func GetDiskGeometry(diskNumber uint32) (diskGeometry *DISK_GEOMETRY_EX, err error) {
-	log.Infof(">>>>> GetDiskGeometry, diskNumber=%v", diskNumber)
-	defer log.Info("<<<<< GetDiskGeometry")
+	log.Tracef(">>>>> GetDiskGeometry, diskNumber=%v", diskNumber)
+	defer log.Trace("<<<<< GetDiskGeometry")
 
 	// Convert disk number to a disk path UTF16 string
 	diskPathUTF16 := syscall.StringToUTF16(diskPathFromNumber(diskNumber))
@@ -147,7 +147,7 @@ func GetDiskGeometry(diskNumber uint32) (diskGeometry *DISK_GEOMETRY_EX, err err
 		} else if diskGeometry.DiskPartitionGPT != nil {
 			partitionDetails = fmt.Sprintf("GPT, DiskId=%v", diskGeometry.DiskPartitionGPT.DiskId.String())
 		}
-		log.Infof("DiskSize=%v, Partition={%v}", diskGeometry.DiskSize, partitionDetails)
+		log.Tracef("DiskSize=%v, Partition={%v}", diskGeometry.DiskSize, partitionDetails)
 	} else {
 		// Log error on failure
 		log.Errorf("Error=%v", err)
@@ -158,8 +158,8 @@ func GetDiskGeometry(diskNumber uint32) (diskGeometry *DISK_GEOMETRY_EX, err err
 
 // GetDiskCapacity returns back the given disk's capacity (in bytes)
 func GetDiskCapacity(diskNumber uint32) (diskCapacity uint64, err error) {
-	log.Infof(">>>>> GetDiskCapacity, diskNumber=%v", diskNumber)
-	defer log.Info("<<<<< GetDiskCapacity")
+	log.Tracef(">>>>> GetDiskCapacity, diskNumber=%v", diskNumber)
+	defer log.Trace("<<<<< GetDiskCapacity")
 
 	var diskGeometry *DISK_GEOMETRY_EX
 	if diskGeometry, err = GetDiskGeometry(diskNumber); err == nil && diskGeometry != nil {

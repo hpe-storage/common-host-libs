@@ -18,8 +18,8 @@ import (
 // LogoutIScsiTarget - Go wrapped Win32 API - LogoutIScsiTarget()
 // https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-logoutiscsitarget
 func LogoutIScsiTarget(sessionID ISCSI_UNIQUE_SESSION_ID) (err error) {
-	log.Infof(">>>>> LogoutIScsiTarget, sessionID=%x-%x", sessionID.AdapterUnique, sessionID.AdapterSpecific)
-	defer log.Info("<<<<< LogoutIScsiTarget")
+	log.Tracef(">>>>> LogoutIScsiTarget, sessionID=%x-%x", sessionID.AdapterUnique, sessionID.AdapterSpecific)
+	defer log.Trace("<<<<< LogoutIScsiTarget")
 
 	// Call the Win32 LogoutIScsiTarget API to logout the session.
 	// In our C# code, we would terminate the thread if it hung more than 60 seconds.  We can't simply
@@ -44,8 +44,8 @@ func LogoutIScsiTarget(sessionID ISCSI_UNIQUE_SESSION_ID) (err error) {
 // The removePersistentTarget flag can be set to true if the caller also wants any persistent
 // logins to be removed as well.
 func LogoutIScsiTargetAll(targetName string, removePersistentTarget bool) (err error) {
-	log.Infof(">>>>> LogoutIScsiTargetAll, targetName=%v, removePersistentTarget=%v", targetName, removePersistentTarget)
-	defer log.Info("<<<<< LogoutIScsiTargetAll")
+	log.Tracef(">>>>> LogoutIScsiTargetAll, targetName=%v, removePersistentTarget=%v", targetName, removePersistentTarget)
+	defer log.Trace("<<<<< LogoutIScsiTargetAll")
 
 	// Remove persistent logins?
 	if removePersistentTarget {
@@ -118,7 +118,7 @@ func LogoutIScsiTargetAll(targetName string, removePersistentTarget bool) (err e
 
 				// If we're past our alloted timeouts, set timeoutDetection flag and break out of loop
 				if (elapsedLogoutSession >= maxDurationPerSessionLogout) || (elapsedLogoutSession >= maxDurationTotal) {
-					log.Infof("Logout timeout expired, elapsedLogoutSession=%v, elapsedLogoutTarget=%v", elapsedLogoutSession, elapsedLogoutTarget)
+					log.Tracef("Logout timeout expired, elapsedLogoutSession=%v, elapsedLogoutTarget=%v", elapsedLogoutSession, elapsedLogoutTarget)
 					timeoutDetection = true
 					break
 				}

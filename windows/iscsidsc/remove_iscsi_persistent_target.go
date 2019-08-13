@@ -16,8 +16,8 @@ import (
 // RemoveIScsiPersistentTarget - Go wrapped Win32 API - RemoveIScsiPersistentTargetW()
 // https://docs.microsoft.com/is-is/windows/desktop/api/iscsidsc/nf-iscsidsc-removeiscsipersistenttargetw
 func RemoveIScsiPersistentTarget(initiatorInstance string, initiatorPortNumber uint32, targetName string, targetPortal ISCSI_TARGET_PORTAL) (err error) {
-	log.Infof(">>>>> RemoveIScsiPersistentTarget, initiatorInstance=%v, initiatorPortNumber=%v, targetName=%v", initiatorInstance, initiatorPortNumber, targetName)
-	defer log.Info("<<<<< RemoveIScsiPersistentTarget")
+	log.Tracef(">>>>> RemoveIScsiPersistentTarget, initiatorInstance=%v, initiatorPortNumber=%v, targetName=%v", initiatorInstance, initiatorPortNumber, targetName)
+	defer log.Trace("<<<<< RemoveIScsiPersistentTarget")
 
 	// Convert initiatorInstance, targetName, and targetPortal into raw equivalents so that we can
 	// send them to the iSCSI API.
@@ -39,8 +39,8 @@ func RemoveIScsiPersistentTarget(initiatorInstance string, initiatorPortNumber u
 // RemoveIScsiPersistentTargetAll is a extended wrapper around the RemoveIScsiPersistentTarget API.
 // What it does is remove *all* persistent logins for the specified target.
 func RemoveIScsiPersistentTargetAll(targetName string) (err error) {
-	log.Infof(">>>>> RemoveIScsiPersistentTargetAll, targetName=%v", targetName)
-	defer log.Info("<<<<< RemoveIScsiPersistentTargetAll")
+	log.Tracef(">>>>> RemoveIScsiPersistentTargetAll, targetName=%v", targetName)
+	defer log.Trace("<<<<< RemoveIScsiPersistentTargetAll")
 
 	// Start by querying all the iSCSI persistent logins on this host
 	persistentLogins, err := ReportIScsiPersistentLogins()

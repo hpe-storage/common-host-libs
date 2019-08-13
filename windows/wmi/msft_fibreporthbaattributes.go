@@ -37,8 +37,8 @@ type MSFC_HBAPortAttributesResults struct {
 
 // GetMSFC_FibrePortHBAAttributes enumerates this host's MSFC_FibrePortHBAAttributes objects
 func GetMSFC_FibrePortHBAAttributes() (fcPorts []*MSFC_FibrePortHBAAttributes, err error) {
-	log.Info(">>>>> GetMSFC_FibrePortHBAAttributes")
-	defer log.Info("<<<<< GetMSFC_FibrePortHBAAttributes")
+	log.Trace(">>>>> GetMSFC_FibrePortHBAAttributes")
+	defer log.Trace("<<<<< GetMSFC_FibrePortHBAAttributes")
 
 	// Execute the WMI query
 	err = ExecQuery("SELECT * FROM MSFC_FibrePortHBAAttributes", rootWMI, &fcPorts)

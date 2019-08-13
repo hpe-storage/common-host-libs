@@ -13,8 +13,8 @@ import (
 
 // AddPartitionAccessPath wraps the Add-PartitionAccessPath cmdlet
 func AddPartitionAccessPath(accessPath string, diskNumber uint32, partitionNumber uint32) (string, int, error) {
-	log.Infof(">>>>> AddPartitionAccessPath, accessPath=%v, diskNumber=%v, partitionNumber=%v", accessPath, diskNumber, partitionNumber)
-	defer log.Info("<<<<< AddPartitionAccessPath")
+	log.Tracef(">>>>> AddPartitionAccessPath, accessPath=%v, diskNumber=%v, partitionNumber=%v", accessPath, diskNumber, partitionNumber)
+	defer log.Trace("<<<<< AddPartitionAccessPath")
 
 	arg := fmt.Sprintf("Add-PartitionAccessPath -AccessPath %v -DiskNumber %v -PartitionNumber %v", accessPath, diskNumber, partitionNumber)
 	return execCommandOutput(arg)
@@ -22,8 +22,8 @@ func AddPartitionAccessPath(accessPath string, diskNumber uint32, partitionNumbe
 
 // ClearDisk wraps the Clear-Disk cmdlet
 func ClearDisk(diskNumber int, removeData bool) (string, int, error) {
-	log.Infof(">>>>> ClearDisk, diskNumber=%v, removeData=%v", diskNumber, removeData)
-	defer log.Info("<<<<< ClearDisk")
+	log.Tracef(">>>>> ClearDisk, diskNumber=%v, removeData=%v", diskNumber, removeData)
+	defer log.Trace("<<<<< ClearDisk")
 
 	arg := fmt.Sprintf("Clear-Disk -Number %v -RemoveData:%v -Confirm:$False", diskNumber, psBoolToText(removeData))
 	return execCommandOutput(arg)
@@ -32,8 +32,8 @@ func ClearDisk(diskNumber int, removeData bool) (string, int, error) {
 // InitializeDisk wraps the Initialize-Disk cmdlet.  We only need the ability to create GPT partitions
 // which is why this routine doesn't expose the option to select the partition style.
 func InitializeDisk(path string) (string, int, error) {
-	log.Infof(">>>>> InitializeDisk, path=%v", path)
-	defer log.Info("<<<<< InitializeDisk")
+	log.Tracef(">>>>> InitializeDisk, path=%v", path)
+	defer log.Trace("<<<<< InitializeDisk")
 
 	arg := fmt.Sprintf(`Initialize-Disk -Path "%v" -PartitionStyle GPT`, path)
 	return execCommandOutput(arg)
@@ -43,8 +43,8 @@ func InitializeDisk(path string) (string, int, error) {
 // create and format a volume with the specified file system.  If no file system is passed in, we
 // default to NTFS.
 func PartitionAndFormatVolume(diskPath string, fileSystem string) (string, int, error) {
-	log.Infof(">>>>> PartitionAndFormatVolume, diskPath=%v, fileSystem=%v", diskPath, fileSystem)
-	defer log.Info("<<<<< PartitionAndFormatVolume")
+	log.Tracef(">>>>> PartitionAndFormatVolume, diskPath=%v, fileSystem=%v", diskPath, fileSystem)
+	defer log.Trace("<<<<< PartitionAndFormatVolume")
 
 	// Default to NTFS if file system not provided
 	if len(fileSystem) == 0 {
@@ -57,8 +57,8 @@ func PartitionAndFormatVolume(diskPath string, fileSystem string) (string, int, 
 
 // RemovePartitionAccessPath wraps the Remove-PartitionAccessPath cmdlet
 func RemovePartitionAccessPath(accessPath string, diskNumber uint32, partitionNumber uint32) (string, int, error) {
-	log.Infof(">>>>> RemovePartitionAccessPath, accessPath=%v, diskNumber=%v, partitionNumber=%v", accessPath, diskNumber, partitionNumber)
-	defer log.Info("<<<<< RemovePartitionAccessPath")
+	log.Tracef(">>>>> RemovePartitionAccessPath, accessPath=%v, diskNumber=%v, partitionNumber=%v", accessPath, diskNumber, partitionNumber)
+	defer log.Trace("<<<<< RemovePartitionAccessPath")
 
 	arg := fmt.Sprintf("Remove-PartitionAccessPath -AccessPath %v -DiskNumber %v -PartitionNumber %v", accessPath, diskNumber, partitionNumber)
 	return execCommandOutput(arg)
@@ -66,24 +66,24 @@ func RemovePartitionAccessPath(accessPath string, diskNumber uint32, partitionNu
 
 // SetDiskOffline wraps the Set-Disk cmdlet with the -Path and -IsOffline options
 func SetDiskOffline(path string, isOffline bool) (string, int, error) {
-	log.Infof(">>>>> SetDiskIsOffline, path=%v, isOffline=%v", path, isOffline)
-	defer log.Info("<<<<< SetDiskIsOffline")
+	log.Tracef(">>>>> SetDiskIsOffline, path=%v, isOffline=%v", path, isOffline)
+	defer log.Trace("<<<<< SetDiskIsOffline")
 
 	return execCommandOutput(fmt.Sprintf(`Set-Disk -Path "%v" -IsOffline %v`, path, psBoolToText(isOffline)))
 }
 
 // SetDiskReadOnly wraps the Set-Disk cmdlet with the -Path and -IsReadonly options
 func SetDiskReadOnly(path string, isReadonly bool) (string, int, error) {
-	log.Infof(">>>>> SetDiskReadOnly, path=%v, isReadonly=%v", path, isReadonly)
-	defer log.Info("<<<<< SetDiskReadOnly")
+	log.Tracef(">>>>> SetDiskReadOnly, path=%v, isReadonly=%v", path, isReadonly)
+	defer log.Trace("<<<<< SetDiskReadOnly")
 
 	return execCommandOutput(fmt.Sprintf(`Set-Disk -Path "%v" -IsReadonly %v`, path, psBoolToText(isReadonly)))
 }
 
 // UpdateDisk wraps the Update-Disk cmdlet with the -Path option
 func UpdateDisk(path string) (string, int, error) {
-	log.Infof(">>>>> UpdateDisk, path=%v", path)
-	defer log.Info("<<<<< UpdateDisk")
+	log.Tracef(">>>>> UpdateDisk, path=%v", path)
+	defer log.Trace("<<<<< UpdateDisk")
 
 	return execCommandOutput(fmt.Sprintf(`Update-Disk -Path "%v"`, path))
 }

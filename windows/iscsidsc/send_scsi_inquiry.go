@@ -15,7 +15,7 @@ import (
 // SendScsiInquiry - Go wrapped Win32 API - SendScsiInquiry()
 // https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-sendscsiinquiry
 func SendScsiInquiry(sessionID ISCSI_UNIQUE_SESSION_ID, lun uint64, evpdCmddt uint8, pageCode uint8) (scsiStatus uint8, inquiryBuffer []uint8, senseBuffer []uint8, err error) {
-	log.Infof(">>>>> SendScsiInquiry, sessionID=%x-%x, lun=%v, evpdCmddt=%v, pageCode=%v", sessionID.AdapterUnique, sessionID.AdapterSpecific, lun, evpdCmddt, pageCode)
+	log.Tracef(">>>>> SendScsiInquiry, sessionID=%x-%x, lun=%v, evpdCmddt=%v, pageCode=%v", sessionID.AdapterUnique, sessionID.AdapterSpecific, lun, evpdCmddt, pageCode)
 
 	// Set our Inquiry and Sense buffer sizes.  We never need more than 255 bytes from any Inquiry
 	// request we make.  Rather than adding the burden to the caller to pass in an Inquiry size,
@@ -41,7 +41,7 @@ func SendScsiInquiry(sessionID ISCSI_UNIQUE_SESSION_ID, lun uint64, evpdCmddt ui
 	if scsiStatus == SCSISTAT_CHECK_CONDITION {
 		// Only return the data that the iSCSI initiator claims was returned by the target
 		senseBuffer = senseBuffer[:senseBufferSize]
-		log.Infof("Sense Data\n%v", hex.Dump(senseBuffer))
+		log.Tracef("Sense Data\n%v", hex.Dump(senseBuffer))
 	} else {
 		// Empty sense buffer if no check condition
 		senseBuffer = nil
@@ -59,11 +59,11 @@ func SendScsiInquiry(sessionID ISCSI_UNIQUE_SESSION_ID, lun uint64, evpdCmddt ui
 		inquiryBuffer = inquiryBuffer[:inquiryBufferSize]
 
 		// Log the Inquiry data
-		log.Infof("Inquiry Data\n%v", hex.Dump(inquiryBuffer))
+		log.Tracef("Inquiry Data\n%v", hex.Dump(inquiryBuffer))
 	}
 
 	// Log the SCSI status
-	log.Infof("<<<<< SendScsiInquiry, scsiStatus=%v", scsiStatus)
+	log.Tracef("<<<<< SendScsiInquiry, scsiStatus=%v", scsiStatus)
 
 	// Return SCSI status, Inquiry buffer, Sense buffer, and error
 	return scsiStatus, inquiryBuffer, senseBuffer, err

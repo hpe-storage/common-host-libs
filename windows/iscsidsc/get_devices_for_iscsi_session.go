@@ -16,8 +16,8 @@ import (
 // GetDevicesForIScsiSession - Go wrapped Win32 API - GetDevicesForIScsiSessionW()
 // https://docs.microsoft.com/en-us/windows/desktop/api/iscsidsc/nf-iscsidsc-getdevicesforiscsisessionw
 func GetDevicesForIScsiSession(sessionID ISCSI_UNIQUE_SESSION_ID) (devicesOnSession []*ISCSI_DEVICE_ON_SESSION, err error) {
-	log.Info(">>>>> GetDevicesForIScsiSession")
-	defer log.Info("<<<<< GetDevicesForIScsiSession")
+	log.Trace(">>>>> GetDevicesForIScsiSession")
+	defer log.Trace("<<<<< GetDevicesForIScsiSession")
 
 	//
 	// Note that the algorithm employed below is ported from C# GetDevicesForSession() including
@@ -74,7 +74,7 @@ func GetDevicesForIScsiSession(sessionID ISCSI_UNIQUE_SESSION_ID) (devicesOnSess
 		}
 
 		if (iscsiErr == ISDSC_DEVICE_BUSY_ON_SESSION) || (iscsiErr == ISDSC_SESSION_BUSY) || (iscsiErr == uintptr(syscall.ERROR_INSUFFICIENT_BUFFER)) {
-			log.Infof("GetDevicesForIScsiSession status returned, iscsiErr=%v, attempt %v of %v", iscsiErr, i+1, RetryCount)
+			log.Tracef("GetDevicesForIScsiSession status returned, iscsiErr=%v, attempt %v of %v", iscsiErr, i+1, RetryCount)
 
 			// In PRT-312 and PRT-309, we know that a bug in Microsoft's iSCSI library can
 			// return ERROR_INSUFFICIENT_BUFFER.  If this error is detected, we will not
@@ -94,9 +94,9 @@ func GetDevicesForIScsiSession(sessionID ISCSI_UNIQUE_SESSION_ID) (devicesOnSess
 		log.Error(logIscsiFailure, err.Error())
 	} else if len(devicesOnSession) > 0 {
 		// Log the enumerated devices per session
-		log.Infof("SessionID=%x-%x", sessionID.AdapterUnique, sessionID.AdapterSpecific)
+		log.Tracef("SessionID=%x-%x", sessionID.AdapterUnique, sessionID.AdapterSpecific)
 		for _, element := range devicesOnSession {
-			log.Infof("    ScsiAddress=%02X:%02X:%02X:%02X, DeviceNumber=%v, LegacyName=%v, TargetName=%v",
+			log.Tracef("    ScsiAddress=%02X:%02X:%02X:%02X, DeviceNumber=%v, LegacyName=%v, TargetName=%v",
 				element.ScsiAddress.PortNumber, element.ScsiAddress.PathID, element.ScsiAddress.TargetID, element.ScsiAddress.Lun,
 				element.StorageDeviceNumber.DeviceNumber, element.LegacyName, element.TargetName)
 		}

@@ -41,7 +41,7 @@ func init() {
 	programDataPath := os.Getenv("ProgramData")
 	if programDataPath == "" {
 		programDataPath = `C:\ProgramData`
-		log.Infof("Unable to enumerate ProgramData folder, using default folder %v", programDataPath)
+		log.Tracef("Unable to enumerate ProgramData folder, using default folder %v", programDataPath)
 	}
 
 	// Set configDir path
@@ -62,8 +62,8 @@ func init() {
 //@Success 200 {array} Hosts
 //@Router /keyfile/ [get]
 func GetKeyfile(w http.ResponseWriter, r *http.Request) {
-	log.Infof(">>>>> getKeyfile called, chapiKeyFilePath=%v", chapiKeyFilePath)
-	defer log.Info("<<<<< getKeyfile")
+	log.Tracef(">>>>> getKeyfile called, chapiKeyFilePath=%v", chapiKeyFilePath)
+	defer log.Trace("<<<<< getKeyfile")
 
 	var chapiResp Response
 	chapiResp.Data = model.KeyFileInfo{Path: chapiKeyFilePath}
@@ -126,18 +126,18 @@ func validateRequestHeader(w http.ResponseWriter, r *http.Request) bool {
 // InitChapiInstanceData is called to initialize our CHAPI instance data.  The CHAPI TCP port is
 // provided as input.
 func InitChapiInstanceData(port int) (err error) {
-	log.Infof(">>>>> initChapiInstanceData, port=%v", port)
-	defer log.Info("<<<<< initChapiInstanceData")
+	log.Tracef(">>>>> initChapiInstanceData, port=%v", port)
+	defer log.Trace("<<<<< initChapiInstanceData")
 
 	// Create the CHAPI port text file
-	log.Infof("CHAPI port file location %v", chapiPortFilePath)
+	log.Tracef("CHAPI port file location %v", chapiPortFilePath)
 	err = initChapiFileData(chapiPortFilePath, strconv.Itoa(port)+"\r\n")
 	if err != nil {
 		return err
 	}
 
 	// Create the CHAPI key file
-	log.Infof("CHAPI key file location %v", chapiKeyFilePath)
+	log.Tracef("CHAPI key file location %v", chapiKeyFilePath)
 	err = initChapiFileData(chapiKeyFilePath, chapiKeyGUID+"\r\n")
 	if err != nil {
 		return err
@@ -187,8 +187,8 @@ func initChapiFileData(filePath string, fileText string) error {
 // setAdministratorOnlyAccess sets the ACLs for the given file such that only processes with Administrator
 // privileges can access it.
 func setAdministratorOnlyAccess(filepath string) error {
-	log.Infof(">>>>> setAdministratorOnlyAccess, filepath=%v", filepath)
-	defer log.Info("<<<<< setAdministratorOnlyAccess")
+	log.Tracef(">>>>> setAdministratorOnlyAccess, filepath=%v", filepath)
+	defer log.Trace("<<<<< setAdministratorOnlyAccess")
 
 	// Allocate and initialize our security identifier (SID)
 	identAuth := windows.SECURITY_NT_AUTHORITY

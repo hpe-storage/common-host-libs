@@ -12,14 +12,14 @@ import (
 // RescanDisks calls the UpdateHostStorageCache method of the MSFT_StorageSetting WMI class.
 // It's equivalent to performing a rescan within diskpart.exe.
 func RescanDisks() error {
-	log.Info(">>>>> RescanDisks")
-	defer log.Info("<<<<< RescanDisks")
+	log.Trace(">>>>> RescanDisks")
+	defer log.Trace("<<<<< RescanDisks")
 
 	results, err := ExecWmiMethod("MSFT_StorageSetting", "UpdateHostStorageCache", rootMicrosoftWindowsStorage)
 
 	if results != nil {
 		// Log the RescanDisks result
-		log.Infof("RescanDisks status = %v", results.Value())
+		log.Tracef("RescanDisks status = %v", results.Value())
 
 		// Release the VARIANT
 		results.Clear()

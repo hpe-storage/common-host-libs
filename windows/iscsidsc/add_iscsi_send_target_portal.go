@@ -9,14 +9,14 @@ import (
 	"syscall"
 	"unsafe"
 
-	log "github.rtplab.nimblestorage.com/dcs/common/logger"
+	log "github.com/hpe-storage/common-host-libs/logger"
 )
 
 // AddIScsiSendTargetPortal - Go wrapped Win32 API - AddIScsiSendTargetPortalW()
 // https://docs.microsoft.com/en-us/windows/win32/api/iscsidsc/nf-iscsidsc-addiscsisendtargetportalw
 func AddIScsiSendTargetPortal(initiatorInstance string, initiatorPortNumber uint32, address string) (err error) {
-	log.Infof(">>>>> AddIScsiSendTargetportal, initiatorInstance=%v, initiatorPortNumber=%v, address=%v", initiatorInstance, initiatorPortNumber, address)
-	defer log.Infoln("<<<<< AddIScsiSendTargetPortal")
+	log.Tracef(">>>>> AddIScsiSendTargetportal, initiatorInstance=%v, initiatorPortNumber=%v, address=%v", initiatorInstance, initiatorPortNumber, address)
+	defer log.Traceln("<<<<< AddIScsiSendTargetPortal")
 
 	// Convert initiatorInstance into a raw equivalent so that we can send it to the iSCSI API
 	initiatorNameUTF16 := syscall.StringToUTF16(initiatorInstance)

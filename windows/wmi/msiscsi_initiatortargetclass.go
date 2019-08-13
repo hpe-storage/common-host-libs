@@ -69,8 +69,8 @@ type MSIscsiInitiator_TargetLoginOptions struct {
 
 // GetMSIscsiInitiatorTargetClass enumerates this host's MSiSCSIInitiator_TargetClass objects
 func GetMSIscsiInitiatorTargetClass(whereOperator string) (targets []*MSiSCSIInitiator_TargetClass, err error) {
-	log.Info(">>>>> GetMSIscsiInitiatorTargetClass")
-	defer log.Info("<<<<< GetMSIscsiInitiatorTargetClass")
+	log.Trace(">>>>> GetMSIscsiInitiatorTargetClass")
+	defer log.Trace("<<<<< GetMSIscsiInitiatorTargetClass")
 
 	// Form the WMI query
 	wmiQuery := "SELECT * FROM MSiSCSIInitiator_TargetClass"
@@ -85,8 +85,8 @@ func GetMSIscsiInitiatorTargetClass(whereOperator string) (targets []*MSiSCSIIni
 
 // GetMSIscsiInitiatorTargetClassForTarget enumerates the specific target's MSiSCSIInitiator_TargetClass object.
 func GetMSIscsiInitiatorTargetClassForTarget(target string) ([]*MSiSCSIInitiator_TargetClass, error) {
-	log.Infof(">>>>> GetMSIscsiInitiatorTargetClass, target=%v", target)
-	defer log.Info("<<<<< GetMSIscsiInitiatorTargetClass")
+	log.Tracef(">>>>> GetMSIscsiInitiatorTargetClass, target=%v", target)
+	defer log.Trace("<<<<< GetMSIscsiInitiatorTargetClass")
 
 	whereOperator := `TargetName = "` + target + `"`
 	return GetMSIscsiInitiatorTargetClass(whereOperator)

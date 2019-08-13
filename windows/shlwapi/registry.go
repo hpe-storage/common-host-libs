@@ -142,7 +142,7 @@ func SHGetValue(hkey uintptr, keyName string, valueName string, dst interface{})
 
 	// Return an error if the request failed (failure logged as informational only as may not be an error condition)
 	if ret != 0 {
-		log.Infof("SHGetValue, hkey=%v, registry=%v:%v, err=%v", hkey, keyName, valueName, syscall.Errno(ret))
+		log.Tracef("SHGetValue, hkey=%v, registry=%v:%v, err=%v", hkey, keyName, valueName, syscall.Errno(ret))
 		return syscall.Errno(ret)
 	}
 

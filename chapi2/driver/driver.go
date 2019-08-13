@@ -99,8 +99,8 @@ type ChapiServer struct {
 
 // GetHostInfo returns host name, domain, and network interfaces
 func (driver *ChapiServer) GetHostInfo() (*model.Host, error) {
-	log.Info(">>>>> GetHostInfo called")
-	defer log.Info("<<<<< GetHostInfo")
+	log.Trace(">>>>> GetHostInfo called")
+	defer log.Trace("<<<<< GetHostInfo")
 	hostPlugin := host.NewHostPlugin()
 
 	id, err := hostPlugin.GetUuid()
@@ -127,8 +127,8 @@ func (driver *ChapiServer) GetHostInfo() (*model.Host, error) {
 
 // GetHostNetworks reports the networks on this host
 func (driver *ChapiServer) GetHostNetworks() ([]*model.Network, error) {
-	log.Info(">>>>> GetHostNetworks called")
-	defer log.Info("<<<<< GetHostNetworks")
+	log.Trace(">>>>> GetHostNetworks called")
+	defer log.Trace("<<<<< GetHostNetworks")
 	hostPlugin := host.NewHostPlugin()
 
 	networks, err := hostPlugin.GetNetworks()
@@ -143,8 +143,8 @@ func (driver *ChapiServer) GetHostNetworks() ([]*model.Network, error) {
 
 // GetHostInitiators reports the initiators on this host
 func (driver *ChapiServer) GetHostInitiators() ([]*model.Initiator, error) {
-	log.Info(">>>>> GetHostInitiators called")
-	defer log.Info("<<<<< GetHostInitiators")
+	log.Trace(">>>>> GetHostInitiators called")
+	defer log.Trace("<<<<< GetHostInitiators")
 	//var inits Initiators
 	var inits []*model.Initiator
 
@@ -153,7 +153,7 @@ func (driver *ChapiServer) GetHostInitiators() ([]*model.Initiator, error) {
 
 	iscsiInits, err := iscsiPlugin.GetIscsiInitiators()
 	if err != nil {
-		log.Info("Error getting iscsiInitiator: ", err)
+		log.Trace("Error getting iscsiInitiator: ", err)
 	}
 
 	// fetch fc initiator details
@@ -161,7 +161,7 @@ func (driver *ChapiServer) GetHostInitiators() ([]*model.Initiator, error) {
 
 	fcInits, err := fcPlugin.GetFcInitiators()
 	if err != nil {
-		log.Info("Error getting FcInitiator: ", err)
+		log.Trace("Error getting FcInitiator: ", err)
 	}
 	if fcInits != nil {
 		inits = append(inits, fcInits)
@@ -174,7 +174,7 @@ func (driver *ChapiServer) GetHostInitiators() ([]*model.Initiator, error) {
 		return nil, cerrors.NewChapiError(cerrors.NotFound, errorMessageNoInitiatorsFound)
 	}
 
-	log.Info("initiators ", inits)
+	log.Trace("initiators ", inits)
 	return inits, nil
 }
 
@@ -185,8 +185,8 @@ func (driver *ChapiServer) GetHostInitiators() ([]*model.Initiator, error) {
 // GetDevices enumerates all the Nimble volumes with basic details.
 // If serialNumber is non-empty then only specified device is returned
 func (driver *ChapiServer) GetDevices(serialNumber string) ([]*model.Device, error) {
-	log.Info(">>>>> GetDevices called")
-	defer log.Info("<<<<< GetDevices")
+	log.Trace(">>>>> GetDevices called")
+	defer log.Trace("<<<<< GetDevices")
 	multipathPlugin := multipath.NewMultipathPlugin()
 
 	// Enumerate all the Nimble volumes on this host (basic details only)
@@ -206,8 +206,8 @@ func (driver *ChapiServer) GetDevices(serialNumber string) ([]*model.Device, err
 // GetAllDeviceDetails enumerates all the Nimble volumes with detailed information.
 // If serialNumber is non-empty then only specified device is returned
 func (driver *ChapiServer) GetAllDeviceDetails(serialNumber string) ([]*model.Device, error) {
-	log.Infof(">>>>> GetAllDeviceDetails called, serialNumber=%v", serialNumber)
-	defer log.Info("<<<<< GetAllDeviceDetails")
+	log.Tracef(">>>>> GetAllDeviceDetails called, serialNumber=%v", serialNumber)
+	defer log.Trace("<<<<< GetAllDeviceDetails")
 	multipathPlugin := multipath.NewMultipathPlugin()
 
 	// Enumerate all the Nimble volumes on this host (full details)
@@ -226,8 +226,8 @@ func (driver *ChapiServer) GetAllDeviceDetails(serialNumber string) ([]*model.De
 
 // GetPartitionInfo reports the partitions on the provided device
 func (driver *ChapiServer) GetPartitionInfo(serialNumber string) ([]*model.DevicePartition, error) {
-	log.Infof(">>>>> GetPartitionInfo called, serialNumber=%v", serialNumber)
-	defer log.Info("<<<<< GetPartitionInfo")
+	log.Tracef(">>>>> GetPartitionInfo called, serialNumber=%v", serialNumber)
+	defer log.Trace("<<<<< GetPartitionInfo")
 	multipathPlugin := multipath.NewMultipathPlugin()
 
 	// Enumerate all the Nimble volume's partition
@@ -246,8 +246,8 @@ func (driver *ChapiServer) GetPartitionInfo(serialNumber string) ([]*model.Devic
 
 // CreateDevice will attach device on this host based on the details provided
 func (driver *ChapiServer) CreateDevice(publishInfo model.PublishInfo) (*model.Device, error) {
-	log.Infof(">>>>> CreateDevice called, publishInfo=%v", publishInfo)
-	defer log.Info("<<<<< CreateDevice")
+	log.Tracef(">>>>> CreateDevice called, publishInfo=%v", publishInfo)
+	defer log.Trace("<<<<< CreateDevice")
 
 	// Invalid request if no device access object provided
 	if (publishInfo.BlockDev == nil) && (publishInfo.VirtualDev == nil) {
@@ -277,16 +277,16 @@ func (driver *ChapiServer) CreateDevice(publishInfo model.PublishInfo) (*model.D
 
 // DeleteDevice will delete the given device from the host
 func (driver *ChapiServer) DeleteDevice(serialNumber string) error {
-	log.Infof(">>>>> DeleteDevice called, serialNumber=%v", serialNumber)
-	defer log.Info("<<<<< DeleteDevice")
+	log.Tracef(">>>>> DeleteDevice called, serialNumber=%v", serialNumber)
+	defer log.Trace("<<<<< DeleteDevice")
 
 	return cerrors.NewChapiError(cerrors.Unimplemented, errorMessageNotYetImplemented)
 }
 
 // OfflineDevice will offline the given device from the host
 func (driver *ChapiServer) OfflineDevice(serialNumber string) error {
-	log.Infof(">>>>> OfflineDevice called, serialNumber=%v", serialNumber)
-	defer log.Info("<<<<< OfflineDevice")
+	log.Tracef(">>>>> OfflineDevice called, serialNumber=%v", serialNumber)
+	defer log.Trace("<<<<< OfflineDevice")
 	multipathPlugin := multipath.NewMultipathPlugin()
 
 	// Enumerate basic details for the serial number
@@ -301,8 +301,8 @@ func (driver *ChapiServer) OfflineDevice(serialNumber string) error {
 
 // CreateFileSystem writes the given file system to the device with the given serial number
 func (driver *ChapiServer) CreateFileSystem(serialNumber string, filesystem string) error {
-	log.Infof(">>>>> CreateFileSystem called, serialNumber=%v, filesystem=%v", serialNumber, filesystem)
-	defer log.Info("<<<<< CreateFileSystem")
+	log.Tracef(">>>>> CreateFileSystem called, serialNumber=%v, filesystem=%v", serialNumber, filesystem)
+	defer log.Trace("<<<<< CreateFileSystem")
 	multipathPlugin := multipath.NewMultipathPlugin()
 
 	// Enumerate basic details for the serial number
@@ -321,8 +321,8 @@ func (driver *ChapiServer) CreateFileSystem(serialNumber string, filesystem stri
 
 // GetMounts reports all mounts on this host for the specified Nimble volume
 func (driver *ChapiServer) GetMounts(serialNumber string) ([]*model.Mount, error) {
-	log.Infof(">>>>> GetMounts called, serialNumber=%v", serialNumber)
-	defer log.Info("<<<<< GetMounts")
+	log.Tracef(">>>>> GetMounts called, serialNumber=%v", serialNumber)
+	defer log.Trace("<<<<< GetMounts")
 
 	// Route request to the mount package to get the mounts
 	mountPlugin := mount.NewMounter()
@@ -341,8 +341,8 @@ func (driver *ChapiServer) GetMounts(serialNumber string) ([]*model.Mount, error
 
 // GetAllMountDetails enumerates the specified mount point ID
 func (driver *ChapiServer) GetAllMountDetails(serialNumber string, mountId string) ([]*model.Mount, error) {
-	log.Infof(">>>>> GetMount called, serialNumber=%v, mountPointID=%v", serialNumber, mountId)
-	defer log.Info("<<<<< GetMount")
+	log.Tracef(">>>>> GetMount called, serialNumber=%v, mountPointID=%v", serialNumber, mountId)
+	defer log.Trace("<<<<< GetMount")
 
 	// Route request to the mount package to get the mounts
 	mountPlugin := mount.NewMounter()
@@ -361,8 +361,8 @@ func (driver *ChapiServer) GetAllMountDetails(serialNumber string, mountId strin
 
 // CreateMount mounts the given device to the given mount point
 func (driver *ChapiServer) CreateMount(serialNumber string, mountPoint string, fsOptions *model.FileSystemOptions) (*model.Mount, error) {
-	log.Infof(">>>>> MountDevice called, serialNumber=%v, mountPoint=%v, fsOptions=%v", serialNumber, mountPoint, fsOptions)
-	defer log.Info("<<<<< MountDevice")
+	log.Tracef(">>>>> MountDevice called, serialNumber=%v, mountPoint=%v, fsOptions=%v", serialNumber, mountPoint, fsOptions)
+	defer log.Trace("<<<<< MountDevice")
 
 	// Route request to the mount package to create the mount point
 	mountPlugin := mount.NewMounter()
@@ -376,8 +376,8 @@ func (driver *ChapiServer) CreateMount(serialNumber string, mountPoint string, f
 
 // DeleteMount unmounts the given mount point, serialNumber can be optional in the body
 func (driver *ChapiServer) DeleteMount(serialNumber string, mountPointId string) error {
-	log.Infof(">>>>> DeleteMount called, serialNumber=%v, mountPointID=%v", serialNumber, mountPointId)
-	defer log.Info("<<<<< DeleteMount")
+	log.Tracef(">>>>> DeleteMount called, serialNumber=%v, mountPointID=%v", serialNumber, mountPointId)
+	defer log.Trace("<<<<< DeleteMount")
 
 	// Route request to the mount package to delete the mount point
 	mountPlugin := mount.NewMounter()
@@ -386,8 +386,8 @@ func (driver *ChapiServer) DeleteMount(serialNumber string, mountPointId string)
 
 // CreateBindMount unmounts the given mount point
 func (driver *ChapiServer) CreateBindMount(sourceMount string, targetMount string, bindType string) (*model.Mount, error) {
-	log.Infof(">>>>> CreateBindMount called, sourceMount=%s, targetMount=%s bindType=%s", sourceMount, targetMount, bindType)
-	defer log.Info("<<<<< CreateBindMount")
+	log.Tracef(">>>>> CreateBindMount called, sourceMount=%s, targetMount=%s bindType=%s", sourceMount, targetMount, bindType)
+	defer log.Trace("<<<<< CreateBindMount")
 
 	return nil, cerrors.NewChapiError(cerrors.Unimplemented, errorMessageNotYetImplemented)
 }
@@ -400,8 +400,8 @@ func (driver *ChapiServer) CreateBindMount(sourceMount string, targetMount strin
 // about the given serial number.  If multiple volumes share that serial number (e.g. multipath
 // not configured properly), this routine will fail the request.
 func (driver *ChapiServer) getSingleDeviceSummary(serialNumber string) (*model.Device, error) {
-	log.Infof(">>>>> getSingleDeviceSummary called, serialNumber=%v", serialNumber)
-	defer log.Info("<<<<< getSingleDeviceSummary")
+	log.Tracef(">>>>> getSingleDeviceSummary called, serialNumber=%v", serialNumber)
+	defer log.Trace("<<<<< getSingleDeviceSummary")
 
 	// Enumerate the device details for the provided serial number
 	devices, err := driver.GetDevices(serialNumber)

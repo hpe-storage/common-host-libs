@@ -59,8 +59,8 @@ type Win32_Volume struct {
 
 // GetWin32Volume enumerates this host's Win32_Volume objects
 func GetWin32Volume() (volumes []*Win32_Volume, err error) {
-	log.Infof(">>>>> GetWin32Volume")
-	defer log.Info("<<<<< GetWin32Volume")
+	log.Tracef(">>>>> GetWin32Volume")
+	defer log.Trace("<<<<< GetWin32Volume")
 
 	// Execute the WMI query
 	err = ExecQuery("SELECT * FROM Win32_Volume", rootCIMV2, &volumes)
