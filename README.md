@@ -63,3 +63,7 @@ linux storage subsystem tuning engine
 ### util
 
 Generic helpers
+
+## Building the common-host-libs
+
+Build instructions can be found at [BUILDING.md](BUILDING.md)

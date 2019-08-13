@@ -297,11 +297,13 @@ func cleanupMountFailure(chapiClient *chapi.Client, volume *model.Volume, mountP
 				err = fmt.Errorf("unable to offline device %s after mount failure %s ", device.MpathName, err.Error())
 				log.Errorf(err.Error())
 			}
-			//call Nimble.Detach
-			err = nimbleDetach(volume, pluginReq)
-			if err != nil {
-				log.Errorf("unable to detach nimble volume %s", err.Error())
-			}
+		}
+		//call Nimble.Detach
+		err = nimbleDetach(volume, pluginReq)
+		if err != nil {
+			log.Errorf("unable to detach nimble volume %s", err.Error())
+		}
+		if device != nil {
 			// detach only if donoUnmount is false
 			err = chapiClient.DeleteDevice(device)
 			if err != nil {
