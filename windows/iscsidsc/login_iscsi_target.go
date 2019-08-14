@@ -121,6 +121,8 @@ func loginIScsiTarget(targetName string, initiatorInstance string, initiatorPort
 		copy(loginOptions.PasswordStorage[0:chapPasswordLen], chapPasswordASCII[0:chapPasswordLen])
 		loginOptions.Username = uintptr(unsafe.Pointer(&loginOptions.UsernameStorage[0]))
 		loginOptions.Password = uintptr(unsafe.Pointer(&loginOptions.PasswordStorage[0]))
+		loginOptions.UsernameLength = uint32(chapUsernameLen)
+		loginOptions.PasswordLength = uint32(chapPasswordLen)
 	}
 
 	// Enumerate the "IsPersistent" value
