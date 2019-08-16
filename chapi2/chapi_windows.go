@@ -55,8 +55,8 @@ func Run() (err error) {
 // This function will invoke a new chapid listener with socket filename containing current process ID
 // NOTE: invoke this function as go routine as it will block on socket listener
 func startChapid(result chan error) {
-	log.Info(">>>>> startChapid")
-	defer log.Info("<<<<< startChapid")
+	log.Trace(">>>>> startChapid")
+	defer log.Trace("<<<<< startChapid")
 
 	var err error
 	// create Listener object
@@ -79,7 +79,7 @@ func startChapid(result chan error) {
 			result <- nil
 			err = http.Serve(chapidListener, router)
 			if err != nil {
-				log.Infof("exiting chapid server, err=%v", err.Error())
+				log.Tracef("exiting chapid server, err=%v", err.Error())
 			}
 
 			// Remove our CHAPI port and key files now that CHAPI has exited
@@ -93,8 +93,8 @@ func startChapid(result chan error) {
 
 // StopChapid will stop the given http listener
 func StopChapid() error {
-	log.Info(">>>>> StopChapid")
-	defer log.Info("<<<<< StopChapid")
+	log.Trace(">>>>> StopChapid")
+	defer log.Trace("<<<<< StopChapid")
 
 	// Block any new CHAPI creation request while we're in the middle of trying to close
 	// out any existing CHAPI server.

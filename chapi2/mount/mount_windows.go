@@ -42,8 +42,8 @@ const (
 // important because it provides details about the potential mount point.  For example, under
 // Windows, this includes disk and partition details that are needed in order to mount a volume.
 func (mounter *Mounter) getMounts(serialNumber string, mountId string, allDetails bool, onlyMounted bool) ([]*model.Mount, error) {
-	log.Infof(">>>>> getMounts, serialNumber=%v, mountId=%v, allDetails=%v, onlyMounted=%v", serialNumber, mountId, allDetails, onlyMounted)
-	defer log.Info("<<<<< getMounts")
+	log.Tracef(">>>>> getMounts, serialNumber=%v, mountId=%v, allDetails=%v, onlyMounted=%v", serialNumber, mountId, allDetails, onlyMounted)
+	defer log.Trace("<<<<< getMounts")
 
 	// Fail request if our Mounter object was not initialized properly
 	if mounter.multipathPlugin == nil {
@@ -71,7 +71,7 @@ func (mounter *Mounter) getMounts(serialNumber string, mountId string, allDetail
 
 	// Loop through each enumerated Nimble device
 	for _, device := range devices {
-		log.Infof("Checking serial number %v, disk number %v, for mount points", device.SerialNumber, device.Private.WindowsDisk.Number)
+		log.Tracef("Checking serial number %v, disk number %v, for mount points", device.SerialNumber, device.Private.WindowsDisk.Number)
 
 		// Enumerate all the partitions on this Nimble device
 		partitions, err := wmi.GetMSFTPartitionForDiskNumber(device.Private.WindowsDisk.Number)
@@ -92,7 +92,7 @@ func (mounter *Mounter) getMounts(serialNumber string, mountId string, allDetail
 			// If we were passed in a mount point ID as input, and the ID does not match, skip
 			// this mount point ID.
 			if (mountId != "") && (mountId != mountPoint.ID) {
-				log.Infof("Skipping mount point ID %v, does not match requested ID %v", mountPoint.ID, mountId)
+				log.Tracef("Skipping mount point ID %v, does not match requested ID %v", mountPoint.ID, mountId)
 				continue
 			}
 
@@ -115,8 +115,8 @@ func (mounter *Mounter) getMounts(serialNumber string, mountId string, allDetail
 // getMountPointFromPartition takes the given device/partition, and the optional mount point ID,
 // and returns a model.Mount object.  If an unsupported partition is detected, nil is returned.
 func getMountPointFromPartition(device *model.Device, partition *wmi.MSFT_Partition, allDetails bool, onlyMounted bool) (*model.Mount, error) {
-	log.Infof(">>>>> getMountPointFromPartition, device=%v, partition=%v, allDetails=%v, onlyMounted=%v", device != nil, partition != nil, allDetails, onlyMounted)
-	defer log.Info("<<<<< getMountPointFromPartition")
+	log.Tracef(">>>>> getMountPointFromPartition, device=%v, partition=%v, allDetails=%v, onlyMounted=%v", device != nil, partition != nil, allDetails, onlyMounted)
+	defer log.Trace("<<<<< getMountPointFromPartition")
 
 	// Exit routine if called incorrectly
 	if (device == nil) || (partition == nil) {
@@ -128,7 +128,7 @@ func getMountPointFromPartition(device *model.Device, partition *wmi.MSFT_Partit
 	// Ignore any unsupported partition.  Note that if a GPT partition is detected, only partition
 	// type PARTITION_BASIC_DATA_GUID can be mounted.
 	if partition.IsHidden || partition.IsShadowCopy || ((partition.GptType != "") && (partition.GptType != PARTITION_BASIC_DATA_GUID)) {
-		log.Info("Ignoring unsupported partition")
+		log.Trace("Ignoring unsupported partition")
 		logPartitionDetails(partition, 4)
 		return nil, cerrors.NewChapiError(cerrors.InvalidArgument, errorMessageUnsupportedPartition)
 	}
@@ -147,13 +147,13 @@ func getMountPointFromPartition(device *model.Device, partition *wmi.MSFT_Partit
 	if pathCount := len(mountPointPaths); pathCount > 0 {
 		chapiMountPointPath = mountPointPaths[0]
 		if pathCount > 1 {
-			log.Infof(`Partition has multiple (%v) mount point paths, using first path "%v"`, pathCount, chapiMountPointPath)
+			log.Tracef(`Partition has multiple (%v) mount point paths, using first path "%v"`, pathCount, chapiMountPointPath)
 		}
 	}
 
 	// Create the mount point ID from the device/partition details
 	id := getMountPointID(device.SerialNumber, partition.DiskNumber, partition.PartitionNumber, partition.Offset)
-	log.Infof("Enumerated mount point ID %v for SerialNumber %v", id, device.SerialNumber)
+	log.Tracef("Enumerated mount point ID %v for SerialNumber %v", id, device.SerialNumber)
 	logPartitionDetails(partition, 4)
 
 	// Create a model.Mount object with the mount point ID and Windows specific private data
@@ -179,8 +179,8 @@ func getMountPointFromPartition(device *model.Device, partition *wmi.MSFT_Partit
 // containing the various mount points for the partition) and returns back an array of mount
 // point paths *if* the partition is currently mounted.
 func getMountPointPaths(accessPaths []string) []string {
-	log.Infof(">>>>> getMountPointPath, accessPaths=%v", strings.Join(accessPaths, ","))
-	defer log.Info("<<<<< getMountPointPath")
+	log.Tracef(">>>>> getMountPointPath, accessPaths=%v", strings.Join(accessPaths, ","))
+	defer log.Trace("<<<<< getMountPointPath")
 
 	// Enumerate all the mount points
 	var mountPointPaths []string
@@ -188,7 +188,7 @@ func getMountPointPaths(accessPaths []string) []string {
 		if accessPath != "" && !strings.HasPrefix(accessPath, `\\?\Volume`) {
 			// Convert mount point path to absolute path
 			if absPath, err := filepath.Abs(accessPath); (err == nil) && (absPath != accessPath) {
-				log.Infof(`Adjusting enumerated mount point path "%v" with absolute path "%v"`, accessPath, absPath)
+				log.Tracef(`Adjusting enumerated mount point path "%v" with absolute path "%v"`, accessPath, absPath)
 				accessPath = absPath
 			}
 			mountPointPaths = append(mountPointPaths, accessPath)
@@ -196,7 +196,7 @@ func getMountPointPaths(accessPaths []string) []string {
 	}
 
 	// Log enumerated mount point paths before returning
-	log.Infof("mountPointPaths=%v", strings.Join(mountPointPaths, ","))
+	log.Tracef("mountPointPaths=%v", strings.Join(mountPointPaths, ","))
 	return mountPointPaths
 }
 
@@ -219,19 +219,19 @@ func getMountPointID(serialNumber string, diskNumber uint32, partitionNumber uin
 // logPartitionDetails logs the indented partition details
 func logPartitionDetails(partition *wmi.MSFT_Partition, indent int) {
 	spacer := strings.Repeat(" ", indent)
-	log.Infof("%vNumbers     : DiskNumber=%v, PartitionNumber=%v", spacer, partition.DiskNumber, partition.PartitionNumber)
-	log.Infof("%vAccessPaths : %v", spacer, strings.Join(partition.AccessPaths, ","))
-	log.Infof("%vStatus      : OperationalStatus=%v, TransitionState=%v", spacer, partition.OperationalStatus, partition.TransitionState)
-	log.Infof("%vOffset/Size : Offset=%v, Size=%v", spacer, partition.Offset, partition.Size)
-	log.Infof("%vType        : MbrType=%v, GptType=%v", spacer, partition.MbrType, partition.GptType)
-	log.Infof("%vFlags       : IsReadOnly=%v, IsOffline=%v, IsSystem=%v, IsActive=%v, IsHidden=%v, IsShadowCopy=%v",
+	log.Tracef("%vNumbers     : DiskNumber=%v, PartitionNumber=%v", spacer, partition.DiskNumber, partition.PartitionNumber)
+	log.Tracef("%vAccessPaths : %v", spacer, strings.Join(partition.AccessPaths, ","))
+	log.Tracef("%vStatus      : OperationalStatus=%v, TransitionState=%v", spacer, partition.OperationalStatus, partition.TransitionState)
+	log.Tracef("%vOffset/Size : Offset=%v, Size=%v", spacer, partition.Offset, partition.Size)
+	log.Tracef("%vType        : MbrType=%v, GptType=%v", spacer, partition.MbrType, partition.GptType)
+	log.Tracef("%vFlags       : IsReadOnly=%v, IsOffline=%v, IsSystem=%v, IsActive=%v, IsHidden=%v, IsShadowCopy=%v",
 		spacer, partition.IsReadOnly, partition.IsOffline, partition.IsSystem, partition.IsActive, partition.IsHidden, partition.IsShadowCopy)
 }
 
 // createMount is called to mount the given device to the given mount point
 func (mounter *Mounter) createMount(mount *model.Mount, mountPoint string, fsOptions *model.FileSystemOptions) error {
-	log.Infof(`>>>>> createMount, mountPoint="%v", fsOptions=%v`, mountPoint, fsOptions)
-	defer log.Info("<<<<< createMount")
+	log.Tracef(`>>>>> createMount, mountPoint="%v", fsOptions=%v`, mountPoint, fsOptions)
+	defer log.Trace("<<<<< createMount")
 
 	// TODO - How is fsOptions going to be used under Windows?
 
@@ -241,12 +241,12 @@ func (mounter *Mounter) createMount(mount *model.Mount, mountPoint string, fsOpt
 	}
 
 	// Now that we validated the mount object, log details about the create mount request
-	log.Infof("SerialNumber=%v, PathName=%v, IsOffline=%v, IsReadOnly=%v",
+	log.Tracef("SerialNumber=%v, PathName=%v, IsOffline=%v, IsReadOnly=%v",
 		mount.SerialNumber, mount.Private.WindowsDisk.Path, mount.Private.WindowsDisk.IsOffline, mount.Private.WindowsDisk.IsReadOnly)
 
 	// If the disk is offline, or read only, we first need to online the disk and/or make it writable
 	if mount.Private.WindowsDisk.IsOffline || mount.Private.WindowsDisk.IsReadOnly {
-		if err := mounter.makeDiskOnlineAndWritable(mount.Private.WindowsDisk.Path, (mount.Private.WindowsDisk.IsOffline == true), (mount.Private.WindowsDisk.IsReadOnly == true)); err != nil {
+		if err := mounter.multipathPlugin.MakeDiskOnlineAndWritable(mount.Private.WindowsDisk.Path, (mount.Private.WindowsDisk.IsOffline == true), (mount.Private.WindowsDisk.IsReadOnly == true)); err != nil {
 			return err
 		}
 
@@ -274,7 +274,7 @@ func (mounter *Mounter) createMount(mount *model.Mount, mountPoint string, fsOpt
 		isDirectoryExists = true
 		isDirectoryEmpty, _ = isEmptyDirectory(mountPoint)
 	}
-	log.Infof("Mount point details, isDriveLetterMount=%v, isDirectoryExists=%v, isDirectoryEmpty=%v", isDriveLetterMount, isDirectoryExists, isDirectoryEmpty)
+	log.Tracef("Mount point details, isDriveLetterMount=%v, isDirectoryExists=%v, isDirectoryEmpty=%v", isDriveLetterMount, isDirectoryExists, isDirectoryEmpty)
 
 	// If it's a drive letter mount, and the drive letter already exists, fail the request
 	if isDriveLetterMount && isDirectoryExists {
@@ -294,7 +294,7 @@ func (mounter *Mounter) createMount(mount *model.Mount, mountPoint string, fsOpt
 	// If we're mounting to a directory, adjust mount point path with absolute path if necessary
 	if !isDriveLetterMount && (mountPoint != "") {
 		if absPath, err := filepath.Abs(mountPoint); (err == nil) && (absPath != mountPoint) {
-			log.Infof(`Adjusting requested mount point path "%v" with absolute path "%v"`, mountPoint, absPath)
+			log.Tracef(`Adjusting requested mount point path "%v" with absolute path "%v"`, mountPoint, absPath)
 			mountPoint = absPath
 		}
 	}
@@ -308,7 +308,7 @@ func (mounter *Mounter) createMount(mount *model.Mount, mountPoint string, fsOpt
 			return err
 		}
 		createdMountDirectory = true
-		log.Infof(`Created mount point directory "%v"`, mountPoint)
+		log.Tracef(`Created mount point directory "%v"`, mountPoint)
 	}
 
 	// Mount the device/partition to the specified mount point
@@ -327,45 +327,10 @@ func (mounter *Mounter) createMount(mount *model.Mount, mountPoint string, fsOpt
 	return nil
 }
 
-// makeDiskOnlineAndWritable is a helper routine that will make a disk online and/or writable
-func (mounter *Mounter) makeDiskOnlineAndWritable(path string, makeOnline bool, makeWritable bool) error {
-	log.Infof(">>>>> makeDiskOnlineAndWritable, path=%v, makeOnline=%v, makeWritable=%v", path, makeOnline, makeWritable)
-	defer log.Info("<<<<< makeDiskOnlineAndWritable")
-
-	// We're now ready to create the mount point.  Start by making sure the device is online.
-	clearedDiskOffline := false
-	if makeOnline {
-		if _, _, err := powershell.SetDiskOffline(path, false); err != nil {
-			return err
-		}
-		clearedDiskOffline = true
-	}
-
-	// Next we make sure the device is writable
-	clearedDiskReadOnly := false
-	if makeWritable {
-		if _, _, err := powershell.SetDiskReadOnly(path, false); err != nil {
-			return err
-		}
-		clearedDiskReadOnly = true
-	}
-
-	// If we had to online the disk, or make it writable, we'll need to update the cached information
-	// about the disk.  We need to do this otherwise a re-enumeration of the partition might not
-	// pickup the current mount point(s).
-	if clearedDiskOffline || clearedDiskReadOnly {
-		if _, _, err := powershell.UpdateDisk(path); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // deleteMount is called to unmount the given mount point ID
 func (mounter *Mounter) deleteMount(mount *model.Mount) error {
-	log.Info(">>>>> deleteMount")
-	defer log.Info("<<<<< deleteMount")
+	log.Trace(">>>>> deleteMount")
+	defer log.Trace("<<<<< deleteMount")
 
 	// Validate the Mount object
 	if err := validateMount(mount); err != nil {
@@ -385,7 +350,7 @@ func (mounter *Mounter) deleteMount(mount *model.Mount) error {
 	}
 
 	// Now that we validated the mount object, log details about the delete mount request
-	log.Infof("SerialNumber=%v, PathName=%v, IsOffline=%v, IsReadOnly=%v",
+	log.Tracef("SerialNumber=%v, PathName=%v, IsOffline=%v, IsReadOnly=%v",
 		mount.SerialNumber, mount.Private.WindowsDisk.Path, mount.Private.WindowsDisk.IsOffline, mount.Private.WindowsDisk.IsReadOnly)
 
 	// Unmount the device/partition from the specified mount point
@@ -394,7 +359,7 @@ func (mounter *Mounter) deleteMount(mount *model.Mount) error {
 	// If the mount point was removed, and we were mounted to an empty directory, we clean up after
 	// ourselves by removing the empty directory.
 	if (err == nil) && !isWindowsDriveLetterPath(mount.MountPoint) {
-		log.Infof(`Removing "%v" directory`, mount.MountPoint)
+		log.Tracef(`Removing "%v" directory`, mount.MountPoint)
 		if removeErr := os.Remove(mount.MountPoint); removeErr != nil {
 			// If we were able to remove the mount point, but unable to remove the empty directory,
 			// we'll simply log it as an error but not return the error to the caller.  From the

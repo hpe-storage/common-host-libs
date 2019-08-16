@@ -178,10 +178,10 @@ func (plugin *IscsiPlugin) getTargetPortals(targetName string, ipv4Only bool) ([
 // loginTarget is called to connect to the given iSCSI target.  The parent LoginTarget() routine
 // has already validated that the target iqn and blockDev.IscsiAccessInfo are provided.
 func (plugin *IscsiPlugin) loginTarget(blockDev model.BlockDeviceAccessInfo) (err error) {
-	log.Trace(">>> loginTarget")
-	defer log.Trace("<<< loginTarget")
+	log.Trace(">>>>> loginTarget")
+	defer log.Trace("<<<<< loginTarget")
 
-	log.Infof("Login to iSCSI target %v", blockDev.TargetName)
+	log.Infof("Login iSCSI target %v", blockDev.TargetName)
 
 	// Determine how we should try to connect to the iSCSI target
 	var connectTypes []string
@@ -309,6 +309,17 @@ func (plugin *IscsiPlugin) loginTarget(blockDev model.BlockDeviceAccessInfo) (er
 	return nil
 }
 
+// logoutTarget is called to disconnect the given iSCSI target from this host.
+func (plugin *IscsiPlugin) logoutTarget(targetName string) (err error) {
+	log.Trace(">>>>> loginTarget")
+	defer log.Trace("<<<<< loginTarget")
+
+	log.Infof("Logout iSCSI target %v", targetName)
+
+	// Logout all iSCSI target sessions and remove persistent settings
+	return iscsidsc.LogoutIScsiTargetAll(targetName, true)
+}
+
 // connectTypeToArray takes the connectType string and returns an array of connection types that
 // reflect the input type.
 func (plugin *IscsiPlugin) connectTypeToArray(connectType string) (connectTypes []string, err error) {
@@ -336,8 +347,8 @@ func (plugin *IscsiPlugin) connectTypeToArray(connectType string) (connectTypes 
 
 // addDiscoveryPortal adds the given discovery IP to the system's discovery portals.
 func (plugin *IscsiPlugin) addDiscoveryPortal(discoveryIP string) error {
-	log.Tracef(">>> addDiscoveryPortal, discoveryIP=%v", discoveryIP)
-	defer log.Traceln("<<< addDiscoveryPortal")
+	log.Tracef(">>>>> addDiscoveryPortal, discoveryIP=%v", discoveryIP)
+	defer log.Traceln("<<<<< addDiscoveryPortal")
 
 	// Enumerate the send target portals (e.g. discovery IPs)
 	sendTargetPortals, err := iscsidsc.ReportIScsiSendTargetPortalsEx()
@@ -370,8 +381,8 @@ func (plugin *IscsiPlugin) addDiscoveryPortal(discoveryIP string) error {
 
 // isTargetLoggedIn checks to see if the given iSCSI target is already logged in.
 func (plugin *IscsiPlugin) isTargetLoggedIn(targetName string) (bool, error) {
-	log.Tracef(">>> isTargetLoggedIn, TargetName=%v", targetName)
-	defer log.Traceln("<<< isTargetLoggedIn")
+	log.Tracef(">>>>> isTargetLoggedIn, TargetName=%v", targetName)
+	defer log.Traceln("<<<<< isTargetLoggedIn")
 
 	// Get the current iSCSI session list
 	iscsiSessions, err := iscsidsc.GetIscsiSessionList()
@@ -393,8 +404,8 @@ func (plugin *IscsiPlugin) isTargetLoggedIn(targetName string) (bool, error) {
 // isTargetPresent returns nil if the given iSCSI target can be detected by this host, else an
 // applicable error is returned.
 func (plugin *IscsiPlugin) isTargetPresent(targetName string) error {
-	log.Tracef(">>> isTargetPresent, targetName=%v", targetName)
-	defer log.Traceln("<<< isTargetPresent")
+	log.Tracef(">>>>> isTargetPresent, targetName=%v", targetName)
+	defer log.Traceln("<<<<< isTargetPresent")
 
 	// Check to see if target is available through a discovery query.  If not found on the first
 	// query, perform a deep discovery and retry once more.
@@ -437,8 +448,8 @@ func (plugin *IscsiPlugin) loginTargetPorts(
 	loginExpiration time.Time,
 	maxConnectionCount uint32) (connections []ITNexus, err error) {
 
-	log.Tracef(">>> loginTargetPorts, targetName=%v", blockDev.TargetName)
-	defer log.Traceln("<<< loginTargetPorts")
+	log.Tracef(">>>>> loginTargetPorts, targetName=%v", blockDev.TargetName)
+	defer log.Traceln("<<<<< loginTargetPorts")
 
 	// Enumerate the IT_nexuses we should attempt to make connections with using the
 	// specified connection type.
@@ -509,8 +520,8 @@ func (plugin *IscsiPlugin) loginTargetPort(
 	targetPort *model.TargetPortal,
 	loginExpiration time.Time) error {
 
-	log.Tracef(">>> loginTargetPort, targetName=%v", blockDev.TargetName)
-	defer log.Traceln("<<< loginTargetPort")
+	log.Tracef(">>>>> loginTargetPort, targetName=%v", blockDev.TargetName)
+	defer log.Traceln("<<<<< loginTargetPort")
 
 	// If the amount of time given to login to an iSCSI target has expired, fail the
 	// request.

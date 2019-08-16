@@ -56,8 +56,8 @@ func (plugin *IscsiPlugin) GetAllLoggedInTargets() ([]*model.IscsiTarget, error)
 }
 
 func (plugin *IscsiPlugin) GetTargetPortals(targetName string, ipv4Only bool) ([]*model.TargetPortal, error) {
-	log.Tracef(">>> GetTargetPortals, targetName=%v, ipv4Only=%v", targetName, ipv4Only)
-	defer log.Traceln("<<< GetTargetPortals")
+	log.Tracef(">>>>> GetTargetPortals, targetName=%v, ipv4Only=%v", targetName, ipv4Only)
+	defer log.Traceln("<<<<< GetTargetPortals")
 	return plugin.getTargetPortals(targetName, ipv4Only)
 }
 
@@ -73,8 +73,8 @@ func (plugin *IscsiPlugin) DiscoverTargets(portal string) ([]*model.IscsiTarget,
 
 // LoginTarget ensures that the provided iSCSI device is logged into this host
 func (plugin *IscsiPlugin) LoginTarget(blockDev model.BlockDeviceAccessInfo) (err error) {
-	log.Tracef(">>> LoginTarget, TargetName=%v", blockDev.TargetName)
-	defer log.Traceln("<<< LoginTarget")
+	log.Tracef(">>>>> LoginTarget, TargetName=%v", blockDev.TargetName)
+	defer log.Traceln("<<<<< LoginTarget")
 
 	// If the iSCSI iqn is not provided, fail the request
 	if blockDev.TargetName == "" {
@@ -108,8 +108,8 @@ func (plugin *IscsiPlugin) LoginTarget(blockDev model.BlockDeviceAccessInfo) (er
 
 // IsTargetLoggedIn checks to see if the given iSCSI target is already logged in
 func (plugin *IscsiPlugin) IsTargetLoggedIn(targetName string) (bool, error) {
-	log.Tracef(">>> IsTargetLoggedIn, targetName=%v", targetName)
-	defer log.Traceln("<<< IsTargetLoggedIn")
+	log.Tracef(">>>>> IsTargetLoggedIn, targetName=%v", targetName)
+	defer log.Traceln("<<<<< IsTargetLoggedIn")
 
 	// Call platform specific module
 	return plugin.isTargetLoggedIn(targetName)
@@ -117,8 +117,11 @@ func (plugin *IscsiPlugin) IsTargetLoggedIn(targetName string) (bool, error) {
 
 // LogoutTarget logs out the given iSCSI target
 func (plugin *IscsiPlugin) LogoutTarget(targetName string) error {
-	// TODO
-	return nil
+	log.Tracef(">>>>> LogoutTarget, TargetName=%v", targetName)
+	defer log.Traceln("<<<<< LogoutTarget")
+
+	// Call platform specific module
+	return plugin.logoutTarget(targetName)
 }
 
 // GetIscsiInitiators returns the host's iSCSI initiator object
@@ -133,7 +136,7 @@ func (plugin *IscsiPlugin) GetTargetScope(targetName string) (string, error) {
 
 // RescanIscsiTarget rescans host ports for iSCSI devices
 func (plugin *IscsiPlugin) RescanIscsiTarget(lunID string) error {
-	log.Tracef(">>> RescanIscsiTarget initiated for lunID %v", lunID)
-	defer log.Traceln("<<< RescanIscsiTarget")
+	log.Tracef(">>>>> RescanIscsiTarget initiated for lunID %v", lunID)
+	defer log.Traceln("<<<<< RescanIscsiTarget")
 	return rescanIscsiTarget(lunID)
 }

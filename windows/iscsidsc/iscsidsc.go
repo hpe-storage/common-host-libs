@@ -6,11 +6,15 @@
 package iscsidsc
 
 import (
+	"encoding/hex"
 	"math"
+	"strings"
 	"syscall"
 	"unsafe"
 
+	log "github.com/hpe-storage/common-host-libs/logger"
 	uuid "github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows"
 )
 
@@ -463,4 +467,18 @@ func safeUTF16PtrToString(ptr *uint16) (str string) {
 		str = syscall.UTF16ToString((*[1024]uint16)(unsafe.Pointer(ptr))[:])
 	}
 	return str
+}
+
+// logTraceHexDump dumps the given hex buffer to the trace log (if enabled)
+func logTraceHexDump(dataBuffer []uint8, prefix string) {
+	if !log.IsLevelEnabled(logrus.TraceLevel) {
+		return
+	}
+	if prefix != "" {
+		prefix += " - "
+	}
+	hexStrings := strings.Split(strings.TrimRight(hex.Dump(dataBuffer), "\r\n"), "\n")
+	for _, hexString := range hexStrings {
+		log.Tracef("%v%v", prefix, hexString)
+	}
 }

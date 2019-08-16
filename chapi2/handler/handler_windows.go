@@ -65,6 +65,7 @@ func GetKeyfile(w http.ResponseWriter, r *http.Request) {
 	log.Tracef(">>>>> getKeyfile called, chapiKeyFilePath=%v", chapiKeyFilePath)
 	defer log.Trace("<<<<< getKeyfile")
 
+	log.Infof("CHAPI key path - %v", chapiKeyFilePath)
 	var chapiResp Response
 	chapiResp.Data = model.KeyFileInfo{Path: chapiKeyFilePath}
 	json.NewEncoder(w).Encode(chapiResp)

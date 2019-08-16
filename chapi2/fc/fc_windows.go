@@ -12,8 +12,8 @@ import (
 
 // getAllFcHostPorts get all the FC host port details on the host
 func getAllFcHostPorts() (hostPorts []*model.FcHostPort, err error) {
-	log.Info(">>>>> GetAllFcHostPorts called")
-	defer log.Info("<<<<< GetAllFcHostPorts")
+	log.Trace(">>>>> GetAllFcHostPorts called")
+	defer log.Trace("<<<<< GetAllFcHostPorts")
 
 	// Enumerate the FC ports on this host
 	var fcPorts []*wmi.MSFC_FibrePortHBAAttributes

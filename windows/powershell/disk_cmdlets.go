@@ -20,6 +20,9 @@ const (
 
 	// PartitionStyleGPT is used to initialize a disk with the GPT partitioning style
 	PartitionStyleGPT = "GPT"
+
+	// TimeoutPartitionAndFormatVolume specifies the partition and format cmdlet timeout (in seconds)
+	TimeoutPartitionAndFormatVolume = 5 * 60
 )
 
 // AddPartitionAccessPath wraps the Add-PartitionAccessPath cmdlet
@@ -68,7 +71,7 @@ func PartitionAndFormatVolume(diskPath string, fileSystem string) (string, int, 
 	}
 
 	arg := fmt.Sprintf(`New-Partition -DiskPath "%v" -UseMaximumSize:$True | Format-Volume -FileSystem %v`, diskPath, fileSystem)
-	return execCommandOutput(arg)
+	return execCommandOutputWithTimeout(arg, TimeoutPartitionAndFormatVolume)
 }
 
 // RemovePartitionAccessPath wraps the Remove-PartitionAccessPath cmdlet
