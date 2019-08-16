@@ -11,6 +11,17 @@ import (
 	log "github.com/hpe-storage/common-host-libs/logger"
 )
 
+const (
+	// MinimumGPTSize represents the minimum GPT size (i.e. 128 MiB)
+	MinimumGPTSize = 128 * 1024 * 1024
+
+	// PartitionStyleMBR is used to initialize a disk with the MBR partitioning style
+	PartitionStyleMBR = "MBR"
+
+	// PartitionStyleGPT is used to initialize a disk with the GPT partitioning style
+	PartitionStyleGPT = "GPT"
+)
+
 // AddPartitionAccessPath wraps the Add-PartitionAccessPath cmdlet
 func AddPartitionAccessPath(accessPath string, diskNumber uint32, partitionNumber uint32) (string, int, error) {
 	log.Tracef(">>>>> AddPartitionAccessPath, accessPath=%v, diskNumber=%v, partitionNumber=%v", accessPath, diskNumber, partitionNumber)
@@ -31,11 +42,16 @@ func ClearDisk(diskNumber int, removeData bool) (string, int, error) {
 
 // InitializeDisk wraps the Initialize-Disk cmdlet.  We only need the ability to create GPT partitions
 // which is why this routine doesn't expose the option to select the partition style.
-func InitializeDisk(path string) (string, int, error) {
-	log.Tracef(">>>>> InitializeDisk, path=%v", path)
+func InitializeDisk(path string, partitionStyle string) (string, int, error) {
+	log.Tracef(">>>>> InitializeDisk, path=%v, partitionStyle=%v", path, partitionStyle)
 	defer log.Trace("<<<<< InitializeDisk")
 
-	arg := fmt.Sprintf(`Initialize-Disk -Path "%v" -PartitionStyle GPT`, path)
+	// If no partition style provided, default to GPT
+	if partitionStyle == "" {
+		partitionStyle = PartitionStyleGPT
+	}
+
+	arg := fmt.Sprintf(`Initialize-Disk -Path "%v" -PartitionStyle %v`, path, partitionStyle)
 	return execCommandOutput(arg)
 }
 
