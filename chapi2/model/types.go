@@ -37,6 +37,22 @@ const (
 	TargetScopeVolume = "volume" // Volume Scoped Target (VST)
 )
 
+const (
+	// ConnectTypeDefault - CHAPI2 will automatically detect and choose the optimal connection type.
+	// This setting is also used if the connect type is not provided (e.g. empty string)
+	ConnectTypeDefault = "default"
+
+	// ConnectTypePing - Ping each I_T nexus to detect where connections are possible.
+	ConnectTypePing = "ping"
+
+	// ConnectTypeSubnet - Only make connections to initiator ports in same subnet as target ports.
+	ConnectTypeSubnet = "subnet"
+
+	// ConnectTypeAutoInitiator - Let the host's iSCSI initiator automatically select the initiator
+	// to use to make a connection to the target ports.
+	ConnectTypeAutoInitiator = "auto_initiator"
+)
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // CHAPI Host Object
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -147,6 +163,7 @@ type BlockDeviceAccessInfo struct {
 
 // IscsiAccessInfo contains the fields necessary for iSCSI access
 type IscsiAccessInfo struct {
+	ConnectType  string `json:"connect_type,omitempty"`  // How connections should be enumerated/established
 	DiscoveryIP  string `json:"discovery_ip,omitempty"`  // iSCSI Discovery IP (empty for FC volumes)
 	ChapUser     string `json:"chap_user,omitempty"`     // CHAP username (empty if CHAP not used)
 	ChapPassword string `json:"chap_password,omitempty"` // CHAP password (empty if CHAP not used)

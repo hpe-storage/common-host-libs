@@ -1,5 +1,5 @@
-hash: bd22b4a72309f9c6776c18ef5fc83a4011d18bd18231dc337dd4f972ea112063
-updated: 2019-07-26T10:13:21.203655-07:00
+hash: 98255a8d6af8ef49d69001cc04d7a7509c2491d07d662265313041f42201cac0
+updated: 2019-08-15T08:46:46.263035295-07:00
 imports:
 - name: github.com/coreos/etcd
   version: 98d308426819d892e149fe45f6fd542464cb1f9d
@@ -51,6 +51,8 @@ imports:
   - lock
 - name: github.com/sirupsen/logrus
   version: 839c75faf7f98a33d445d181f3018b5c3409a45e
+- name: github.com/sparrc/go-ping
+  version: 4e5b6552494c8005c60de6c60b50ebaefc69e592
 - name: golang.org/x/crypto
   version: 4def268fd1a49955bfb3dda92fe3db4f924f2285
   subpackages:
