@@ -120,7 +120,7 @@ func createClone(t *testing.T, provider *StorageProvider, sourceVolumeID, snapsh
 
 // nolint: dupl
 func deleteVolume(t *testing.T, provider *StorageProvider, volume *model.Volume) {
-	err := provider.DeleteVolume(volume.ID)
+	err := provider.DeleteVolume(volume.ID, false)
 	if err != nil {
 		t.Fatal("Could not delete volume " + volume.Name + ".  Error: " + err.Error())
 	}
