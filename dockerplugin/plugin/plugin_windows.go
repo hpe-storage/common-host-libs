@@ -95,14 +95,14 @@ func PreparePluginSocket() (localListner net.Listener, globalListner net.Listene
 	// local listen
 	localListner, err = net.Listen(windows.Proto, windows.Hostname+":"+windows.PluginListenPort)
 	if err != nil {
-		util.LogError.Fatal("Listen err on local http port :", err.Error())
+		log.Fatal("Listen err on local http port :", err.Error())
 		return nil, nil, err
 	}
 	// global listen
 	log.Info("Global plugin listening on ", windows.GlobalPluginListenPort)
 	globalListner, err = net.Listen(windows.Proto, windows.Hostname+":"+windows.GlobalPluginListenPort)
 	if err != nil {
-		util.LogError.Fatal("Listen err on global http port :", err.Error())
+		log.Fatal("Listen err on global http port :", err.Error())
 		return nil, nil, err
 	}
 	return localListner, globalListner, nil

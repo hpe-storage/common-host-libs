@@ -397,7 +397,7 @@ func WithTime(t time.Time) *log.Entry {
 func HTTPLogger(inner http.Handler, name string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		sourced().Infof(
-			">>>>> %s\t%s\t%s",
+			">>>>> %s %s - %s",
 			r.Method,
 			r.RequestURI,
 			name,
@@ -407,7 +407,7 @@ func HTTPLogger(inner http.Handler, name string) http.Handler {
 		inner.ServeHTTP(w, r)
 
 		sourced().Infof(
-			"<<<<< %s\t%s\t%s\t%s",
+			"<<<<< %s %s - %s %s",
 			r.Method,
 			r.RequestURI,
 			name,
