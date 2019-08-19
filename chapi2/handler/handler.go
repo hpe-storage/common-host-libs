@@ -122,7 +122,6 @@ func GetDevices(w http.ResponseWriter, r *http.Request) {
 
 	if ok && len(keys[0]) > 0 {
 		serialNumber = keys[0]
-		return
 	}
 	devices, err := driver.GetDevices(serialNumber)
 	if err != nil {
@@ -336,7 +335,6 @@ func GetMounts(w http.ResponseWriter, r *http.Request) {
 
 	if ok && len(keys[0]) > 0 {
 		serialNumber = keys[0]
-		return
 	}
 	mounts, err := driver.GetMounts(serialNumber)
 	if err != nil {
