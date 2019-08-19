@@ -98,7 +98,7 @@ func PreparePluginSocket() (listener net.Listener, err error) {
 
 	listener, err = net.Listen("unix", socketPath+pluginSocketFileName)
 	if err != nil {
-		util.LogError.Fatalf("unable to create listener on plugin socket file %s, err %s", socketPath+pluginSocketFileName, err.Error())
+		log.Fatalf("unable to create listener on plugin socket file %s, err %s", socketPath+pluginSocketFileName, err.Error())
 		return nil, err
 	}
 	return listener, nil
