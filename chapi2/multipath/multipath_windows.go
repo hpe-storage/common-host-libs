@@ -46,8 +46,8 @@ func (plugin *MultipathPlugin) getDevices(serialNumber string) ([]*model.Device,
 	return devices, nil
 }
 
-// getDevices enumerates all the Nimble volumes while providing full details about the device.
-// If a "serialNumber" is passed in, only that specific serial number is enumerated.
+// getAllDeviceDetails enumerates all the Nimble volumes while providing full details about the
+// device.  If a "serialNumber" is passed in, only that specific serial number is enumerated.
 func (plugin *MultipathPlugin) getAllDeviceDetails(serialNumber string) ([]*model.Device, error) {
 	log.Trace(">>>>> getAllDeviceDetails")
 	defer log.Trace("<<<<< getAllDeviceDetails")
@@ -166,10 +166,10 @@ func (plugin *MultipathPlugin) getPartitionInfo(serialNumber string) ([]*model.D
 	for _, win32Partition := range win32Partitions {
 		partition := &model.DevicePartition{
 			Name:          win32Partition.Name,
-			Partitiontype: win32Partition.Type,
+			PartitionType: win32Partition.Type,
 			Size:          win32Partition.Size,
 		}
-		log.Tracef("Name=%v, Partitiontype=%v, Size=%v", partition.Name, partition.Partitiontype, partition.Size)
+		log.Tracef("Name=%v, PartitionType=%v, Size=%v", partition.Name, partition.PartitionType, partition.Size)
 		partitions = append(partitions, partition)
 	}
 
@@ -191,6 +191,23 @@ func (plugin *MultipathPlugin) offlineDevice(device model.Device) error {
 func (plugin *MultipathPlugin) createFileSystem(device model.Device, filesystem string) error {
 	log.Tracef(">>>>> createFileSystem, Path=%v, filesystem=%v", device.Private.WindowsDisk.Path, filesystem)
 	defer log.Trace("<<<<< createFileSystem")
+
+	// Make sure disk is online and writable before attempting the format
+	if err := plugin.MakeDiskOnlineAndWritable(device.Private.WindowsDisk.Path, true, true); err != nil {
+		return err
+	}
+
+	// Determine partition style to use
+	partitionStyle := powershell.PartitionStyleGPT
+	if device.Size < powershell.MinimumGPTSize {
+		log.Tracef("Disk not large enough for GPT (%v bytes), using MBR", device.Size)
+		partitionStyle = powershell.PartitionStyleMBR
+	}
+
+	// Initialize the disk
+	if _, _, err := powershell.InitializeDisk(device.Private.WindowsDisk.Path, partitionStyle); err != nil {
+		return err
+	}
 
 	// Use PowerShell to format the disk
 	_, _, err := powershell.PartitionAndFormatVolume(device.Private.WindowsDisk.Path, filesystem)
@@ -263,4 +280,39 @@ func (plugin *MultipathPlugin) getIscsiTarget(devicePathID string, targetMapping
 	}
 
 	return iscsiTarget, nil
+}
+
+// MakeDiskOnlineAndWritable is a helper routine that will make a disk online and/or writable
+func (plugin *MultipathPlugin) MakeDiskOnlineAndWritable(path string, makeOnline bool, makeWritable bool) error {
+	log.Tracef(">>>>> MakeDiskOnlineAndWritable, path=%v, makeOnline=%v, makeWritable=%v", path, makeOnline, makeWritable)
+	defer log.Trace("<<<<< MakeDiskOnlineAndWritable")
+
+	// We're now ready to create the mount point.  Start by making sure the device is online.
+	clearedDiskOffline := false
+	if makeOnline {
+		if _, _, err := powershell.SetDiskOffline(path, false); err != nil {
+			return err
+		}
+		clearedDiskOffline = true
+	}
+
+	// Next we make sure the device is writable
+	clearedDiskReadOnly := false
+	if makeWritable {
+		if _, _, err := powershell.SetDiskReadOnly(path, false); err != nil {
+			return err
+		}
+		clearedDiskReadOnly = true
+	}
+
+	// If we had to online the disk, or make it writable, we'll need to update the cached information
+	// about the disk.  We need to do this otherwise a re-enumeration of the partition might not
+	// pickup the current mount point(s).
+	if clearedDiskOffline || clearedDiskReadOnly {
+		if _, _, err := powershell.UpdateDisk(path); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

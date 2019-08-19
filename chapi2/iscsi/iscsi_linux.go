@@ -15,8 +15,8 @@ const (
 )
 
 func getIscsiInitiators() (init *model.Initiator, err error) {
-	log.Info(">>>>> getIscsiInitiators")
-	defer log.Info("<<<<< getIscsiInitiators")
+	log.Trace(">>>>> getIscsiInitiators")
+	defer log.Trace("<<<<< getIscsiInitiators")
 
 	exists, _, err := util.FileExists(initiatorPath)
 	if !exists {
@@ -32,7 +32,7 @@ func getIscsiInitiators() (init *model.Initiator, err error) {
 		log.Errorf("empty iqn found from %s", initiatorPath)
 		return nil, cerrors.NewChapiError(cerrors.NotFound, errorMessageEmptyIqnFound)
 	}
-	log.Infof("got iscsi initiator name as %s", initiators[0])
+	log.Tracef("got iscsi initiator name as %s", initiators[0])
 	init = &model.Initiator{AccessProtocol: model.AccessProtocolIscsi, Init: initiators}
 	return init, err
 }
@@ -59,6 +59,12 @@ func (plugin *IscsiPlugin) getTargetPortals(targetName string, ipv4Only bool) ([
 // loginTarget is called to connect to the given iSCSI target.  The parent LoginTarget() routine
 // has already validated that target iqn and blockDev.IscsiAccessInfo are provided.
 func (plugin *IscsiPlugin) loginTarget(blockDev model.BlockDeviceAccessInfo) (err error) {
+	// TODO
+	return nil
+}
+
+// logoutTarget is called to disconnect the given iSCSI target from this host.
+func (plugin *IscsiPlugin) logoutTarget(targetName string) (err error) {
 	// TODO
 	return nil
 }

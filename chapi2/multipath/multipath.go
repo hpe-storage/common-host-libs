@@ -3,6 +3,7 @@
 package multipath
 
 import (
+	"strings"
 	"sync"
 
 	"github.com/hpe-storage/common-host-libs/chapi2/cerrors"
@@ -38,6 +39,8 @@ func NewMultipathPlugin() *MultipathPlugin {
 	}
 }
 
+// GetDevices enumerates all the Nimble volumes while only providing basic details (e.g. serial number).
+// If a "serialNumber" is passed in, only that specific serial number is enumerated.
 func (plugin *MultipathPlugin) GetDevices(serialNumber string) ([]*model.Device, error) {
 	devices, err := plugin.getDevices(serialNumber)
 	if err != nil {
@@ -46,6 +49,8 @@ func (plugin *MultipathPlugin) GetDevices(serialNumber string) ([]*model.Device,
 	return devices, nil
 }
 
+// GetAllDeviceDetails enumerates all the Nimble volumes while providing full details about the
+// device.  If a "serialNumber" is passed in, only that specific serial number is enumerated.
 func (plugin *MultipathPlugin) GetAllDeviceDetails(serialNumber string) ([]*model.Device, error) {
 	devices, err := plugin.getAllDeviceDetails(serialNumber)
 	if err != nil {
@@ -54,6 +59,7 @@ func (plugin *MultipathPlugin) GetAllDeviceDetails(serialNumber string) ([]*mode
 	return devices, nil
 }
 
+// GetPartitionInfo enumerates the partitions on the given volume
 func (plugin *MultipathPlugin) GetPartitionInfo(serialNumber string) ([]*model.DevicePartition, error) {
 	partitions, err := plugin.getPartitionInfo(serialNumber)
 	if err != nil {
@@ -62,10 +68,12 @@ func (plugin *MultipathPlugin) GetPartitionInfo(serialNumber string) ([]*model.D
 	return partitions, nil
 }
 
+// OfflineDevice is called to offline the given device
 func (plugin *MultipathPlugin) OfflineDevice(device model.Device) error {
 	return plugin.offlineDevice(device)
 }
 
+// CreateFileSystem is called to create a file system on the given device
 func (plugin *MultipathPlugin) CreateFileSystem(device model.Device, filesystem string) error {
 	return plugin.createFileSystem(device, filesystem)
 }
@@ -118,8 +126,31 @@ func (plugin *MultipathPlugin) AttachDevice(serialNumber string, blockDev model.
 
 	// Return the enumerated serial number.  No need to check for duplicate serial number
 	// entries as the GetAllDeviceDetails() routine already performs this check.
-	log.Infof("Device successfully attached, SerialNumber=%v, PathName=%v, Size=%v", devices[0].SerialNumber, devices[0].Pathname, devices[0].Size)
 	return devices[0], nil
+}
+
+// DetachDevice detaches the given block device from this host.
+func (plugin *MultipathPlugin) DetachDevice(device model.Device) error {
+	log.Trace(">>>>> DetachDevice called")
+	defer log.Trace("<<<<< DetachDevice")
+
+	log.Infof("Detach device, serialNumber=%v", device.SerialNumber)
+
+	// Start by offlining the device on the host
+	if err := plugin.OfflineDevice(device); err != nil {
+		return err
+	}
+
+	// If this is an iSCSI Volume Scoped Target (VST), logout iSCSI connections.  For all other
+	// target types (e.g. GST, FC), leave connections intact.
+	if (device.IscsiTarget != nil) && strings.EqualFold(device.IscsiTarget.TargetScope, model.TargetScopeVolume) {
+		if err := iscsi.NewIscsiPlugin().LogoutTarget(device.IscsiTarget.Name); err != nil {
+			return err
+		}
+	}
+
+	// Success!
+	return nil
 }
 
 // getTargetTypeCache returns the global TargetTypeCache object
@@ -144,10 +175,6 @@ func getTargetTypeCache() *TargetTypeCache {
 
 // func (plugin *MultipathPlugin) GetAllPathOfDevice(serial string) ([]model.Path, error) {
 // 	return nil, nil
-// }
-
-// func (plugin *MultipathPlugin) DetachDevice(device model.Device) error {
-// 	return nil
 // }
 
 // func (plugin *MultipathPlugin) IsDeviceReady(serial string) error {

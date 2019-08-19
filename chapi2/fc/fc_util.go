@@ -8,8 +8,8 @@ import (
 
 // getAllFcHostPortWwn get all FC host port WWN's on the host
 func getAllFcHostPortWwn() ([]string, error) {
-	log.Infof(">>>>> getAllFcHostPortWwn called")
-	defer log.Info("<<<<< getAllFcHostPortWwn")
+	log.Tracef(">>>>> getAllFcHostPortWwn called")
+	defer log.Trace("<<<<< getAllFcHostPortWwn")
 	hostPorts, err := getAllFcHostPorts()
 	if err != nil {
 		return nil, err

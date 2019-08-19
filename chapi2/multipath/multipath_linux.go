@@ -12,8 +12,8 @@ import (
 // getDevices enumerates all the Nimble volumes while only providing basic details (e.g. serial number).
 // If a "serialNumber" is passed in, only that specific serial number is enumerated.
 func (plugin *MultipathPlugin) getDevices(serialNumber string) ([]*model.Device, error) {
-	log.Infof(">>>>> getDevices, serialNumber=%v", serialNumber)
-	defer log.Info("<<<<< getDevices")
+	log.Tracef(">>>>> getDevices, serialNumber=%v", serialNumber)
+	defer log.Trace("<<<<< getDevices")
 	// TODO
 	return nil, nil
 }
@@ -21,24 +21,24 @@ func (plugin *MultipathPlugin) getDevices(serialNumber string) ([]*model.Device,
 // getDevices enumerates all the Nimble volumes while providing full details about the device.
 // If a "serialNumber" is passed in, only that specific serial number is enumerated.
 func (plugin *MultipathPlugin) getAllDeviceDetails(serialNumber string) ([]*model.Device, error) {
-	log.Info(">>>>> getAllDeviceDetails")
-	defer log.Info("<<<<< getAllDeviceDetails")
+	log.Trace(">>>>> getAllDeviceDetails")
+	defer log.Trace("<<<<< getAllDeviceDetails")
 	// TODO
 	return nil, nil
 }
 
 // getPartitionInfo enumerates the partitions on the given volume
 func (plugin *MultipathPlugin) getPartitionInfo(serialNumber string) ([]*model.DevicePartition, error) {
-	log.Infof(">>>>> getPartitionInfo, serialNumber=%v", serialNumber)
-	defer log.Info("<<<<< getPartitionInfo")
+	log.Tracef(">>>>> getPartitionInfo, serialNumber=%v", serialNumber)
+	defer log.Trace("<<<<< getPartitionInfo")
 	// TODO
 	return nil, nil
 }
 
 // offlineDevice is called to offline the given device
 func (plugin *MultipathPlugin) offlineDevice(device model.Device) error {
-	log.Infof(">>>>> offlineDevice")
-	defer log.Info("<<<<< offlineDevice")
+	log.Tracef(">>>>> offlineDevice")
+	defer log.Trace("<<<<< offlineDevice")
 
 	// TODO
 	return nil
@@ -46,8 +46,8 @@ func (plugin *MultipathPlugin) offlineDevice(device model.Device) error {
 
 // createFileSystem is called to create a file system on the given device
 func (plugin *MultipathPlugin) createFileSystem(device model.Device, filesystem string) error {
-	log.Infof(">>>>> createFileSystem")
-	defer log.Info("<<<<< createFileSystem")
+	log.Tracef(">>>>> createFileSystem")
+	defer log.Trace("<<<<< createFileSystem")
 
 	// TODO
 	return nil

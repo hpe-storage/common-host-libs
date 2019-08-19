@@ -311,7 +311,6 @@ func CreateFileSystem(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Infof("creating filesystem of type %s on device %s", fileSystem, serialNumber)
 	err := driver.CreateFileSystem(serialNumber, fileSystem)
 	if err != nil {
 		handleError(w, chapiResp, err, http.StatusInternalServerError)

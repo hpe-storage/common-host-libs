@@ -124,7 +124,6 @@ type Device struct {
 	Pathname        string         `json:"path_name,omitempty"`          // Path name (e.g. "dm-3" for Linux, "Disk3" for Windows)
 	AltFullPathName string         `json:"alt_full_path_name,omitempty"` // Alternate path name (e.g. "/dev/mapper/mpathg" for Linux, "\\?\mpio#disk&ven_nimble&..." for Windows)
 	Size            uint64         `json:"size,omitempty"`               // Volume capacity in total number of bytes //TODO ensure clients/servers change from MiB to byte count
-	TargetScope     string         `json:"target_scope,omitempty"`       // GST="group", VST="volume" or empty if unknown scope or FC
 	State           string         `json:"state,omitempty"`              // TODO, Shiva to define states
 	IscsiTarget     *IscsiTarget   `json:"iscsi_target,omitempty"`       // Pointer to iSCSI target if device connected to an iSCSI target
 	Private         *DevicePrivate `json:"-"`                            // Private device properties used internally by CHAPI
@@ -137,7 +136,7 @@ type Device struct {
 // DevicePartition Partition Info for a Device
 type DevicePartition struct {
 	Name          string `json:"name,omitempty"`           // Partition name (e.g. "sda, mpathp1, mpathp2" for Linux, "Disk #1, Partition #0" for Windows)
-	Partitiontype string `json:"partition_type,omitempty"` // Partition type (e.g. "TODO" for Linux, "GPT: Basic Data" for Windows)
+	PartitionType string `json:"partition_type,omitempty"` // Partition type (e.g. "TODO" for Linux, "GPT: Basic Data" for Windows)
 	Size          uint64 `json:"size,omitempty"`           // Partition size in total number of bytes
 }
 

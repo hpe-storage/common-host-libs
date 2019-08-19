@@ -6,10 +6,10 @@
 package iscsidsc
 
 import (
-	"encoding/hex"
-	log "github.com/hpe-storage/common-host-libs/logger"
 	"syscall"
 	"unsafe"
+
+	log "github.com/hpe-storage/common-host-libs/logger"
 )
 
 // SendScsiInquiry - Go wrapped Win32 API - SendScsiInquiry()
@@ -41,7 +41,7 @@ func SendScsiInquiry(sessionID ISCSI_UNIQUE_SESSION_ID, lun uint64, evpdCmddt ui
 	if scsiStatus == SCSISTAT_CHECK_CONDITION {
 		// Only return the data that the iSCSI initiator claims was returned by the target
 		senseBuffer = senseBuffer[:senseBufferSize]
-		log.Tracef("Sense Data\n%v", hex.Dump(senseBuffer))
+		logTraceHexDump(senseBuffer, "Sense Data")
 	} else {
 		// Empty sense buffer if no check condition
 		senseBuffer = nil
@@ -59,7 +59,7 @@ func SendScsiInquiry(sessionID ISCSI_UNIQUE_SESSION_ID, lun uint64, evpdCmddt ui
 		inquiryBuffer = inquiryBuffer[:inquiryBufferSize]
 
 		// Log the Inquiry data
-		log.Tracef("Inquiry Data\n%v", hex.Dump(inquiryBuffer))
+		logTraceHexDump(inquiryBuffer, "Inquiry Data")
 	}
 
 	// Log the SCSI status

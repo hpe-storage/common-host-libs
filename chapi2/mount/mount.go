@@ -51,8 +51,8 @@ func (mounter *Mounter) GetAllMountDetails(serialNumber string, mountId string) 
 
 // CreateMount is called to mount the given device to the given mount point
 func (mounter *Mounter) CreateMount(serialNumber string, mountPoint string, fsOptions *model.FileSystemOptions) (*model.Mount, error) {
-	log.Infof(">>>>> CreateMount, serialNumber=%v, mountPoint=%v, fsOptions=%v", serialNumber, mountPoint, fsOptions)
-	defer log.Info("<<<<< CreateMount")
+	log.Tracef(">>>>> CreateMount, serialNumber=%v, mountPoint=%v, fsOptions=%v", serialNumber, mountPoint, fsOptions)
+	defer log.Trace("<<<<< CreateMount")
 
 	// Validate and enumerate the mount object for the given serial number and mount point
 	mount, alreadyMounted, err := mounter.getMountForCreate(serialNumber, mountPoint)
@@ -80,8 +80,8 @@ func (mounter *Mounter) CreateMount(serialNumber string, mountPoint string, fsOp
 
 // DeleteMount is called to unmount the given mount point ID
 func (mounter *Mounter) DeleteMount(serialNumber string, mountId string) error {
-	log.Infof(">>>>> DeleteMount, serialNumber=%v, mountId=%v", serialNumber, mountId)
-	defer log.Info("<<<<< DeleteMount")
+	log.Tracef(">>>>> DeleteMount, serialNumber=%v, mountId=%v", serialNumber, mountId)
+	defer log.Trace("<<<<< DeleteMount")
 
 	// Validate and enumerate the mount object for the given serial number and mount point ID
 	mount, err := mounter.getMountForDelete(serialNumber, mountId)
@@ -114,8 +114,8 @@ func (mounter *Mounter) enumerateDevices(serialNumber string, allDetails bool) (
 //      err             - If volume cannot be mounted, an error object is returned ("mount" and
 //                        "alreadyMounted" are invalid)
 func (mounter *Mounter) getMountForCreate(serialNumber string, mountPoint string) (mount *model.Mount, alreadyMounted bool, err error) {
-	log.Infof(">>>>> getMountForCreate, serialNumber=%v, mountPoint=%v", serialNumber, mountPoint)
-	defer log.Info("<<<<< getMountForCreate")
+	log.Tracef(">>>>> getMountForCreate, serialNumber=%v, mountPoint=%v", serialNumber, mountPoint)
+	defer log.Trace("<<<<< getMountForCreate")
 
 	// If the serialNumber is not provided, fail the request
 	if serialNumber == "" {
@@ -177,7 +177,7 @@ func (mounter *Mounter) getMountForCreate(serialNumber string, mountPoint string
 		// If the current mount point matches the target mount point, there is nothing to do as we
 		// are already mounted at the requested location.
 		if isSamePathName(currentMountPoint, requestedMountPoint) {
-			log.Infof(`Mount point ID=%v, SerialNumber=%v, currentMountPoint=%v, already mounted`, mount.ID, mount.SerialNumber, currentMountPoint)
+			log.Tracef(`Mount point ID=%v, SerialNumber=%v, currentMountPoint=%v, already mounted`, mount.ID, mount.SerialNumber, currentMountPoint)
 			return mount, true, nil
 		}
 
@@ -197,8 +197,8 @@ func (mounter *Mounter) getMountForCreate(serialNumber string, mountPoint string
 //      mount             - Enumerated model.Mount object for the provided serialNumber/mountPointId
 //      err               - If volume cannot be dismounted, an error object is returned
 func (mounter *Mounter) getMountForDelete(serialNumber string, mountId string) (mount *model.Mount, err error) {
-	log.Infof(">>>>> getMountForDelete, serialNumber=%v, mountId=%v", serialNumber, mountId)
-	defer log.Info("<<<<< getMountForDelete")
+	log.Tracef(">>>>> getMountForDelete, serialNumber=%v, mountId=%v", serialNumber, mountId)
+	defer log.Trace("<<<<< getMountForDelete")
 
 	// If the serialNumber is not provided, fail the request
 	if serialNumber == "" {
@@ -234,8 +234,8 @@ func (mounter *Mounter) getMountForDelete(serialNumber string, mountId string) (
 
 // logMountPoints logs the mount points array to our log file
 func logMountPoints(mountPoints []*model.Mount, allDetails bool) {
-	log.Infof(">>>>> logMountPoints, allDetails=%v", allDetails)
-	defer log.Info("<<<<< logMountPoints")
+	log.Tracef(">>>>> logMountPoints, allDetails=%v", allDetails)
+	defer log.Trace("<<<<< logMountPoints")
 
 	for _, mountPoint := range mountPoints {
 		logMessage := "Enumerated mount point, ID=" + mountPoint.ID
@@ -243,7 +243,7 @@ func logMountPoints(mountPoints []*model.Mount, allDetails bool) {
 			logMessage += ", SerialNumber=" + mountPoint.SerialNumber
 			logMessage += ", MountPoint=" + mountPoint.MountPoint
 		}
-		log.Info(logMessage)
+		log.Trace(logMessage)
 	}
 }
 
