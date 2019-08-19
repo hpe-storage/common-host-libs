@@ -411,7 +411,7 @@ func (chapiClient *Client) GetDevices() (devices []*model.Device, err error) {
 	_, err = chapiClient.client.DoJSON(&connectivity.Request{Action: "GET", Path: devicesURI, Header: chapiClient.header, Payload: nil, Response: &chapiResp, ResponseError: &chapiResp})
 	if err != nil {
 		if errResp != nil {
-			log.Error("GetDevices: error response", errResp.Info)
+			log.Error("GetDevices: error response ", errResp.Info)
 			return nil, errors.New(errResp.Info)
 		}
 		log.Debug("GetDevices: error geting device list, ", err.Error())
