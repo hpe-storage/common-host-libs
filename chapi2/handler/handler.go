@@ -138,7 +138,7 @@ func GetDevices(w http.ResponseWriter, r *http.Request) {
 //@Accept json
 //@Resource /api/v1/devices
 //@Success 200 {array} Devices
-//@Router /api/v1/devices/detail [get]
+//@Router /api/v1/devices/details [get]
 func GetAllDeviceDetails(w http.ResponseWriter, r *http.Request) {
 	if !validateRequestHeader(w, r) {
 		return
@@ -351,7 +351,7 @@ func GetMounts(w http.ResponseWriter, r *http.Request) {
 //@Accept json
 //@Resource /api/v1/mounts
 //@Success 200 {array} Mounts
-//@Router /api/v1/mounts/detail [get]
+//@Router /api/v1/mounts/details [get]
 func GetAllMountDetails(w http.ResponseWriter, r *http.Request) {
 	if !validateRequestHeader(w, r) {
 		return

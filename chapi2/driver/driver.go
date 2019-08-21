@@ -49,8 +49,8 @@ type Driver interface {
 	// GET /api/v1/devices?serialNumber=serial
 	GetDevices(serialNumber string) ([]*model.Device, error)
 
-	// GET /api/v1/devices/detail or
-	// GET /api/v1/devices/detail?serialNumber=serial
+	// GET /api/v1/devices/details or
+	// GET /api/v1/devices/details?serialNumber=serial
 	GetAllDeviceDetails(serialNumber string) ([]*model.Device, error)
 
 	// GET /api/v1/devices/{serialnumber}/partitions
@@ -66,10 +66,10 @@ type Driver interface {
 	OfflineDevice(serialNumber string) error
 
 	// PUT /api/v1/devices/{serialnumber}/filesystem/{filesystem}
-	CreateFileSystem(serialNumber string, fsType string) error
+	CreateFileSystem(serialNumber string, filesystem string) error
 
 	///////////////////////////////////////////////////////////////////////////////////////////
-	// Filesystem Methods
+	// Mount Methods
 	///////////////////////////////////////////////////////////////////////////////////////////
 
 	// GET /api/v1/mounts or
@@ -79,7 +79,7 @@ type Driver interface {
 	// GET /api/v1/mounts/details  or filter by serial using
 	// GET /api/v1/mounts/details?serialNumber=serial or filter by serial and specific mount using
 	// GET /api/v1/mounts/details?serialNumber=serial,mountId=mount
-	GetAllMountDetails(serialNumber, mountPointId string) ([]*model.Mount, error)
+	GetAllMountDetails(serialNumber, mountPointID string) ([]*model.Mount, error)
 
 	// POST /api/v1/mounts
 	CreateMount(serialNumber string, mountPoint string, fsOptions *model.FileSystemOptions) (*model.Mount, error)
@@ -433,15 +433,15 @@ func (driver *ChapiServer) GetMounts(serialNumber string) ([]*model.Mount, error
 }
 
 // GetAllMountDetails enumerates the specified mount point ID
-func (driver *ChapiServer) GetAllMountDetails(serialNumber string, mountId string) ([]*model.Mount, error) {
-	log.Tracef(">>>>> GetMount called, serialNumber=%v, mountPointID=%v", serialNumber, mountId)
-	defer log.Trace("<<<<< GetMount")
+func (driver *ChapiServer) GetAllMountDetails(serialNumber string, mountPointID string) ([]*model.Mount, error) {
+	log.Tracef(">>>>> GetAllMountDetails called, serialNumber=%v, mountPointID=%v", serialNumber, mountPointID)
+	defer log.Trace("<<<<< GetAllMountDetails")
 
-	log.Infof("Get All Mount Details, serialNumber=%v, mountId=%v", serialNumber, mountId)
+	log.Infof("Get All Mount Details, serialNumber=%v, mountPointID=%v", serialNumber, mountPointID)
 
 	// Route request to the mount package to get the mounts
 	mountPlugin := mount.NewMounter()
-	mounts, err := mountPlugin.GetAllMountDetails(serialNumber, mountId)
+	mounts, err := mountPlugin.GetAllMountDetails(serialNumber, mountPointID)
 	if err != nil {
 		return nil, err
 	}
@@ -491,7 +491,7 @@ func (driver *ChapiServer) DeleteMount(serialNumber string, mountPointId string)
 	return nil
 }
 
-// CreateBindMount unmounts the given mount point
+// CreateBindMount creates the given bind mount
 func (driver *ChapiServer) CreateBindMount(sourceMount string, targetMount string, bindType string) (*model.Mount, error) {
 	log.Tracef(">>>>> CreateBindMount called, sourceMount=%s, targetMount=%s bindType=%s", sourceMount, targetMount, bindType)
 	defer log.Trace("<<<<< CreateBindMount")
