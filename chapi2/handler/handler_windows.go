@@ -23,7 +23,7 @@ import (
 const (
 	defaultFileSystem  = "ntfs"                 // Default file system to use
 	configRelativePath = `Nimble Storage\CHAPI` // Path appended to %ProgramData% where we store CHAPI data
-	chapiPortFileName  = "CHAPIPort.txt"        // Client reads in this file to enumerate CHAPI port
+	ChapiPortFileName  = "CHAPIPort.txt"        // Client reads in this file to enumerate CHAPI port
 	chapiKeyFileName   = "keyfile.txt"          // CHAPI for Windows authentication file
 )
 
@@ -50,7 +50,7 @@ func init() {
 	// Set the CHAPIPort.txt and keyfile.txt paths
 	exePath, _ := os.Executable()
 	exePath = filepath.Dir(exePath)
-	chapiPortFilePath = filepath.Join(exePath, chapiPortFileName)
+	chapiPortFilePath = filepath.Join(exePath, ChapiPortFileName)
 	chapiKeyFilePath = filepath.Join(exePath, chapiKeyFileName)
 }
 
