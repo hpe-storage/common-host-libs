@@ -141,7 +141,7 @@ func NewRouter() *mux.Router {
 		},
 
 		///////////////////////////////////////////////////////////////////////////////////////////
-		// Endpoint:  		GET /api/v1/devices/detail
+		// Endpoint:  		GET /api/v1/devices/details
 		// Description: 	This endpoint returns all the Nimble volumes attached to the host
 		// Input Object:	None
 		// Output Object:	Array of chapi2.Device objects with detailed information
@@ -176,7 +176,7 @@ func NewRouter() *mux.Router {
 		util.Route{
 			Name:        "AllDeviceDetails",
 			Method:      "GET",
-			Pattern:     "/api/v1/devices/detail",
+			Pattern:     "/api/v1/devices/details",
 			HandlerFunc: handler.GetAllDeviceDetails,
 		},
 
@@ -217,7 +217,7 @@ func NewRouter() *mux.Router {
 		//                          "serial_number":  "28174883c7719ac236c9ce900584f2795"
 		//                      }
 		//                  ]
-		// Sample Output:	See "GET /api/v1/devices/detail" endpoint
+		// Sample Output:	See "GET /api/v1/devices/details" endpoint
 		///////////////////////////////////////////////////////////////////////////////////////////
 		util.Route{
 			Name:        "CreateDevice",
