@@ -124,7 +124,7 @@ func (chapiClient *Client) GetHostNetworks() (networks []*model.Network, err err
 
 	// Initialize CHAPI response object, submit request to specified endpoint, return status
 	chapiResp := Response{Data: &networks, Err: nil}
-	if _, err = chapiClient.client.DoJSON(&connectivity.Request{Action: "GET", Path: networksURI, Header: chapiClient.header, Payload: nil, Response: &chapiResp, ResponseError: &chapiResp}); err != nil {
+	if _, err = chapiClient.chapiClientDoJSON(&connectivity.Request{Action: "GET", Path: networksURI, Header: chapiClient.header, Payload: nil, Response: &chapiResp, ResponseError: &chapiResp}); err != nil {
 		return nil, err
 	}
 	return networks, nil
