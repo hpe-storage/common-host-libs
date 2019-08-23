@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"unsafe"
 
-	uuid "github.com/satori/go.uuid"
 	"github.com/hpe-storage/common-host-libs/chapi2/model"
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/windows/shlwapi"
 	"github.com/hpe-storage/common-host-libs/windows/wmi"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/sys/windows"
 )
 
@@ -40,19 +40,30 @@ func getNetworkInterfaces() ([]*model.Network, error) {
 	// Enumerate the system's network interfaces
 	netInterfaces, err := net.Interfaces()
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
 	// Enumerate the system's network adapters
 	adapters, err := getAdaptersInfo()
 	if err != nil {
+		if err == windows.ERROR_NO_DATA {
+			// Windows returns ERROR_NO_DATA, for the GetAdaptersInfo Win32 API, if no NICs were
+			// found on the local computer.  If we let that error propagate up, the error message
+			// recorded is "The pipe is being closed."  Instead, we more accurately return an
+			// empty array of NICs with no error to indicate no NICs were found on this host.
+			return nics, nil
+		}
 		return nil, err
 	}
 
 	// Enumerate the iSCSI initiators on this host
 	iscsiInitiators, err := wmi.GetMSiSCSIPortalInfoClass()
 	if err != nil {
-		return nil, err
+		// It's possible that the host has NICs but the iSCSI service has not been configured yet.
+		// In this case, we simply log the event but allow NIC enumeration to continue.
+		log.Tracef("Unable to enumerate iSCSI initiators, continuing with NIC enumeration, err=%v", err)
+		err = nil
 	}
 
 	// Enumerate the cluster IPs on this host
@@ -98,27 +109,29 @@ func getNetworkInterfaces() ([]*model.Network, error) {
 			// Traverse the list of enumerated ISCSI_PortalInfo objects to find the one that mathces
 			// the current network adapter.
 			var matchingPortal *wmi.ISCSI_PortalInfo
-			for _, portal := range iscsiInitiators.PortalInformation {
-				// Skip portal if not IPv4
-				if (portal.IPAddr.Type != wmi.ISCSI_IP_ADDRESS_IPV4) || (portal.IPAddr.IpV4Address == 0) {
-					continue
-				}
+			if iscsiInitiators != nil {
+				for _, portal := range iscsiInitiators.PortalInformation {
+					// Skip portal if not IPv4
+					if (portal.IPAddr.Type != wmi.ISCSI_IP_ADDRESS_IPV4) || (portal.IPAddr.IpV4Address == 0) {
+						continue
+					}
 
-				// Convert the IPv4 uint32 into an IP object
-				a := make([]byte, 4)
-				binary.LittleEndian.PutUint32(a, portal.IPAddr.IpV4Address)
-				ipv4 := net.IPv4(a[0], a[1], a[2], a[3])
+					// Convert the IPv4 uint32 into an IP object
+					a := make([]byte, 4)
+					binary.LittleEndian.PutUint32(a, portal.IPAddr.IpV4Address)
+					ipv4 := net.IPv4(a[0], a[1], a[2], a[3])
 
-				// Exclude link local interfaces (IPANA AIPA addresses 169.254.0-255.0-255)
-				// Link local addresses are also used by Microsoft Clusters as 'Microsoft Failover Cluster Virtual Adapter addresses'
-				if (a[0] == 169) && (a[1] == 254) {
-					continue
-				}
+					// Exclude link local interfaces (IPANA AIPA addresses 169.254.0-255.0-255)
+					// Link local addresses are also used by Microsoft Clusters as 'Microsoft Failover Cluster Virtual Adapter addresses'
+					if (a[0] == 169) && (a[1] == 254) {
+						continue
+					}
 
-				// Found ISCSI_PortalInfo match for the current network adapter?
-				if ipv4.String() == ipAddress {
-					matchingPortal = portal
-					break
+					// Found ISCSI_PortalInfo match for the current network adapter?
+					if ipv4.String() == ipAddress {
+						matchingPortal = portal
+						break
+					}
 				}
 			}
 
