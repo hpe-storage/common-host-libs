@@ -126,13 +126,7 @@ func (driver *ChapiServer) GetHostInfo() (*model.Host, error) {
 	}
 	log.Infof("Domain Name - %v", domainName)
 
-	networks, err := hostPlugin.GetNetworks()
-	if err != nil {
-		return nil, cerrors.NewChapiError(err)
-	}
-	driver.logNetworks(networks)
-
-	return &model.Host{UUID: id, Name: hostName, Domain: domainName, Networks: networks}, nil
+	return &model.Host{UUID: id, Name: hostName, Domain: domainName}, nil
 }
 
 // GetHostNetworks reports the networks on this host

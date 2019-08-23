@@ -59,11 +59,9 @@ const (
 
 // Host : Host information
 type Host struct {
-	UUID       string       `json:"id,omitempty"`         // Unique host identifier
-	Name       string       `json:"name,omitempty"`       // Host name
-	Domain     string       `json:"domain,omitempty"`     // Host domain name
-	Networks   []*Network   `json:"networks,omitempty"`   // Host network adapters
-	Initiators []*Initiator `json:"initiators,omitempty"` // Host initiators (iSCSI and/or FC)
+	UUID   string `json:"id,omitempty"`     // Unique host identifier
+	Name   string `json:"name,omitempty"`   // Host name
+	Domain string `json:"domain,omitempty"` // Host domain name
 }
 
 // Hosts returns an array of Host objects

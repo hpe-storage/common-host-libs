@@ -163,6 +163,7 @@ const (
 	WBEM_E_CRITICAL_ERROR    = 0x8004100A
 	WBEM_E_NOT_SUPPORTED     = 0x8004100C
 	WBEM_E_INVALID_NAMESPACE = 0x8004100E
+	WBEM_E_INVALID_CLASS     = 0x80041010
 )
 
 // The CIMTYPE_ENUMERATION enumeration defines values that specify different CIM data types
@@ -608,7 +609,13 @@ func ExecQuery(wqlQuery string, namespace string, dst interface{}) (err error) {
 
 		// Break out of while loop when no more objects returned
 		if uReturn == 0 {
-			if (hres != WBEM_S_NO_ERROR) && (hres != WBEM_S_FALSE) && (hres != WBEM_E_NOT_SUPPORTED) {
+			// If no objects enumerated, and WMI query is not supported, log event and fail request
+			// with ERROR_NOT_SUPPORTED
+			if (itemCount == 0) && ((hres == WBEM_E_NOT_SUPPORTED) || (hres == WBEM_E_INVALID_CLASS)) {
+				log.Tracef("WMI query not supported, hres=%08Xh, wqlQuery=%v", hres, wqlQuery)
+				return windows.ERROR_NOT_SUPPORTED
+			}
+			if (hres != WBEM_S_NO_ERROR) && (hres != WBEM_S_FALSE) {
 				log.Errorf("Failed IEnumWbemClassObject::Next method, itemCount=%v, hres=%xh", itemCount, hres)
 			}
 			break
