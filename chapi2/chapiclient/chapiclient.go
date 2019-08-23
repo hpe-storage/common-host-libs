@@ -341,9 +341,9 @@ func (chapiClient *Client) appendQuerySerialNumber(uri string, serialNumber stri
 	return chapiClient.appendQuery(uri, querySerialNumber, serialNumber)
 }
 
-// appendQuerySerialNumber appends a mount ID query to the given URI
-func (chapiClient *Client) appendQueryMountPointID(uri string, serialNumber string) string {
-	return chapiClient.appendQuery(uri, queryMountID, serialNumber)
+// appendQueryMountPointID appends a mount ID query to the given URI
+func (chapiClient *Client) appendQueryMountPointID(uri string, mountPointID string) string {
+	return chapiClient.appendQuery(uri, queryMountID, mountPointID)
 }
 
 // appendQuery appends the key key/value query to the given URI
