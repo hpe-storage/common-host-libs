@@ -17,6 +17,7 @@ import (
 	"github.com/hpe-storage/common-host-libs/chapi2/model"
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/windows/advapi32"
+	uuid "github.com/satori/go.uuid"
 	"golang.org/x/sys/windows"
 )
 
@@ -46,6 +47,9 @@ func init() {
 
 	// Set configDir path
 	configDir = filepath.Join(programDataPath, configRelativePath)
+
+	// Set the CHAPI key access GUID
+	chapiKeyGUID = uuid.NewV4().String()
 
 	// Set the CHAPIPort.txt and keyfile.txt paths
 	exePath, _ := os.Executable()
@@ -96,7 +100,7 @@ func validateRequestHeader(w http.ResponseWriter, r *http.Request) bool {
 			}
 
 			// If the authorization key matches, return no error
-			if val[0] == chapiKeyGUID {
+			if (val[0] != "") && (val[0] == chapiKeyGUID) {
 				// Valid token provided!
 				status = true
 			} else {
