@@ -217,6 +217,8 @@ type Snapshot struct {
 type PublishOptions struct {
 	HostID         string `json:"host_id,omitempty"`
 	AccessProtocol string `json:"access_protocol,omitempty"`
+	ChapUser       string `json:"chap_user,omitempty"`
+	ChapPassword   string `json:"chap_password,omitempty"`
 }
 
 // PublishInfo is the node side data required to access a volume

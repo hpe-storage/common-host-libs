@@ -100,7 +100,7 @@ func (provider *StorageProvider) DeleteVolume(id string, force bool) error {
 }
 
 // PublishVolume returns fake publish data
-func (provider *StorageProvider) PublishVolume(id, hostID, accessProtocol string) (*model.PublishInfo, error) {
+func (provider *StorageProvider) PublishVolume(id, hostID, accessProtocol, chapUser, chapPassword string) (*model.PublishInfo, error) {
 	return &model.PublishInfo{
 		SerialNumber: "eui.fake",
 	}, nil
