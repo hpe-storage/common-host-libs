@@ -43,6 +43,12 @@ func exePath() (string, error) {
 
 // InstallService is used to install the service
 func (winService WinService) InstallService(name, displayName string, description string) error {
+	return winService.InstallServiceWithOptions(name, mgr.Config{DisplayName: displayName, Description: description}, nil, 0)
+}
+
+// InstallServiceWithOptions is used to install the service with the provided configuration and
+// recovery options.
+func (winService WinService) InstallServiceWithOptions(name string, config mgr.Config, recoveryActions []mgr.RecoveryAction, resetPeriod uint32) error {
 	exepath, err := exePath()
 	if err != nil {
 		return err
@@ -57,7 +63,7 @@ func (winService WinService) InstallService(name, displayName string, descriptio
 		s.Close()
 		return fmt.Errorf("service %s already exists", name)
 	}
-	s, err = m.CreateService(name, exepath, mgr.Config{DisplayName: displayName, Description: description})
+	s, err = m.CreateService(name, exepath, config)
 	if err != nil {
 		return err
 	}
@@ -69,7 +75,14 @@ func (winService WinService) InstallService(name, displayName string, descriptio
 			return fmt.Errorf("SetupEventLogSource() failed: %s", err)
 		}
 	}
-	return nil
+
+	// If no recovery options provided, service has been successfully installed
+	if len(recoveryActions) == 0 {
+		return nil
+	}
+
+	// Set the service recovery options (e.g. automatically restart service on a crash)
+	return s.SetRecoveryActions(recoveryActions, resetPeriod)
 }
 
 // RemoveService is used to uninstall the service
