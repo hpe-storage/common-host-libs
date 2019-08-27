@@ -23,24 +23,6 @@ func NewRouter() *mux.Router {
 		//         "id": "827c1723-5742-4661-be56-121edb7e263c",            "id":  "4ba7f223-f4ce-4aca-99ff-a150b6df50be",
 		//         "name": "localhost.localdomain",                         "name":  "HITDEV-WIN011",
 		//         "domain":  "americas.domain.net",                       "domain":  "americas.domain.net",
-		//         "networks": [                                            "networks":  [
-		//             {                                                        {
-		//                 "Mac": "00:15:5d:d6:32:59",                              "Mac":  "00:05:9a:3c:7a:00",
-		//                 "Mtu": 1500,                                             "Mtu":  1406,
-		//                 "Up": true,                                              "Up":  true,
-		//                 "address_v4": "xxx.xxx.xxx.xxx",                          "address_v4":  "xxx.xxx.xxx.xxx",
-		//                 "mask_v4": "xxx.xxx.xxx.xxx",                              "mask_v4":  "xxx.xxx.xxx.xxx",
-		//                 "name": "eth1"                                           "name":  "Ethernet 2"
-		//             },                                                       },
-		//             {                                                        {
-		//                 "Mac": "00:15:5d:d6:32:5a",                              "Mac":  "f4:8c:50:8e:ca:7e",
-		//                 "Mtu": 1500,                                             "Mtu":  1500,
-		//                 "Up": true,                                              "Up":  true,
-		//                 "address_v4": "xxx.xxx.xxx.xxx",                          "address_v4":  "xxx.xxx.xxx.xxx",
-		//                 "mask_v4": "xxx.xxx.xxx.xxx",                              "mask_v4":  "xxx.xxx.xxx.xxx",
-		//                 "name": "eth2"                                           "name":  "Wi-Fi"
-		//             }                                                        }
-		//         ]                                                        ]
 		//     }                                                        }
 		// }                                                        }
 		///////////////////////////////////////////////////////////////////////////////////////////
