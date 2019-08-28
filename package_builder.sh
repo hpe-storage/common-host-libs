@@ -27,7 +27,7 @@ for pkg in $@; do
         echo 🚀 go build -o build/${BIN} -ldflags -X main.Version=${VERSION} -X main.Commit=${COMMIT} ./${DIR}
         go build -o build/${BIN} -ldflags "-X main.Version=${VERSION} -X main.Commit=${COMMIT}" ./${DIR}
 
-        if [ "${BIN}" == "dockerplugind" ] || [ "${BIN}" == "ndockeradm" ] || [ "${BIN}" == "chapid" ]; then
+        if [ "${BIN}" == "dockerplugind" ] || [ "${BIN}" == "ndockeradm" ] || [ "${BIN}" == "chapid" ] || [ "${BIN}" == "chapi2client" ]; then
             echo "► Go generate ${BIN} resource.syso for Windows"
             (export GOOS=windows && go generate ./${DIR})
             echo "Building ${BIN} for Windows"

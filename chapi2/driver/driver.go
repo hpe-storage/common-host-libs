@@ -46,11 +46,11 @@ type Driver interface {
 	///////////////////////////////////////////////////////////////////////////////////////////
 
 	// GET /api/v1/devices or
-	// GET /api/v1/devices?serialNumber=serial
+	// GET /api/v1/devices?serial=serial
 	GetDevices(serialNumber string) ([]*model.Device, error)
 
 	// GET /api/v1/devices/details or
-	// GET /api/v1/devices/details?serialNumber=serial
+	// GET /api/v1/devices/details?serial=serial
 	GetAllDeviceDetails(serialNumber string) ([]*model.Device, error)
 
 	// GET /api/v1/devices/{serialnumber}/partitions
@@ -73,12 +73,12 @@ type Driver interface {
 	///////////////////////////////////////////////////////////////////////////////////////////
 
 	// GET /api/v1/mounts or
-	// GET /api/v1/mounts?serialNumber=serial
+	// GET /api/v1/mounts?serial=serial
 	GetMounts(serialNumber string) ([]*model.Mount, error)
 
 	// GET /api/v1/mounts/details  or filter by serial using
-	// GET /api/v1/mounts/details?serialNumber=serial or filter by serial and specific mount using
-	// GET /api/v1/mounts/details?serialNumber=serial,mountId=mount
+	// GET /api/v1/mounts/details?serial=serial or filter by serial and specific mount using
+	// GET /api/v1/mounts/details?serial=serial,mountId=mount
 	GetAllMountDetails(serialNumber, mountPointID string) ([]*model.Mount, error)
 
 	// POST /api/v1/mounts
