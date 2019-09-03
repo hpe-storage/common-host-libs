@@ -106,7 +106,6 @@ tools: ; $(info $(A1) gettools)
 	export $(GOENV) && gometalinter --install
 	@echo "$(A2) get glide"
 	go get -u github.com/Masterminds/glide
-	go install github.com/Masterminds/glide
 	@echo "$(S0)"
 
 vendup: tools; $(info $(A1) vendup)
