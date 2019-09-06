@@ -287,28 +287,30 @@ func (plugin *MultipathPlugin) MakeDiskOnlineAndWritable(path string, makeOnline
 	log.Tracef(">>>>> MakeDiskOnlineAndWritable, path=%v, makeOnline=%v, makeWritable=%v", path, makeOnline, makeWritable)
 	defer log.Trace("<<<<< MakeDiskOnlineAndWritable")
 
-	// We're now ready to create the mount point.  Start by making sure the device is online.
-	clearedDiskOffline := false
-	if makeOnline {
-		if _, _, err := powershell.SetDiskOffline(path, false); err != nil {
-			return err
-		}
-		clearedDiskOffline = true
-	}
+	// The make writable / online ordering here is important.  We have found that if you attach a
+	// cloned volume, and if it has a signature collision with its already mounted parent volume,
+	// making the cloned volume online will fail and render the volume inaccessible.  You need to
+	// clear the volume's read only flag first before you online the volume.  This allows Windows
+	// to resignature the cloned volume to avoid the disk signature collision.
 
-	// Next we make sure the device is writable
-	clearedDiskReadOnly := false
+	// Start by ensuring the disk is not marked as read only
 	if makeWritable {
 		if _, _, err := powershell.SetDiskReadOnly(path, false); err != nil {
 			return err
 		}
-		clearedDiskReadOnly = true
+	}
+
+	// Make the disk online
+	if makeOnline {
+		if _, _, err := powershell.SetDiskOffline(path, false); err != nil {
+			return err
+		}
 	}
 
 	// If we had to online the disk, or make it writable, we'll need to update the cached information
 	// about the disk.  We need to do this otherwise a re-enumeration of the partition might not
 	// pickup the current mount point(s).
-	if clearedDiskOffline || clearedDiskReadOnly {
+	if makeOnline || makeWritable {
 		if _, _, err := powershell.UpdateDisk(path); err != nil {
 			return err
 		}
