@@ -146,7 +146,6 @@ func buildHostContext(body io.ReadCloser) (*Host, error) {
 		Initiators: initiators,
 		Networks:   networks,
 	}
-	log.Debug("added host networks")
 	hostContext.Domain = host.Domain
 	hostContext.Name = host.Name
 	hostContext.AccessProtocol = getHostProtocol()
