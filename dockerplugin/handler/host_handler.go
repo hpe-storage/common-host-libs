@@ -144,7 +144,7 @@ func buildHostContext(body io.ReadCloser) (*Host, error) {
 	// populate host context
 	hostContext = &Host{
 		Initiators: initiators,
-		Networks:   getDockerNetworks(networks),
+		Networks:   networks,
 	}
 	hostContext.Domain = host.Domain
 	hostContext.Name = host.Name

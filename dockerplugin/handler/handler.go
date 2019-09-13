@@ -141,28 +141,9 @@ type Host struct {
 	Domain         string             `json:"domain,omitempty"`
 	NodeID         string             `json:"node_id,omitempty"`
 	AccessProtocol string             `json:"access_protocol,omitempty"`
-	Networks       []*Network         `json:"networks,omitempty"`
+	Networks       []*model.Network   `json:"networks,omitempty"`
 	Initiators     []*model.Initiator `json:"initiators,omitempty"`
 	Version        string             `json:"version,omitempty"`
-}
-
-//Network is a duplicate of model.Network which provides a limited set of fields
-type Network struct {
-	Name        string `json:"name,omitempty"`
-	AddressV4   string `json:"address_v4,omitempty"`
-	MaskV4      string `json:"mask_v4,omitempty"`
-	BroadcastV4 string `json:"-"`
-	Mac         string `json:"-"`
-	Mtu         int64  `json:"-"`
-	Up          bool   `json:"-"`
-}
-
-func getDockerNetworks(chapiNetworks []*model.Network) []*Network {
-	networks := make([]*Network, len(chapiNetworks))
-	for i, net := range chapiNetworks {
-		networks[i] = (*Network)(net)
-	}
-	return networks
 }
 
 // populate hostcontext into request and fetch user info if running in cloud vm
