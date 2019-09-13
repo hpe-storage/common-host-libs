@@ -13,6 +13,7 @@ import (
 	"github.com/hpe-storage/common-host-libs/util"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 // struct to map all blocked keys per option
@@ -32,6 +33,14 @@ type LoginRequest struct {
 	Username string `json:"UserName,omitempty"`
 	Password string `json:"Password,omitempty"`
 	Cert     string `json:"Cert,omitempty"`
+}
+
+// IsNimblePlugin returns true if plugin type is for nimble platform
+func IsNimblePlugin() bool {
+	if os.Getenv("PLUGIN_TYPE") == "nimble" {
+		return true
+	}
+	return false
 }
 
 func getBasicContainerProviderClient(ipAddress string) *connectivity.Client {
