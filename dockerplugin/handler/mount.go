@@ -14,6 +14,8 @@ import (
 	"github.com/hpe-storage/common-host-libs/model"
 	"net/http"
 	"os"
+	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -69,11 +71,14 @@ func VolumeDriverMount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if provider.IsHPECloudVolumesPlugin() {
+		// initialize options
 		pluginReq.Opts = make(map[string]interface{})
-		// TODO : fix this to just fetch host IP
-		err = populateVolCreateOptions(pluginReq)
+		// filter host networks to only include internal IP addresses specified by user
+		err = filterHostNetworks(pluginReq)
 		if err != nil {
-			log.Errorf("%s failed to add create options from config file using defaults", err.Error())
+			mr = MountResponse{Err: err.Error()}
+			json.NewEncoder(w).Encode(mr)
+			return
 		}
 	}
 
@@ -106,8 +111,9 @@ func VolumeDriverMount(w http.ResponseWriter, r *http.Request) {
 	defer unblockChannelHandler("mount", pluginReq.Name, mountRequestsChan)
 
 	//3. container-provider /VolumeDriver.Mount called
+	log.Debugf("/VolumeDriver.Mount for volume %s request=%+v", pluginReq.Name, pluginReq)
 	_, err = providerClient.DoJSON(&connectivity.Request{Action: "POST", Path: provider.MountURI, Payload: &pluginReq, Response: &volResp, ResponseError: &volResp})
-	log.Tracef("/VolumeDriver.Mount for volume %s response=%+v", pluginReq.Name, volResp)
+	log.Debugf("/VolumeDriver.Mount for volume %s response=%+v", pluginReq.Name, volResp)
 	if volResp.Err != "" {
 		if strings.Contains(volResp.Err, busyMount) {
 			mr = MountResponse{Err: "another mount request creating filesystem on the volume, failing request."}
@@ -168,6 +174,83 @@ func VolumeDriverMount(w http.ResponseWriter, r *http.Request) {
 	log.Infof("%s: request=(%+v) response=(%+v)", provider.MountURI, pluginReq, mr)
 	json.NewEncoder(w).Encode(mr)
 	return
+}
+
+func getStringSliceParam(paramName string, opts map[string]interface{}) (strSlice []string, err error) {
+	prefix := "getStringParam"
+	if _, ok := opts[paramName]; !ok {
+		return nil, fmt.Errorf("%s: param name %s key not found in request", prefix, paramName)
+	}
+
+	switch value := opts[paramName].(type) {
+	case []interface{}:
+		for _, d := range value {
+			strSlice = append(strSlice, strings.TrimSpace(fmt.Sprintf("%v", d)))
+		}
+		return strSlice, nil
+	case string:
+		return []string{strings.TrimSpace(value)}, nil
+	default:
+		return nil, fmt.Errorf("param name:%v is not a slice.  value:%v kind:%s type:%s", paramName, opts[paramName], reflect.TypeOf(opts[paramName]).Kind(), reflect.TypeOf(opts[paramName]))
+	}
+}
+
+func isIPAddress(host string) bool {
+	parts := strings.Split(host, ".")
+
+	if len(parts) < 4 {
+		return false
+	}
+
+	for _, x := range parts {
+		if i, err := strconv.Atoi(x); err == nil {
+			if i < 0 || i > 255 {
+				return false
+			}
+		} else {
+			return false
+		}
+	}
+	return true
+}
+
+// filter only required networks from current node from user input(cloud volumes)
+func filterHostNetworks(pluginReq *PluginRequest) error {
+	log.Tracef(">>>>>> filterHostNetworks")
+	defer log.Tracef("<<<<< filterHostNetworks")
+
+	// fetch entries from volume-driver.json
+	err := populateVolCreateOptions(pluginReq)
+	if err != nil {
+		log.Errorf("%s failed to add create options from config file using defaults", err.Error())
+	}
+
+	// verify if interfaces are specified by user
+	if _, ok := pluginReq.Opts["initiators"]; !ok {
+		return errors.New("initiators are not specified in the volume-driver.json file for mount request")
+	}
+
+	initiators, err := getStringSliceParam("initiators", pluginReq.Opts)
+	if err != nil {
+		return err
+	}
+
+	index := 0
+	for _, initiator := range initiators {
+		// ignore unwanted networks based on user input
+		for _, network := range pluginReq.Host.Networks {
+			// check if initiator ip addresses or interfaces are provided to match with current node
+			if (isIPAddress(initiator) && network.AddressV4 == initiator) || network.Name == initiator {
+				pluginReq.Host.Networks[index] = network
+				log.Debugf("matched filtered network %s, ip %s", network.Name, network.AddressV4)
+				index++
+			}
+		}
+	}
+	// trim unwanted network interfaces
+	pluginReq.Host.Networks = pluginReq.Host.Networks[:index]
+
+	return nil
 }
 
 // handleDelayedCreateAndMountFilesystem the exception workflow on a failed mount to create a filesystem and mount it if the create fs metadata is present
@@ -396,7 +479,7 @@ func cleanupStaleMounts(containerProviderClient *connectivity.Client, chapiClien
 	// safe condition for unmount
 	// 1. the volume is not in use
 	// 2. the volume is not connected to this iscsi/fc host
-	if !volumeInfo.InUse || (!iscurrentHostAttachedIscsi(volumeInfo, pluginReq) && !isCurrentHostAttachedFC(volumeInfo, pluginReq)) {
+	if !volumeInfo.InUse || (!isCurrentHostAttachedIscsi(volumeInfo, pluginReq) && !isCurrentHostAttachedFC(volumeInfo, pluginReq)) {
 		log.Tracef("device state is %s, execute unmount on existing mounts for device %s", device.State, volumeInfo.InUse, device.MpathName)
 		// check if volume is not in use or in use by a different host
 		// iterate through all the mounts and unmount
@@ -479,7 +562,7 @@ func processMountConflictDelay(volName string, containerProviderClient *connecti
 			if len(volume.FcSessions) != 0 {
 				isCurrentHostAttached = isCurrentHostAttachedFC(volume, pluginReq)
 			} else if len(volume.IscsiSessions) != 0 {
-				isCurrentHostAttached = iscurrentHostAttachedIscsi(volume, pluginReq)
+				isCurrentHostAttached = isCurrentHostAttachedIscsi(volume, pluginReq)
 			}
 
 			// ideally we should not reach this condition but if we do, we will continue with mount
@@ -494,9 +577,9 @@ func processMountConflictDelay(volName string, containerProviderClient *connecti
 	}
 }
 
-func iscurrentHostAttachedIscsi(volume *model.Volume, pluginReq *PluginRequest) bool {
-	log.Tracef(">>>>> iscurrentHostAttachedIscsi called for %s", volume.Name)
-	defer log.Trace("<<<<< iscurrentHostAttachedIscsi")
+func isCurrentHostAttachedIscsi(volume *model.Volume, pluginReq *PluginRequest) bool {
+	log.Tracef(">>>>> isCurrentHostAttachedIscsi called for %s", volume.Name)
+	defer log.Trace("<<<<< isCurrentHostAttachedIscsi")
 
 	if pluginReq.Host == nil || pluginReq.Host.Initiators == nil {
 		log.Infof("no host initiators found to validate the Iscsi sessions for %s", volume.Name)
@@ -515,8 +598,16 @@ func iscurrentHostAttachedIscsi(volume *model.Volume, pluginReq *PluginRequest) 
 	for _, iscsiSession := range volume.IscsiSessions {
 		for _, iscsiInit := range iscsiInits {
 			if strings.TrimSpace(iscsiSession.InitiatorName) == strings.TrimSpace(iscsiInit) {
-				log.Infof("host iscsi initiator %s matched volume iscsi session %s", iscsiInit, iscsiSession)
+				log.Debugf("host iscsi initiator %s matched volume iscsi session", iscsiInit)
 				return true
+			}
+		}
+		if iscsiSession.InitiatorIP != "" {
+			for _, network := range pluginReq.Host.Networks {
+				if strings.TrimSpace(iscsiSession.InitiatorIP) == strings.TrimSpace(network.AddressV4) {
+					log.Debugf("host iscsi initiator %s matched volume iscsi connection", network.AddressV4)
+					return true
+				}
 			}
 		}
 	}
@@ -548,7 +639,6 @@ func isCurrentHostAttachedFC(volume *model.Volume, pluginReq *PluginRequest) boo
 				return true
 			}
 		}
-
 	}
 	return false
 }
