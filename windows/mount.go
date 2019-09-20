@@ -17,7 +17,8 @@
 package windows
 
 import (
-	"github.rtplab.nimblestorage.com/dcs/common/util"
+	"github.com/hpe-storage/common-host-libs/util"
+	log "github.com/hpe-storage/common-host-libs/logger"
 )
 
 //AddPartitionAccessPath - mount the volume to specified flexvolpath.
@@ -27,7 +28,7 @@ func AddPartitionAccessPath(flexvolPath, dockerPath string) error {
 		"Get-Partition -Volume $vol", "| Add-PartitionAccessPath -AccessPath", flexvolPath}
 	_, rc, err := util.ExecCommandOutput("powershell", args)
 	if rc != 0 || err != nil {
-		util.LogDebug.Printf("Failed to add partition access of volume %s on the host, error %v", dockerPath, err.Error())
+		log.Errorf("Failed to add partition access of volume %s on the host, error %v", dockerPath, err.Error())
 		return err
 	}
 
@@ -40,7 +41,7 @@ func RemovePartitionAccessPath(flexvolPath string) error {
 		"Get-Partition -Volume $vol", "| Remove-PartitionAccessPath -AccessPath", flexvolPath}
 	_, rc, err := util.ExecCommandOutput("powershell", args)
 	if rc != 0 || err != nil {
-		util.LogError.Printf("Failed to remove partition access path, flexpath %s  error %v", flexvolPath, err.Error())
+		log.Errorf("Failed to remove partition access path, flexpath %s  error %v", flexvolPath, err.Error())
 		return err
 	}
 
@@ -53,7 +54,7 @@ func GetDockerVolAccessPath(flexvolPath string) (string, error) {
 		";", "(Get-Partition -Volume $vol).AccessPaths|where {$_ -match \".*hpe-storage-mounts.*\"}"}
 	dockerPath, rc, err := util.ExecCommandOutput("powershell", args)
 	if rc != 0 || err != nil {
-		util.LogError.Printf("Failed to get hpe-storage volume %s access path on the host, error %v", flexvolPath, err.Error())
+		log.Errorf("Failed to get hpe-storage volume %s access path on the host, error %v", flexvolPath, err.Error())
 		return "", err
 	}
 
