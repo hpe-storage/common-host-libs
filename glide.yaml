@@ -61,7 +61,7 @@ import:
 - package: github.com/sirupsen/logrus
   version: ~v1.4.2
 - package: golang.org/x/crypto/ssh/terminal
-  version: master
+  version: 227b76d455e791cb042b03e633e2f7fbcfdf74a5
 - package: github.com/sparrc/go-ping
   version: 4e5b6552494c8005c60de6c60b50ebaefc69e592
 

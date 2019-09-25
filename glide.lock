@@ -1,5 +1,5 @@
-hash: 98255a8d6af8ef49d69001cc04d7a7509c2491d07d662265313041f42201cac0
-updated: 2019-08-15T08:46:46.263035295-07:00
+hash: 55704a87a0078b7ea703ff0704d8be34e8b13348c9fc130ad4e5cce4c7953a2e
+updated: 2019-09-24T18:17:12.35910309-07:00
 imports:
 - name: github.com/coreos/etcd
   version: 98d308426819d892e149fe45f6fd542464cb1f9d
@@ -54,18 +54,24 @@ imports:
 - name: github.com/sparrc/go-ping
   version: 4e5b6552494c8005c60de6c60b50ebaefc69e592
 - name: golang.org/x/crypto
-  version: 4def268fd1a49955bfb3dda92fe3db4f924f2285
+  version: 227b76d455e791cb042b03e633e2f7fbcfdf74a5
   subpackages:
   - ssh/terminal
 - name: golang.org/x/net
   version: 66aacef3dd8a676686c7ae3716979581e8b03c47
   subpackages:
+  - bpf
   - context
   - http/httpguts
   - http2
   - http2/hpack
+  - icmp
   - idna
+  - internal/iana
+  - internal/socket
   - internal/timeseries
+  - ipv4
+  - ipv6
   - lex/httplex
   - trace
 - name: golang.org/x/sys
@@ -140,8 +146,6 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/stretchr/testify
-  version: 221dbe5ed46703ee255b1da0dec05086f5035f62
+  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
   subpackages:
   - assert
-- name: gopkg.in/yaml.v2
-  version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
