@@ -841,13 +841,8 @@ func SetupFilesystem(device *model.Device, filesystemType string) error {
 		return err
 	}
 	if fsType != "" {
-		log.Tracef("Filesystem %s already exists on the device %s", filesystemType, device.AltFullPathName)
-		// Check if the FS is same as the request. If yes, return here with success
-		if fsType == filesystemType {
-			log.Tracef("Filesystem %s already exists on the device %s", filesystemType, device.AltFullPathName)
-			return nil
-		}
-		return fmt.Errorf("Another filesystem type %s already exists on the device %s", fsType, device.AltFullPathName)
+		log.Tracef("Filesystem %s already exists on the device %s", fsType, device.AltFullPathName)
+		return nil
 	}
 
 	log.Tracef("Creating filesystem %s on device path %s", filesystemType, device.AltFullPathName)
