@@ -531,7 +531,7 @@ func MountDeviceWithFileSystem(devPath string, mountPoint string, options []stri
 	// If there are partitions on the device, then mount the largest partition.
 	deviceParitionInfos, err := GetPartitionInfo(&model.Device{AltFullPathName: devPath})
 	if err != nil {
-		return nil, fmt.Errorf("Failed to verify if partitions exists on device %s, %s", devPath, err.Error())
+		return nil, fmt.Errorf("Failed to verify if partitions exist on device %s, %s", devPath, err.Error())
 	}
 	if len(deviceParitionInfos) != 0 {
 		mount, err := mountForPartition(devPath, mountPoint, options)
