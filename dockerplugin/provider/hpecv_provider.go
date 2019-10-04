@@ -10,7 +10,7 @@ import (
 
 const (
 	defaultHpecvProviderPort   = "8090"
-	defaultHpecvProviderPortal = "us.hpecloudvolumes.com"
+	defaultHpecvProviderPortal = "cloudvolumes.hpe.com"
 )
 
 //IsHPECloudVolumesPlugin returns true if plugin type is hpecv
