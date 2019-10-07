@@ -3,9 +3,9 @@
 package plugin
 
 import (
-	"fmt"
 
-	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
+
+
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/util"
 	"github.com/hpe-storage/common-host-libs/windows"
@@ -45,67 +45,46 @@ var (
 
 // GetOrCreatePluginConfigDirectory get or create plugin config directory based on ip address and scope
 func GetOrCreatePluginConfigDirectory() (pluginConfigDir string, err error) {
-	if PluginConfigDir != "" {
-		return PluginConfigDir, nil
-	}
-	ip, err := provider.GetProviderIP()
-	if err != nil {
-		return "", err
-	}
-	pluginType := GetPluginType()
-	PluginConfigDir = fmt.Sprintf("%s%s\\%s\\%s\\", ConfigBaseDir, ip, pluginType.String(), GetDriverScope())
-	exists, _, _ := util.FileExists(PluginConfigDir)
+	exists, _, _ := util.FileExists(ConfigBaseDir)
 	if !exists {
-		err := os.MkdirAll(PluginConfigDir, 0644)
+		err := os.MkdirAll(ConfigBaseDir, 0644)
 		if err != nil {
-			log.Errorf("unable to create plugin config directory %s, err %s", PluginConfigDir, err.Error())
+			log.Errorf("unable to create plugin config directory %s, err %s", ConfigBaseDir, err.Error())
 			return "", err
 		}
 	}
+	PluginConfigDir = ConfigBaseDir
 	return PluginConfigDir, nil
 }
 
 // GetOrCreatePluginConfigDirectory get or create plugin mount directory based on ip address and scope
 // TODO: handle custom mountDir from volume-driver.json
 func GetOrCreatePluginMountDirectory() (pluginMountDir string, err error) {
-	if MountDir != "" {
-		return MountDir, nil
-	}
-	ip, err := provider.GetProviderIP()
-	if err != nil {
-		return "", err
-	}
-	pluginType := GetPluginType()
-	MountDir = fmt.Sprintf("%s%s\\%s\\%s\\", MountBaseDir, ip, pluginType.String(), GetDriverScope())
-	exists, _, _ := util.FileExists(MountDir)
+	exists, _, _ := util.FileExists(MountBaseDir)
 	if !exists {
-		err := os.MkdirAll(MountDir, 0744)
+		err := os.MkdirAll(MountBaseDir, 0644)
 		if err != nil {
-			log.Errorf("unable to create volume mount directory %s, err %s", MountDir, err.Error())
+			log.Errorf("unable to create plugin mount directory %s, err %s", MountBaseDir, err.Error())
 			return "", err
 		}
 	}
+
+	MountDir = MountBaseDir
 	return MountDir, nil
 }
 
 // PreparePluginSocket creates docker plugin socket directory and listener for our plugin
-func PreparePluginSocket() (localListner net.Listener, globalListner net.Listener, err error) {
+func PreparePluginSocket() (listner net.Listener, err error) {
 	// Listener for plugin
-	log.Info("Local plugin listening port", windows.PluginListenPort)
+	log.Info("Plugin listening port %s", windows.PluginListenPort)
 	// local listen
-	localListner, err = net.Listen(windows.Proto, windows.Hostname+":"+windows.PluginListenPort)
+	listner, err = net.Listen(windows.Proto, windows.Hostname+":"+windows.PluginListenPort)
 	if err != nil {
-		log.Fatal("Listen err on local http port :", err.Error())
-		return nil, nil, err
+		log.Fatal("Listen err on http port %s, err %s:", windows.PluginListenPort,err.Error())
+		return nil, err
 	}
-	// global listen
-	log.Info("Global plugin listening on ", windows.GlobalPluginListenPort)
-	globalListner, err = net.Listen(windows.Proto, windows.Hostname+":"+windows.GlobalPluginListenPort)
-	if err != nil {
-		log.Fatal("Listen err on global http port :", err.Error())
-		return nil, nil, err
-	}
-	return localListner, globalListner, nil
+
+	return listner, nil
 }
 
 //GetDeviceSerialNumber :  Get the host device serial Number from the Volume SN
