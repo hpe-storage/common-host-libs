@@ -562,8 +562,15 @@ func performMount(devPath string, mountPoint string, options []string) (*model.M
 	for {
 		_, rc, err = util.ExecCommandOutput(mountCommand, args)
 		if err != nil || rc != 0 {
-			// retry on error
-			if try < 5 {
+			// if failed due to duplicate FS UUID(snapshot), attempt mount with no-uuid check option
+			if rc == mountUUIDErr {
+				log.Infof("mount failed for dev %s with rc=%d(duplicate uuid), trying again with no uuid option", devPath, mountUUIDErr)
+				_, _, err = util.ExecCommandOutput(mountCommand, []string{"-o", "nouuid", devPath, mountPoint})
+				if err != nil {
+					return nil, err
+				}
+			} else if try < 5 {
+				// retry on other generic errors
 				try++
 				log.Debugf("mount not yet complete with err :%s rc %d.. will retry", err.Error(), rc)
 				time.Sleep(time.Duration(try) * time.Second)
@@ -573,14 +580,7 @@ func performMount(devPath string, mountPoint string, options []string) (*model.M
 		break
 	}
 	if err != nil {
-		if rc != mountUUIDErr {
-			return nil, err
-		}
-		log.Trace("performMount failed with rc=" + strconv.Itoa(mountUUIDErr) + " trying again with no uuid option")
-		_, _, err = util.ExecCommandOutput(mountCommand, []string{"-o", "nouuid", devPath, mountPoint})
-		if err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	// verify that mount is successful
