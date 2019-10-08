@@ -579,6 +579,9 @@ func performMount(devPath string, mountPoint string, options []string) (*model.M
 		}
 		break
 	}
+	if err != nil {
+		return nil, err
+	}
 
 	// verify that mount is successful
 	err = verifyMount(devPath, mountPoint)
