@@ -237,6 +237,7 @@ func addOption(section *Section, option string) {
 	}
 }
 
+//checks for the section
 func isSection(line string) bool {
 	line = strings.TrimSpace(line)	
 	prefixes := []string{"defaults", "blacklist", "blacklist_exceptions", "devices", "device", "multipaths", "multipath"}
