@@ -201,7 +201,7 @@ func isReachable(initiatorIP, targetIP string) (reachable bool, err error) {
 		pinger.Stop()
 	}
 
-	// Perform the ping test; if we received any ICMP packet back, add the IT nexus to the return map
+	// Perform the ping test; if we received any ICMP packet back, stop the test
 	log.Tracef("PING %s --> (%s)", initiatorIP, pinger.Addr())
 	pinger.Run()
 
