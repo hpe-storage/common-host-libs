@@ -41,7 +41,7 @@ func VolumeDriverUnmount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// obtain new chapi client
-	chapiClient, err := chapi.NewChapiClient()
+	chapiClient, err := chapi.NewChapiClientWithTimeout(defaultCreationTimeout)
 	if err != nil {
 		err = errors.New("unable to setup the chapi client " + err.Error())
 		resp := &DriverResponse{Err: err.Error()}
