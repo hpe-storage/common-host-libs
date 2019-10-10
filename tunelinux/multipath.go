@@ -295,7 +295,11 @@ func SetMultipathRecommendations() (err error) {
 	log.Traceln(">>>>> SetMultipathRecommendations")
 	defer log.Traceln("<<<<< SetMultipathRecommendations")
 	
-	ValidateMultipathconf()	
+	err = ValidateMultipathconf()	
+	if err != nil {
+                return err
+        }
+       
 
 	// Take a backup of existing multipath.conf
 	f, err := os.Stat(linux.MultipathConf)
@@ -358,7 +362,7 @@ func ConfigureMultipath() (err error) {
 
 
 //remove newline between section name and '{'
-func ValidateMultipathconf() {
+func ValidateMultipathconf() (err error) {
 	prefixes := []string{"defaults", "blacklist", "blacklist_exceptions", "devices", "device", "multipaths", "multipath"}
 	for _, prefix := range prefixes {
 		content, err := ioutil.ReadFile(linux.MultipathConf)
@@ -367,7 +371,9 @@ func ValidateMultipathconf() {
 		err = ioutil.WriteFile(linux.MultipathConf, []byte(newcontents), 0644)
 		
 		if err != nil {
-		panic(err)
+			return err
 		}
+	
 	}
+	return nil
 }
