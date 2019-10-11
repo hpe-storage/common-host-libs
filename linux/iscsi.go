@@ -9,6 +9,7 @@ import (
 	"github.com/hpe-storage/common-host-libs/util"
 	ping "github.com/sparrc/go-ping"
 	"io/ioutil"
+	"net"
 	"os"
 	"regexp"
 	"strconv"
@@ -49,6 +50,7 @@ const (
 	PingCount               = 5
 	PingInterval            = 10 * time.Millisecond
 	PingTimeout             = 5 * time.Second
+	DefaultIscsiPort        = 3260
 )
 
 //type of Scope (volume, group)
@@ -205,9 +207,19 @@ func isReachable(initiatorIP, targetIP string) (reachable bool, err error) {
 	log.Tracef("PING %s --> (%s)", initiatorIP, pinger.Addr())
 	pinger.Run()
 
+	reachable = false
+
 	if !reachable {
-		log.Errorf("PING FAILED: %s --> (%s)", initiatorIP, pinger.Addr())
-		return false, nil
+		log.Warnf("PING FAILED: %s --> (%s), attempting TCP connection to port 3260", initiatorIP, pinger.Addr())
+		// attempt TCP connection to targetip:iscsiport with timeout
+		local := &net.TCPAddr{IP: net.ParseIP(initiatorIP)}
+		dialer := net.Dialer{Timeout: PingTimeout, LocalAddr: local}
+
+		_, err = dialer.Dial("tcp", fmt.Sprintf("%s:%d", targetIP, DefaultIscsiPort))
+		if err != nil {
+			log.Warnf("TCP connection attempt failed %s --> (%s:%s), err %s", initiatorIP, targetIP, DefaultIscsiPort)
+			return false, nil
+		}
 	}
 	return true, nil
 }
