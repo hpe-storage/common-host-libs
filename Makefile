@@ -38,7 +38,7 @@ ifndef GOOS
 GOOS = linux
 endif
 TEST_ENV  = GOOS=$(GOOS) GOARCH=amd64
-BUILD_ENV = GOOS=linux GOARCH=amd64 CGO_ENABLED=0 VERSION=$(VERSION) COMMIT=$(COMMIT)
+BUILD_ENV = GOOS=$(GOOS) GOARCH=amd64 CGO_ENABLED=0 VERSION=$(VERSION) COMMIT=$(COMMIT)
 
 # Add the version and commit id to the binary in the form of variables.
 LD_FLAGS = '-X main.Version=$(VERSION) -X main.Commit=$(COMMIT)'
