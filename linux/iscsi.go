@@ -207,8 +207,6 @@ func isReachable(initiatorIP, targetIP string) (reachable bool, err error) {
 	log.Tracef("PING %s --> (%s)", initiatorIP, pinger.Addr())
 	pinger.Run()
 
-	reachable = false
-
 	if !reachable {
 		log.Warnf("PING FAILED: %s --> (%s), attempting TCP connection to port 3260", initiatorIP, pinger.Addr())
 		// attempt TCP connection to targetip:iscsiport with timeout
@@ -217,7 +215,7 @@ func isReachable(initiatorIP, targetIP string) (reachable bool, err error) {
 
 		_, err = dialer.Dial("tcp", fmt.Sprintf("%s:%d", targetIP, DefaultIscsiPort))
 		if err != nil {
-			log.Warnf("TCP connection attempt failed %s --> (%s:%s), err %s", initiatorIP, targetIP, DefaultIscsiPort)
+			log.Warnf("TCP connection attempt failed %s --> (%s:%d), err %s", initiatorIP, targetIP, DefaultIscsiPort, err.Error())
 			return false, nil
 		}
 	}
