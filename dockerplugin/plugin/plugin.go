@@ -30,6 +30,9 @@ const (
 	DefaultDeleteConflictDelay = 150
 	// MountConflictDelayKey represents the key name for wait on conflicts for mount
 	MountConflictDelayKey = "mountConflictDelay"
+
+	//EnvMountConflictDelay represents custome mount conflict timeout value
+	EnvMountConflictDelay = "MOUNT_CONFLICT_DELAY"
 	// DefaultMountConflictDelay represents the default delay to wait on conflicts during mount
 	DefaultMountConflictDelay = 120
 )
@@ -40,6 +43,7 @@ var (
 	configLock         sync.Mutex
 	// Version of Plugin
 	Version = "dev"
+
 	// DeleteConflictDelay represent conflict delay to wait during remove
 	DeleteConflictDelay = DefaultDeleteConflictDelay
 	// MountConflictDelay represent conflict delay to wait during mount
@@ -127,6 +131,20 @@ func IsManagedPlugin() bool {
 		return true
 	}
 	return false
+}
+
+// GetMountConflictDealy returns mount conflict time out value
+func GetMountConflictDealy() int {
+	conflictDelay := os.Getenv(EnvMountConflictDelay)
+	if conflictDelay != "" {
+		timeout, err := strconv.Atoi(conflictDelay)
+		if err != nil {
+			log.Error("unable to read mountConflictDealy from environment, ", err.Error())
+		} else {
+			MountConflictDelay = timeout
+		}
+	}
+	return MountConflictDelay
 }
 
 // IsLocalScopeDriver return true if its a local scoped driver, false otherwise

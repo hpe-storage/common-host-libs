@@ -6,18 +6,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hpe-storage/common-host-libs/chapi"
-	"github.com/hpe-storage/common-host-libs/connectivity"
-	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
-	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
-	log "github.com/hpe-storage/common-host-libs/logger"
-	"github.com/hpe-storage/common-host-libs/model"
 	"net/http"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hpe-storage/common-host-libs/chapi"
+	"github.com/hpe-storage/common-host-libs/connectivity"
+	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
+	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
+	log "github.com/hpe-storage/common-host-libs/logger"
+	"github.com/hpe-storage/common-host-libs/model"
 )
 
 const (
@@ -100,7 +101,7 @@ func VolumeDriverMount(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//2. this method does poll to container provider to check if other hosts are attached until mountConflictDelay
-	processMountConflictDelay(pluginReq.Name, providerClient, pluginReq, plugin.MountConflictDelay)
+	processMountConflictDelay(pluginReq.Name, providerClient, pluginReq, plugin.GetMountConflictDealy())
 
 	mapMutex.Lock(pluginReq.Name)
 	log.Debugf("taken lock for volume %s in Mount", pluginReq.Name)
