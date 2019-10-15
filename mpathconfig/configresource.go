@@ -239,20 +239,30 @@ func addOption(section *Section, option string) {
 
 //checks for the section
 func isSection(line string) (bool, error) {
-	line = strings.TrimSpace(line)	
-	prefixes := []string{"defaults", "blacklist", "blacklist_exceptions", "devices", "device", "multipaths", "multipath"}
+        line = strings.TrimSpace(line)
+        prefixes := []string{"defaults", "blacklist", "blacklist_exceptions", "devices", "device", "multipaths", "multipath"}
         for _, prefix := range prefixes {
-		r, err := regexp.Compile("^"+prefix+"\\s*{")	
-		if err!= nil {
-			return false, err
-		}
-		if(r.MatchString(line)) {
-			return true, nil
-		}
-	}
-	
-	return false, nil	
+                r, err := regexp.Compile("^"+prefix+"\\s*{")
+                if err!= nil {
+                        return false, err
+                }
+
+                s, err := regexp.Compile("^"+prefix+"$")
+                if err!= nil {
+                        return false, err
+                }
+
+                if(r.MatchString(line) || s.MatchString(line)) {
+                        return true, nil
+                }
+        }
+
+        return false, nil
 }
+
+
+
+
 
 // ParseConfig reads and parses give config file into sections
 func ParseConfig(filePath string) (config *Configuration, err error) {
