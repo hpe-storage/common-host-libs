@@ -242,17 +242,12 @@ func isSection(line string) (bool, error) {
         line = strings.TrimSpace(line)
         prefixes := []string{"defaults", "blacklist", "blacklist_exceptions", "devices", "device", "multipaths", "multipath"}
         for _, prefix := range prefixes {
-                r, err := regexp.Compile("^"+prefix+"\\s*{")
-                if err!= nil {
+                r, err := regexp.Compile("^"+prefix+"\\s*[{]*$")
+                if err != nil {
                         return false, err
                 }
 
-                s, err := regexp.Compile("^"+prefix+"$")
-                if err!= nil {
-                        return false, err
-                }
-
-                if(r.MatchString(line) || s.MatchString(line)) {
+                if(r.MatchString(line)) {
                         return true, nil
                 }
         }
@@ -285,7 +280,7 @@ func ParseConfig(filePath string) (config *Configuration, err error) {
 		line := scanner.Text()
 		if !(strings.HasPrefix(line, "#")) && len(line) > 0 {
 			section_present, err := isSection(line)
-			if err!= nil {
+			if err != nil {
 				return nil, err
 			}
 			if section_present {
