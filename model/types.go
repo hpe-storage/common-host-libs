@@ -193,13 +193,13 @@ type Volume struct {
 
 // FcSession info
 type FcSession struct {
-	InitiatorWwpn string `json:"initiatorWwpn,omitempty"`
+	InitiatorWwpn string `json:"initiator_wwpn,omitempty"`
 }
 
 // IscsiSession info
 type IscsiSession struct {
-	InitiatorName string `json:"initiatorName,omitempty"`
-	InitiatorIP   string `json:"initiatorIp,omitempty"`
+	InitiatorName string `json:"initiator_name,omitempty"`
+	InitiatorIP   string `json:"initiator_ip_addr,omitempty"`
 }
 
 // Snapshot is a snapshot of a volume
