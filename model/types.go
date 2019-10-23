@@ -244,9 +244,9 @@ type BlockDeviceAccessInfo struct {
 
 // IscsiAccessInfo contains the fields necessary for iSCSI access
 type IscsiAccessInfo struct {
-	DiscoveryIP  string `json:"discovery_ip,omitempty"`
-	ChapUser     string `json:"chap_user,omitempty"`
-	ChapPassword string `json:"chap_password,omitempty"`
+	DiscoveryIPs []string `json:"discovery_ips,omitempty"`
+	ChapUser     string   `json:"chap_user,omitempty"`
+	ChapPassword string   `json:"chap_password,omitempty"`
 }
 
 // VirtualDeviceAccessInfo contains the required data to access a virtual device
