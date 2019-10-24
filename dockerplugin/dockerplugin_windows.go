@@ -37,6 +37,8 @@ func RunNimbledockerd(c chan error, version string) (err error) {
 	// since windows doesnt support K8s yet.
 	//plugin.InitializeDeleteConflictDelay()
 
+	// Control the mountConflictDelay behavior as it is causing default timeout 120 sec.
+	plugin.InitializeMountConflictDelay()
 	// listen on the http port
 	router := NewRouter()
 
