@@ -465,7 +465,7 @@ func cleanupStaleMounts(containerProviderClient *connectivity.Client, chapiClien
 	log.Tracef("volumeInfo is %+v", volumeInfo)
 	// get the mounts of the volumes's serial number
 	_ = chapiClient.GetMounts(&respMount, plugin.GetDeviceSerialNumber(volumeInfo.SerialNumber))
-	if respMount == nil {
+	if respMount == nil || len(respMount) == 0 {
 		log.Tracef("no existing stale mounts found for volume %s, continue with mount", volumeInfo.Name)
 		return
 	}

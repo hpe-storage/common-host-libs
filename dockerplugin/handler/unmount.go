@@ -5,12 +5,14 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"net/http"
+	"strings"
+
 	"github.com/hpe-storage/common-host-libs/chapi"
 	"github.com/hpe-storage/common-host-libs/connectivity"
 	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/model"
-	"net/http"
 )
 
 var (
@@ -123,9 +125,14 @@ func VolumeDriverUnmount(w http.ResponseWriter, r *http.Request) {
 	if device != nil {
 		err = chapiClient.DeleteDevice(device)
 		if err != nil {
-			dr = DriverResponse{Err: err.Error()}
-			json.NewEncoder(w).Encode(dr)
-			return
+			if !strings.Contains(err.Error(), "object was not found on the system") {
+				dr = DriverResponse{Err: err.Error()}
+				json.NewEncoder(w).Encode(dr)
+				return
+			} else {
+				log.Errorln("Delete device called failed, chapi returned ", err.Error())
+			}
+
 		}
 	}
 
