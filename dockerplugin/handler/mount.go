@@ -6,18 +6,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hpe-storage/common-host-libs/chapi"
-	"github.com/hpe-storage/common-host-libs/connectivity"
-	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
-	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
-	log "github.com/hpe-storage/common-host-libs/logger"
-	"github.com/hpe-storage/common-host-libs/model"
 	"net/http"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hpe-storage/common-host-libs/chapi"
+	"github.com/hpe-storage/common-host-libs/connectivity"
+	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
+	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
+	log "github.com/hpe-storage/common-host-libs/logger"
+	"github.com/hpe-storage/common-host-libs/model"
 )
 
 const (
@@ -542,9 +543,11 @@ func processMountConflictDelay(volName string, containerProviderClient *connecti
 			try++
 			trySeconds := try * 5 // try times the tick
 			var volume *model.Volume
+
 			var err error
 
 			volume, err = nimbleGetVolumeInfo(containerProviderClient, pluginReq)
+
 			// Error from nimbleGetVolumeInfo(), we should bail
 			if err != nil {
 				log.Tracef("%d / %d seconds: unable to get volume information for %s, err=%s Continuing.", trySeconds, mountConflictDelay, volName, err.Error())
@@ -560,9 +563,19 @@ func processMountConflictDelay(volName string, containerProviderClient *connecti
 			isCurrentHostAttached = false
 			// if the volume is inUse and has other initiators connected to it then continue with mountConflictDelay
 			if len(volume.FcSessions) != 0 {
-				isCurrentHostAttached = isCurrentHostAttachedFC(volume, pluginReq)
+				if volume.FcSessions[0].InitiatorWwpn == "" {
+					fijiVol, _ := nimbleFijiGetVolumeInfo(containerProviderClient, pluginReq)
+					isCurrentHostAttached = isCurrentHostAttachedFCFiji(fijiVol, pluginReq)
+				} else {
+					isCurrentHostAttached = isCurrentHostAttachedFC(volume, pluginReq)
+				}
 			} else if len(volume.IscsiSessions) != 0 {
-				isCurrentHostAttached = isCurrentHostAttachedIscsi(volume, pluginReq)
+				if volume.IscsiSessions[0].InitiatorName == "" {
+					fijiVol, _ := nimbleFijiGetVolumeInfo(containerProviderClient, pluginReq)
+					isCurrentHostAttached = isCurrentHostAttachedIscsiFiji(fijiVol, pluginReq)
+				} else {
+					isCurrentHostAttached = isCurrentHostAttachedIscsi(volume, pluginReq)
+				}
 			}
 
 			// ideally we should not reach this condition but if we do, we will continue with mount
@@ -633,6 +646,71 @@ func isCurrentHostAttachedFC(volume *model.Volume, pluginReq *PluginRequest) boo
 	}
 
 	for _, fcSession := range volume.FcSessions {
+		for _, fcInit := range fcInits {
+			if strings.TrimSpace(strings.Replace(fcSession.InitiatorWwpn, ":", "", -1)) == strings.TrimSpace(fcInit) {
+				log.Infof("host initiator %s matched volume FC sessions %s", fcInit, fcSession)
+				return true
+			}
+		}
+	}
+	return false
+}
+func isCurrentHostAttachedIscsiFiji(volume *model.FijiVolume, pluginReq *PluginRequest) bool {
+	log.Tracef(">>>>> isCurrentHostAttachedIscsi called for %s", volume.Name)
+	defer log.Trace("<<<<< isCurrentHostAttachedIscsi")
+
+	if pluginReq.Host == nil || pluginReq.Host.Initiators == nil {
+		log.Infof("no host initiators found to validate the Iscsi sessions for %s", volume.Name)
+		return false
+	}
+	//initialize host iscsi initiators
+	var iscsiInits []string
+	for _, initiator := range pluginReq.Host.Initiators {
+		if initiator.Type == "iscsi" {
+			for _, iscsiInitiator := range initiator.Init {
+				iscsiInits = append(iscsiInits, iscsiInitiator)
+			}
+		}
+	}
+
+	for _, iscsiSession := range volume.FijiIscsiSessions {
+		for _, iscsiInit := range iscsiInits {
+			if strings.TrimSpace(iscsiSession.InitiatorName) == strings.TrimSpace(iscsiInit) {
+				log.Debugf("host iscsi initiator %s matched volume iscsi session", iscsiInit)
+				return true
+			}
+		}
+		if iscsiSession.InitiatorIP != "" {
+			for _, network := range pluginReq.Host.Networks {
+				if strings.TrimSpace(iscsiSession.InitiatorIP) == strings.TrimSpace(network.AddressV4) {
+					log.Debugf("host iscsi initiator %s matched volume iscsi connection", network.AddressV4)
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func isCurrentHostAttachedFCFiji(volume *model.FijiVolume, pluginReq *PluginRequest) bool {
+	log.Tracef(">>>>> isCurrentHostAttachedFC called for %s", volume.Name)
+	defer log.Trace("<<<<< isCurrentHostAttachedFC")
+
+	if pluginReq.Host == nil || pluginReq.Host.Initiators == nil {
+		log.Infof("no host initiators found to validate the Fibre Channel sessions for %s", volume.Name)
+		return false
+	}
+	//initialize host fc initiators
+	var fcInits []string
+	for _, initiator := range pluginReq.Host.Initiators {
+		if initiator.Type == "fc" {
+			for _, fcInitiator := range initiator.Init {
+				fcInits = append(fcInits, fcInitiator)
+			}
+		}
+	}
+
+	for _, fcSession := range volume.FijiFcSessions {
 		for _, fcInit := range fcInits {
 			if strings.TrimSpace(strings.Replace(fcSession.InitiatorWwpn, ":", "", -1)) == strings.TrimSpace(fcInit) {
 				log.Infof("host initiator %s matched volume FC sessions %s", fcInit, fcSession)

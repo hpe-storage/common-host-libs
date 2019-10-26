@@ -6,14 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/hpe-storage/common-host-libs/chapi"
 	"github.com/hpe-storage/common-host-libs/connectivity"
 	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
 	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/model"
-	"net/http"
-	"strings"
 )
 
 //@APIVersion 1.0.0
@@ -139,6 +140,29 @@ func nimbleGetVolumeInfo(providerClient *connectivity.Client, pluginReq *PluginR
 		return nil, fmt.Errorf("unable to retrieve volume with name %s", pluginReq.Name)
 	}
 	volume = volResp.Volume
+
+	log.Debugf("retrieved volume %s ", volResp.Volume.Name)
+	return volume, nil
+}
+
+// nolint : dupl
+func nimbleFijiGetVolumeInfo(providerClient *connectivity.Client, pluginReq *PluginRequest) (volume *model.FijiVolume, err error) {
+	log.Tracef(">>>>> nimbleFijiGetVolumeInfo called with %s", pluginReq.Name)
+	defer log.Trace("<<<<< nimbleFijiGetVolumeInfo")
+	volResp := &FijiVolumeResponse{}
+	_, err = providerClient.DoJSON(&connectivity.Request{Action: "POST", Path: provider.NimbleGetURI, Payload: &pluginReq, Response: &volResp, ResponseError: nil})
+	if err != nil {
+		if volResp.Err != "" {
+			log.Trace(volResp.Err)
+			return nil, fmt.Errorf(volResp.Err)
+		}
+		return nil, err
+	}
+	if volResp.Volume == nil {
+		return nil, fmt.Errorf("unable to retrieve volume with name %s", pluginReq.Name)
+	}
+	volume = volResp.Volume
+
 	log.Debugf("retrieved volume %s ", volResp.Volume.Name)
 	return volume, nil
 }

@@ -202,6 +202,48 @@ type IscsiSession struct {
 	InitiatorIP   string `json:"initiator_ip_addr,omitempty"`
 }
 
+// FijiVolume : Thin version of Volume object for Host side
+//nolint: dupl
+type FijiVolume struct {
+	ID             string                 `json:"id,omitempty"`
+	Name           string                 `json:"name,omitempty"`
+	Size           int64                  `json:"size,omitempty"` // size in bytes
+	Description    string                 `json:"description,omitempty"`
+	InUse          bool                   `json:"in_use,omitempty"` // deprecated for published in the CSP implementation
+	Published      bool                   `json:"published,omitempty"`
+	BaseSnapID     string                 `json:"base_snapshot_id,omitempty"`
+	ParentVolID    string                 `json:"parent_volume_id,omitempty"`
+	Clone          bool                   `json:"clone,omitempty"`
+	Config         map[string]interface{} `json:"config,omitempty"`
+	Metadata       []*KeyValue            `json:"metadata,omitempty"`
+	SerialNumber   string                 `json:"serial_number,omitempty"`
+	AccessProtocol string                 `json:"access_protocol,omitempty"`
+	Iqn            string                 `json:"iqn,omitempty"`
+	DiscoveryIP    string                 `json:"discovery_ip,omitempty"` // this field needs to be moved out ?
+	MountPoint     string                 `json:"Mountpoint,omitempty"`
+	Status         map[string]interface{} `json:"status,omitempty"` // interface so that we can map any number of arguments
+	Chap           *ChapInfo              `json:"chap_info,omitempty"`
+	Networks       []*Network             `json:"networks,omitempty"`
+	ConnectionMode string                 `json:"connection_mode,omitempty"`
+	LunID          string                 `json:"lun_id,omitempty"`
+	TargetScope    string                 `json:"target_scope,omitempty"` //GST="group", VST="volume" or empty(older array fiji etc), and no-op for FC
+
+	//Backward compatibility fix.
+	FijiIscsiSessions []*FijiIscsiSession `json:"iscsi_sessions,omitempty"`
+	FijiFcSessions    []*FijiFcSession    `json:"fc_sessions,omitempty"`
+}
+
+// FijiFcSession info
+type FijiFcSession struct {
+	InitiatorWwpn string `json:"initiatorWwpn,omitempty"`
+}
+
+// FijiIscsiSession info
+type FijiIscsiSession struct {
+	InitiatorName string `json:"initiatorName,omitempty"`
+	InitiatorIP   string `json:"initiatorIp,omitempty"`
+}
+
 // Snapshot is a snapshot of a volume
 type Snapshot struct {
 	ID           string                 `json:"id,omitempty"`
@@ -244,9 +286,9 @@ type BlockDeviceAccessInfo struct {
 
 // IscsiAccessInfo contains the fields necessary for iSCSI access
 type IscsiAccessInfo struct {
-	DiscoveryIPs []string `json:"discovery_ips,omitempty"`
-	ChapUser     string   `json:"chap_user,omitempty"`
-	ChapPassword string   `json:"chap_password,omitempty"`
+	DiscoveryIP  string `json:"discovery_ip,omitempty"`
+	ChapUser     string `json:"chap_user,omitempty"`
+	ChapPassword string `json:"chap_password,omitempty"`
 }
 
 // VirtualDeviceAccessInfo contains the required data to access a virtual device

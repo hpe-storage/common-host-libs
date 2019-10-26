@@ -3,13 +3,14 @@
 package handler
 
 import (
+	"net/http"
+	"regexp"
+
 	"github.com/hpe-storage/common-host-libs/concurrent"
 	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
 	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/model"
-	"net/http"
-	"regexp"
 )
 
 const (
@@ -109,6 +110,12 @@ type CreateResponse struct {
 type VolumeResponse struct {
 	Volume *model.Volume `json:"volume,omitempty"`
 	Err    string        `json:"Err"`
+}
+
+//FijiVolumeResponse : Volume response struct
+type FijiVolumeResponse struct {
+	Volume *model.FijiVolume `json:"volume,omitempty"`
+	Err    string            `json:"Err"`
 }
 
 //VolumeUnmountResponse : Volume unmount response
