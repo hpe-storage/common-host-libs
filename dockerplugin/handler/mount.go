@@ -597,7 +597,7 @@ func isCurrentHostAttachedIscsi(volume *model.Volume, pluginReq *PluginRequest) 
 
 	for _, iscsiSession := range volume.IscsiSessions {
 		for _, iscsiInit := range iscsiInits {
-			if strings.TrimSpace(iscsiSession.InitiatorName) == strings.TrimSpace(iscsiInit) {
+			if strings.TrimSpace(iscsiSession.InitiatorNameStr()) == strings.TrimSpace(iscsiInit) {
 				log.Debugf("host iscsi initiator %s matched volume iscsi session", iscsiInit)
 				return true
 			}
@@ -634,7 +634,7 @@ func isCurrentHostAttachedFC(volume *model.Volume, pluginReq *PluginRequest) boo
 
 	for _, fcSession := range volume.FcSessions {
 		for _, fcInit := range fcInits {
-			if strings.TrimSpace(strings.Replace(fcSession.InitiatorWwpn, ":", "", -1)) == strings.TrimSpace(fcInit) {
+			if strings.TrimSpace(strings.Replace(fcSession.InitiatorWwpnStr(), ":", "", -1)) == strings.TrimSpace(fcInit) {
 				log.Infof("host initiator %s matched volume FC sessions %s", fcInit, fcSession)
 				return true
 			}
