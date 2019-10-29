@@ -6,18 +6,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hpe-storage/common-host-libs/chapi"
-	"github.com/hpe-storage/common-host-libs/connectivity"
-	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
-	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
-	log "github.com/hpe-storage/common-host-libs/logger"
-	"github.com/hpe-storage/common-host-libs/model"
 	"net/http"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hpe-storage/common-host-libs/chapi"
+	"github.com/hpe-storage/common-host-libs/connectivity"
+	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
+	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
+	log "github.com/hpe-storage/common-host-libs/logger"
+	"github.com/hpe-storage/common-host-libs/model"
 )
 
 const (
@@ -542,9 +543,11 @@ func processMountConflictDelay(volName string, containerProviderClient *connecti
 			try++
 			trySeconds := try * 5 // try times the tick
 			var volume *model.Volume
+
 			var err error
 
 			volume, err = nimbleGetVolumeInfo(containerProviderClient, pluginReq)
+
 			// Error from nimbleGetVolumeInfo(), we should bail
 			if err != nil {
 				log.Tracef("%d / %d seconds: unable to get volume information for %s, err=%s Continuing.", trySeconds, mountConflictDelay, volName, err.Error())
@@ -577,6 +580,7 @@ func processMountConflictDelay(volName string, containerProviderClient *connecti
 	}
 }
 
+// nolint : cyclo
 func isCurrentHostAttachedIscsi(volume *model.Volume, pluginReq *PluginRequest) bool {
 	log.Tracef(">>>>> isCurrentHostAttachedIscsi called for %s", volume.Name)
 	defer log.Trace("<<<<< isCurrentHostAttachedIscsi")
@@ -597,12 +601,12 @@ func isCurrentHostAttachedIscsi(volume *model.Volume, pluginReq *PluginRequest) 
 
 	for _, iscsiSession := range volume.IscsiSessions {
 		for _, iscsiInit := range iscsiInits {
-			if strings.TrimSpace(iscsiSession.InitiatorName) == strings.TrimSpace(iscsiInit) {
+			if strings.TrimSpace(initiatorName(iscsiSession)) == strings.TrimSpace(iscsiInit) {
 				log.Debugf("host iscsi initiator %s matched volume iscsi session", iscsiInit)
 				return true
 			}
 		}
-		if iscsiSession.InitiatorIP != "" {
+		if initiatorIP(iscsiSession) != "" {
 			for _, network := range pluginReq.Host.Networks {
 				if strings.TrimSpace(iscsiSession.InitiatorIP) == strings.TrimSpace(network.AddressV4) {
 					log.Debugf("host iscsi initiator %s matched volume iscsi connection", network.AddressV4)
@@ -634,11 +638,32 @@ func isCurrentHostAttachedFC(volume *model.Volume, pluginReq *PluginRequest) boo
 
 	for _, fcSession := range volume.FcSessions {
 		for _, fcInit := range fcInits {
-			if strings.TrimSpace(strings.Replace(fcSession.InitiatorWwpn, ":", "", -1)) == strings.TrimSpace(fcInit) {
+			if strings.TrimSpace(strings.Replace(initiatorWwpn(fcSession), ":", "", -1)) == strings.TrimSpace(fcInit) {
 				log.Infof("host initiator %s matched volume FC sessions %s", fcInit, fcSession)
 				return true
 			}
 		}
 	}
 	return false
+}
+
+func initiatorWwpn(s *model.FcSession) string {
+	if s.InitiatorWwpnLegacy != "" {
+		return s.InitiatorWwpnLegacy
+	}
+	return s.InitiatorWwpn
+}
+
+func initiatorName(s *model.IscsiSession) string {
+	if s.InitiatorNameLegacy != "" {
+		return s.InitiatorNameLegacy
+	}
+	return s.InitiatorName
+}
+
+func initiatorIP(s *model.IscsiSession) string {
+	if s.InitiatorIPLegacy != "" {
+		return s.InitiatorIPLegacy
+	}
+	return s.InitiatorIP
 }

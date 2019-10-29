@@ -193,13 +193,16 @@ type Volume struct {
 
 // FcSession info
 type FcSession struct {
-	InitiatorWwpn string `json:"initiator_wwpn,omitempty"`
+	InitiatorWwpn       string `json:"initiator_wwpn,omitempty"`
+	InitiatorWwpnLegacy string `json:"initiatorWwpn,omitempty"`
 }
 
 // IscsiSession info
 type IscsiSession struct {
-	InitiatorName string `json:"initiator_name,omitempty"`
-	InitiatorIP   string `json:"initiator_ip_addr,omitempty"`
+	InitiatorName       string `json:"initiator_name,omitempty"`
+	InitiatorNameLegacy string `json:"initiatorName,omitempty"`
+	InitiatorIP         string `json:"initiator_ip_addr,omitempty"`
+	InitiatorIPLegacy   string `json:"initiatorIp,omitempty"`
 }
 
 // Snapshot is a snapshot of a volume
@@ -244,9 +247,9 @@ type BlockDeviceAccessInfo struct {
 
 // IscsiAccessInfo contains the fields necessary for iSCSI access
 type IscsiAccessInfo struct {
-	DiscoveryIPs []string `json:"discovery_ips,omitempty"`
-	ChapUser     string   `json:"chap_user,omitempty"`
-	ChapPassword string   `json:"chap_password,omitempty"`
+	DiscoveryIP  string `json:"discovery_ip,omitempty"`
+	ChapUser     string `json:"chap_user,omitempty"`
+	ChapPassword string `json:"chap_password,omitempty"`
 }
 
 // VirtualDeviceAccessInfo contains the required data to access a virtual device
