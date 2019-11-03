@@ -53,6 +53,10 @@ func _TestPluginSuite(t *testing.T) {
 		t.Fatal("Failed to create volume " + volumeName)
 	}
 
+	// Clear the provider auth-token (empty).
+	// This is to test if login attempt is made when cached authToken is empty.
+	provider.AuthToken = ""
+
 	volume, err = provider.GetVolume(volume.ID)
 	if err != nil {
 		t.Fatal("Error retrieving volume")
@@ -118,7 +122,7 @@ func realCsp(t *testing.T) *ContainerStorageProvider {
 		},
 	)
 	if err != nil {
-		t.Fatal("Error building CSP")
+		t.Fatalf("Error building CSP, Error: %s", err.Error())
 	}
 
 	return provider

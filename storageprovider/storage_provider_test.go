@@ -78,6 +78,9 @@ func TestCreateCredentials(t *testing.T) {
 		servicePortKey: "443",
 	}
 
+	// Empty params map
+	map7 := map[string]string{}
+
 	tests := []struct {
 		name    string
 		args    args
@@ -90,6 +93,7 @@ func TestCreateCredentials(t *testing.T) {
 		{"Test missing backend", args{map4}, nil, true},
 		{"Test missing username", args{map5}, nil, true},
 		{"Test missing password", args{map6}, nil, true},
+		{"Test empty credentials", args{map7}, nil, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
