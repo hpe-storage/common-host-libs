@@ -166,5 +166,5 @@ packages: build ; $(info $(A1) packages)
 .PHONY: docker_run
 docker_run: ; $(info $(A1) docker_run)
 	@echo "$(A2) using docker image for build"
-	docker run --rm -t -v $(GOPATH):/go -w /go golang:$(GO_VERSION) sh -c "cd src/github.com/hpe-storage/common-host-libs && export XDG_CACHE_HOME=/tmp/.cache && make container_all"
+	docker run --env BACKEND --rm -t -v $(GOPATH):/go -w /go golang:$(GO_VERSION) sh -c "cd src/github.com/hpe-storage/common-host-libs && export XDG_CACHE_HOME=/tmp/.cache && make container_all"
 	@echo "$(A2) leaving container happy $(S0)"
