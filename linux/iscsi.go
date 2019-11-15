@@ -511,7 +511,7 @@ func PerformDiscovery(discoveryIP string) (a model.IscsiTargets, err error) {
 	iscsiMutex.Lock()
 	defer iscsiMutex.Unlock()
 
-	args := []string{"-m", "discovery", "-t", "st", "-p", discoveryIP, "-o", "delete", "-o", "new"}
+	args := []string{"-m", "discovery", "-t", "st", "-p", discoveryIP, "-o", "new"}
 	out, _, err := util.ExecCommandOutput(iscsicmd, args)
 	if err != nil {
 		log.Error(err.Error())

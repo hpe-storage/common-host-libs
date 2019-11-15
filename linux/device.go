@@ -1021,9 +1021,14 @@ func getDeviceHolders(dev *model.Device) (h string, err error) {
 	var re = regexp.MustCompile(holderPattern)
 	log.Tracef("Path =  %s", dev.Pathname)
 	directoryPath := fmt.Sprintf(sysBlockHolders, dev.Pathname)
+	// holders folder might not exist in some flavors
+	dirExists, _, err := util.FileExists(directoryPath)
+	if !dirExists {
+		return "", nil
+	}
 	// walk all files in directory
 	err = filepath.Walk(directoryPath, func(path string, info os.FileInfo, err error) error {
-		if !info.IsDir() {
+		if info != nil && !info.IsDir() {
 			//check for valid symlink
 			var link string
 			link, err = os.Readlink(filepath.Join(directoryPath, info.Name()))

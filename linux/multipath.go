@@ -172,7 +172,6 @@ func checkIfDeviceCanBeDeleted(dev *model.Device) (err error) {
 		if err == nil {
 			return nil
 		}
-
 	}
 	return nil
 }
