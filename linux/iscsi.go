@@ -86,26 +86,27 @@ func RescanAndLoginToTarget(volume *model.Volume) (err error) {
 		return fmt.Errorf("Unable to retrieve Iscsi bound ifaces. Error: %s", err.Error())
 	}
 
-	loggedInTargets, err := GetIscsiTargets()
-	if err != nil {
-		log.Errorf("Unable to retrieve Iscsi Targets Error: %s", err.Error())
-		return fmt.Errorf("Unable to retrieve Iscsi Targets Error: %s", err.Error())
-	}
-	log.Trace("Logged in Targets :")
-	for _, target := range loggedInTargets {
-		log.Trace(target.Name)
-		if target.Name == volume.Iqn {
-			// best effort to scan new paths only with targetScope=GROUP
-			if strings.EqualFold(volume.TargetScope, GroupScope.String()) {
+	if strings.EqualFold(volume.TargetScope, GroupScope.String()) {
+		loggedInTargets, err := GetIscsiTargets()
+		if err != nil {
+			log.Errorf("Unable to retrieve Iscsi Targets Error: %s", err.Error())
+			return fmt.Errorf("Unable to retrieve Iscsi Targets Error: %s", err.Error())
+		}
+		log.Trace("Logged in Targets :")
+		for _, target := range loggedInTargets {
+			log.Trace(target.Name)
+			if target.Name == volume.Iqn {
+				// best effort to scan new paths only with group scoped targets
 				log.Info("Target already connected targetName:", target.Name)
 				err = RescanIscsi(volume.LunID)
 				if err != nil {
-					log.Tracef(err.Error())
+					log.Warnf(err.Error())
 				}
+				return nil
 			}
-			return
 		}
 	}
+
 	targetSet, err := PerformDiscovery(volume.DiscoveryIP)
 	if err != nil {
 		log.Errorf("Unable to Perform Discovery with discoveryIp: %s. Error: %s", volume.DiscoveryIP, err.Error())
