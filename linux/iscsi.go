@@ -82,15 +82,15 @@ func RescanAndLoginToTarget(volume *model.Volume) (err error) {
 	ifaces, err := GetIfaces()
 	// treat iface path not found error as no ifaces bound
 	if err != nil && !os.IsNotExist(err) {
-		log.Errorf("Unable to retrieve Iscsi bound ifaces. Error: %s", err.Error())
-		return fmt.Errorf("Unable to retrieve Iscsi bound ifaces. Error: %s", err.Error())
+		log.Errorf("Unable to retrieve iSCSI bound ifaces. Error: %s", err.Error())
+		return fmt.Errorf("Unable to retrieve iSCSI bound ifaces. Error: %s", err.Error())
 	}
 
 	if strings.EqualFold(volume.TargetScope, GroupScope.String()) {
 		loggedInTargets, err := GetIscsiTargets()
 		if err != nil {
-			log.Errorf("Unable to retrieve Iscsi Targets Error: %s", err.Error())
-			return fmt.Errorf("Unable to retrieve Iscsi Targets Error: %s", err.Error())
+			log.Errorf("Unable to retrieve iSCSI Targets Error: %s", err.Error())
+			return fmt.Errorf("Unable to retrieve iSCSI Targets Error: %s", err.Error())
 		}
 		log.Trace("Logged in Targets :")
 		for _, target := range loggedInTargets {
