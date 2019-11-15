@@ -104,7 +104,7 @@ func RetryBindUnmount(mountPoint string) error {
 				time.Sleep(time.Duration(try) * time.Second)
 				continue
 			}
-			log.Errorf("BindUnmount failed for mountPoint %s : %s", mountPoint, err.Error())
+			log.Errorf("BindUnmount failed for mountpoint %s : %s", mountPoint, err.Error())
 			return err
 		}
 		if err != nil {
@@ -120,11 +120,11 @@ func BindUnmount(mountPoint string) error {
 
 	mountedDevice, err := GetDeviceFromMountPoint(mountPoint)
 	if err != nil {
-		return fmt.Errorf("unable to get mounted Device from Mountpoint %s, err: %s", mountPoint, err.Error())
+		return fmt.Errorf("Unable to get mounted device from mountpoint %s, err: %s", mountPoint, err.Error())
 	}
 
 	if mountedDevice == "" {
-		log.Infof("No device is mounted on the mountpoint %s", mountPoint)
+		log.Infof("No device is mounted at mountpoint %s", mountPoint)
 		return nil
 	}
 
