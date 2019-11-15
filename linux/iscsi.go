@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -53,6 +54,10 @@ const (
 	DefaultIscsiPort        = 3260
 )
 
+var (
+	iscsiMutex sync.Mutex
+)
+
 //type of Scope (volume, group)
 type targetScope int
 
@@ -77,7 +82,8 @@ func (e targetScope) String() string {
 // RescanAndLoginToTarget does a Iscsi login to the target
 // nolint : gocyclo
 func RescanAndLoginToTarget(volume *model.Volume) (err error) {
-	log.Tracef("In RescanAndLoginToTarget called with discoveryip :%s iqn :%s, lunID :%s", volume.DiscoveryIP, volume.Iqn, volume.LunID)
+	log.Tracef(">>>>> RescanAndLoginToTarget with discovery IP %s IQN %s Lun %s", volume.DiscoveryIP, volume.Iqn, volume.LunID)
+	defer log.Trace("<<<<< RescanAndLoginToTarget")
 	// Get iscsi ifaces bound to network interfaces
 	ifaces, err := GetIfaces()
 	// treat iface path not found error as no ifaces bound
@@ -138,7 +144,8 @@ func RescanAndLoginToTarget(volume *model.Volume) (err error) {
 }
 
 func loginToTarget(targets model.IscsiTargets, targetIqn string, ifaces []*model.Iface, chapUser, chapPassword, connectionMode string) (err error) {
-	log.Traceln("Called loginToTarget with targetIqn:", targetIqn)
+	log.Traceln(">>>>> loginToTarget with targetIqn:", targetIqn)
+	defer log.Trace("<<<<< loginToTarget")
 	for _, target := range targets {
 		log.Traceln("Checking with TargetName:", target.Name)
 		if target.Name == targetIqn {
@@ -157,9 +164,9 @@ func loginToTarget(targets model.IscsiTargets, targetIqn string, ifaces []*model
 			// Now login to the target
 			err := addTarget(target, ifaces)
 			if err != nil {
-				err = fmt.Errorf("Unable to login to iscsi target %s. Error: %s", target.Name, err.Error())
-				log.Error(err.Error())
 				if !strings.Contains(err.Error(), alreadyPresent) {
+					err = fmt.Errorf("Unable to login to iscsi target %s. Error: %s", target.Name, err.Error())
+					log.Error(err.Error())
 					return err
 				}
 			}
@@ -224,7 +231,12 @@ func isReachable(initiatorIP, targetIP string) (reachable bool, err error) {
 }
 
 func updateConnectionMode(target *model.IscsiTarget, targets model.IscsiTargets, connectionMode string) {
-	log.Tracef("updateConnectionMode called for target %s mode %s", target.Name, connectionMode)
+	log.Tracef(">>>>> updateConnectionMode for target %s mode %s", target.Name, connectionMode)
+	defer log.Trace("<<<<< updateConnectionMode")
+
+	iscsiMutex.Lock()
+	defer iscsiMutex.Unlock()
+
 	if !(connectionMode == "automatic" || connectionMode == "manual") {
 		err := fmt.Errorf("unsupported iscsi connection mode %s", connectionMode)
 		log.Debug(err.Error())
@@ -249,7 +261,12 @@ func updateConnectionMode(target *model.IscsiTarget, targets model.IscsiTargets,
 
 // updates iscsi node db with given chap username
 func updateChapUser(target *model.IscsiTarget, chapUser string) (err error) {
-	log.Tracef("updateChapUser called for target %s user %s", target.Name, chapUser)
+	log.Tracef(">>>>> updateChapUser for target %s user %s", target.Name, chapUser)
+	defer log.Trace("<<<<< updateChapUser")
+
+	iscsiMutex.Lock()
+	defer iscsiMutex.Unlock()
+
 	args := []string{"--mode", "node", "--targetname", target.Name, "--portal", target.Address, "--op", "update", "-n", nodeChapUser, "-v", chapUser}
 	_, _, err = util.ExecCommandOutput(iscsicmd, args)
 	if err != nil {
@@ -261,6 +278,12 @@ func updateChapUser(target *model.IscsiTarget, chapUser string) (err error) {
 
 // updates iscsi node db with given chap password
 func updateChapPassword(target *model.IscsiTarget, chapPassword string) (err error) {
+	log.Tracef(">>>>> updateChapPassword for target %s", target.Name)
+	defer log.Trace("<<<<< updateChapPassword")
+
+	iscsiMutex.Lock()
+	defer iscsiMutex.Unlock()
+
 	log.Tracef("updateChapPassword called for target %s", target.Name)
 	args := []string{"--mode", "node", "--targetname", target.Name, "--portal", target.Address, "--op", "update", "-n", nodeChapPassword, "-v", chapPassword}
 	_, _, err = util.ExecCommandOutput(iscsicmd, args)
@@ -273,8 +296,13 @@ func updateChapPassword(target *model.IscsiTarget, chapPassword string) (err err
 
 // addTarget : adds iscsi target to iscsi database
 func addTarget(target *model.IscsiTarget, ifaces []*model.Iface) (err error) {
+	log.Tracef(">>>>> addTarget called with target: %s address: %s port: %s", target.Name, target.Address, target.Port)
+	defer log.Trace("<<<<< addTarget")
+
+	iscsiMutex.Lock()
+	defer iscsiMutex.Unlock()
+
 	var out string
-	log.Tracef("addTarget called with target: %s address: %s port: %s", target.Name, target.Address, target.Port)
 	args := []string{"--mode", "node", "--targetname", target.Name, "--login"}
 	if len(ifaces) > 0 {
 		for _, iface := range ifaces {
@@ -295,14 +323,14 @@ func addTarget(target *model.IscsiTarget, ifaces []*model.Iface) (err error) {
 			out, _, err = util.ExecCommandOutput(iscsicmd, ifaceArgs)
 			// error cases continue to login using other ifaces
 			if err != nil {
-				log.Error("iscsi login failed using iface " + iface.Name + "Error :" + err.Error())
+				log.Debugf("iscsi login failed using iface " + iface.Name + "Error :" + err.Error())
 			}
 			log.Trace("addTarget Response :", out)
 		}
 	} else {
 		out, _, err = util.ExecCommandOutput(iscsicmd, args)
 		if err != nil {
-			log.Errorf("iscsi login failed for %s Error %s", target.Name, err.Error())
+			log.Debugf("iscsi login failed for %s Error %s", target.Name, err.Error())
 		}
 		log.Trace("addTarget Response :", out)
 	}
@@ -314,6 +342,9 @@ func addTarget(target *model.IscsiTarget, ifaces []*model.Iface) (err error) {
 
 // GetIscsiIfacesPath returns actual path for iscsi ifaces db
 func GetIscsiIfacesPath() (ifacesPath string, err error) {
+	log.Trace(">>>>> GetIscsiIfacesPath")
+	defer log.Trace("<<<<< GetIscsiIfacesPath")
+
 	fileExists, _, err := util.FileExists(ifacePath)
 	if err != nil || !fileExists {
 		fileExists, _, err = util.FileExists(altIfacePath)
@@ -330,7 +361,9 @@ func GetIscsiIfacesPath() (ifacesPath string, err error) {
 
 // GetIfaces return bound ifaces with network information
 func GetIfaces() (ifaces []*model.Iface, err error) {
-	log.Trace("GetIfaces called")
+	log.Trace(">>>>> GetIfaces")
+	defer log.Trace("<<<<< GetIfaces")
+
 	ifacesPath, err := GetIscsiIfacesPath()
 	if err != nil {
 		return nil, fmt.Errorf("Unable to get the iscsi ifaces from the host. Error: %s", err.Error())
@@ -371,6 +404,9 @@ func GetIfaces() (ifaces []*model.Iface, err error) {
 
 // GetIscsiTargets from the host
 func GetIscsiTargets() (a model.IscsiTargets, err error) {
+	log.Trace(">>>>> GetIscsiTargets")
+	defer log.Trace("<<<<< GetIscsiTargets")
+
 	var iscsiTargets model.IscsiTargets
 
 	files, err := ioutil.ReadDir(diskbypath)
@@ -416,6 +452,9 @@ func GetIscsiTargets() (a model.IscsiTargets, err error) {
 
 // GetChapInfo gets the chap user
 func GetChapInfo() (chapInfo *model.ChapInfo, err error) {
+	log.Trace(">>>>> GetChapInfo")
+	defer log.Trace("<<<<< GetChapInfo")
+
 	chapAuth, err := util.FileGetStringsWithPattern(IscsiConf, chapAuthPattern)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to retrieve chap auth method. Error: %s", err.Error())
@@ -447,6 +486,9 @@ func GetChapInfo() (chapInfo *model.ChapInfo, err error) {
 }
 
 func validateChapUserPassword(user []string, password []string) (chapInfo *model.ChapInfo, err error) {
+	log.Trace(">>>>> validateChapUserPassword")
+	defer log.Trace("<<<<< validateChapUserPassword")
+
 	if len(password[0]) < chapPasswordMinLen || len(password[0]) > chapPasswordMaxLen {
 		return nil, fmt.Errorf("invalid chap password. Should be between %s and %s chars ", strconv.Itoa(chapPasswordMinLen), strconv.Itoa(chapPasswordMaxLen))
 
@@ -463,7 +505,12 @@ func validateChapUserPassword(user []string, password []string) (chapInfo *model
 // PerformDiscovery : adds iscsi targets to iscsi database after performing
 // send targets
 func PerformDiscovery(discoveryIP string) (a model.IscsiTargets, err error) {
-	log.Tracef("PerformDiscovery called with %s", discoveryIP)
+	log.Tracef(">>>>> PerformDiscovery with discovery IP %s", discoveryIP)
+	defer log.Trace("<<<<< PerformDiscovery")
+
+	iscsiMutex.Lock()
+	defer iscsiMutex.Unlock()
+
 	args := []string{"-m", "discovery", "-t", "st", "-p", discoveryIP, "-o", "delete", "-o", "new"}
 	out, _, err := util.ExecCommandOutput(iscsicmd, args)
 	if err != nil {
@@ -512,7 +559,9 @@ func removeDuplicateTargets(targets model.IscsiTargets) model.IscsiTargets {
 
 // iscsiGetTargetOfDevice : get the iscsi target information of a device from sysfs
 func iscsiGetTargetOfDevice(dev *model.Device) (target *model.IscsiTarget, err error) {
-	log.Trace("getIscsiTargetOfMultipathDevice  with", dev)
+	log.Trace(">>>>> iscsiGetTargetOfDevice  with", dev)
+	defer log.Trace("<<<<< iscsiGetTargetOfDevice")
+
 	r := regexp.MustCompile(sessionIDPattern)
 	for _, hcil := range dev.Hcils {
 		host := strings.Split(hcil, ":")[0]
@@ -586,9 +635,13 @@ func getIscsiTargetFromSessionID(dev *model.Device, host string, sessionID strin
 	return iscsiTarget, nil
 }
 
-// iscsilogoutOfTarget : logout the iscsi target
-func iscsilogoutOfTarget(target *model.IscsiTarget) (err error) {
-	log.Trace("logoutOftarget called with", target)
+// iscsiLogoutOfTarget : logout the iscsi target
+func iscsiLogoutOfTarget(target *model.IscsiTarget) (err error) {
+	log.Trace(">>>>> iscsiLogoutOfTarget with", target)
+	defer log.Trace("<<<<< iscsiLogoutOfTarget")
+	iscsiMutex.Lock()
+	defer iscsiMutex.Unlock()
+
 	if target == nil || target.Name == "" {
 		return fmt.Errorf("Empty target to logout")
 	}
@@ -603,12 +656,15 @@ func iscsilogoutOfTarget(target *model.IscsiTarget) (err error) {
 		}
 	}
 	return fmt.Errorf("logout failed for target %s. Error :%s", target.Name, out)
-
 }
 
-// iscsideleteNode : delete the iscsi node from iscsi database
-func iscsideleteNode(target *model.IscsiTarget) (err error) {
-	log.Trace("iscsideleteNode called with", target)
+// iscsiDeleteNode : delete the iscsi node from iscsi database
+func iscsiDeleteNode(target *model.IscsiTarget) (err error) {
+	log.Trace(">>>>> iscsiDeleteNode called with", target)
+	defer log.Trace("<<<<< iscsiDeleteNode")
+	iscsiMutex.Lock()
+	defer iscsiMutex.Unlock()
+
 	if target == nil || target.Name == "" {
 		return fmt.Errorf("Empty target to delete Node")
 	}
@@ -744,6 +800,9 @@ func getMatchingIface(ifaces []*model.Iface, network *model.Network) (iface *mod
 
 // creates an iSCSI iface for specified network name
 func createIface(network model.Network) error {
+	iscsiMutex.Lock()
+	defer iscsiMutex.Unlock()
+
 	// iscsiadm -m iface -I iface_eth2 --op=new
 	args := []string{"-m", "iface", "-I", fmt.Sprintf("iface_%s", network.Name), "--op", "new"}
 	_, _, err := util.ExecCommandOutput(iscsicmd, args)
@@ -755,6 +814,9 @@ func createIface(network model.Network) error {
 
 // binds an iSCSI iface with specified network name
 func bindIface(network model.Network) error {
+	iscsiMutex.Lock()
+	defer iscsiMutex.Unlock()
+
 	// iscsiadm -m iface -I iface_eth2 --op=update -n iface.net_ifacename -v eth2
 	args := []string{"-m", "iface", "-I", fmt.Sprintf("iface_%s", network.Name), "--op=update", "-n", "iface.net_ifacename", "-v", network.Name}
 	_, _, err := util.ExecCommandOutput(iscsicmd, args)

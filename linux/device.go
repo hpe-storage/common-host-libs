@@ -32,6 +32,7 @@ const (
 	dmSizeFormat        = "/sys/block/dm-%s/size"
 	devMapperPath       = "/dev/mapper/"
 	failedDevPath       = "failed to get device path"
+	notBlockDevice      = "not a block device"
 	deviceDoesNotExist  = "No such device or address"
 	noFileOrDirErr      = "No such file or directory"
 	offlinePathString   = "/sys/block/%s/device/state"
@@ -449,7 +450,7 @@ func createNimbleDevice(volume *model.Volume) (dev *model.Device, err error) {
 	cleanupStaleScsiPaths(volume)
 	// try to logout the iscsi target if we could not find a device by now for VST Volume
 	if volume.TargetScope != GroupScope.String() && volume.Iqn != "" {
-		iscsilogoutOfTarget(&model.IscsiTarget{Name: volume.Iqn})
+		iscsiLogoutOfTarget(&model.IscsiTarget{Name: volume.Iqn})
 	}
 	// Reached here signifies the device was not found, throw an error
 	return nil, fmt.Errorf("device not found with serial %s or target %s", volume.SerialNumber, volume.Iqn)
