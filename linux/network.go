@@ -110,12 +110,44 @@ func GetIPV4NetworkAddress(ipv4Address, netMask string) (networkAddress string, 
 }
 
 //GetNetworkInterfaces : get the array of network interfaces
-func GetNetworkInterfaces() ([]*model.Network, error) {
-	log.Trace(">>>>> GetNetworkInterfaces")
+func GetNetworkInterfaces(cidrOnly bool) ([]*model.Network, error) {
+	log.Tracef(">>>>> GetNetworkInterfaces called with %v", cidrOnly)
 	defer log.Trace("<<<<< GetNetworkInterfaces")
 
+	if cidrOnly {
+		networks, err := getCIDRNetworks()
+		return networks, err
+	}
 	interfaces, err := getInterfacesIPAddr()
 	return interfaces, err
+}
+
+func getCIDRNetworks() ([]*model.Network, error) {
+	log.Trace(">>>> getCIDRNetworks called")
+	defer log.Trace("<<<<< getCIDRNetworks")
+	var nics []*model.Network
+
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return nil, err
+	}
+
+	cidrNetworks := []*string{}
+	for _, addr := range addrs {
+		networkIp, ok := addr.(*net.IPNet)
+		if ok && !networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil {
+			cidrNetwork := addr.String()
+			cidrNetworks = append(cidrNetworks, &cidrNetwork)
+		}
+	}
+
+	if len(cidrNetworks) == 0 {
+		return nil, fmt.Errorf("no valid IpV4 network found")
+	}
+
+	nic := &model.Network{CIDRNetworks: cidrNetworks}
+	nics = append(nics, nic)
+	return nics, nil
 }
 
 func getMaskString(intMask int) string {

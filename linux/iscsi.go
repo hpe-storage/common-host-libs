@@ -112,11 +112,23 @@ func RescanAndLoginToTarget(volume *model.Volume) (err error) {
 			}
 		}
 	}
-
-	targetSet, err := PerformDiscovery(volume.DiscoveryIP)
-	if err != nil {
-		log.Errorf("Unable to Perform Discovery with discoveryIp: %s. Error: %s", volume.DiscoveryIP, err.Error())
-		return fmt.Errorf("Unable to Perform Discovery with discoveryIp: %s. Error: %s", volume.DiscoveryIP, err.Error())
+	var targetSet model.IscsiTargets
+	if len(volume.DiscoveryIPs) == 0 && volume.DiscoveryIP == "" {
+		return fmt.Errorf("no discovery ip present to discover iSCSI Targets")
+	}
+	// give preference to slice of discovery IPs over a single discovery IP
+	if len(volume.DiscoveryIPs) > 0 {
+		targetSet, err = PerformDiscoveries(volume.DiscoveryIPs)
+		if err != nil {
+			log.Errorf("Unable to Perform Discovery with discoveryIps: %v. Error: %s", volume.DiscoveryIPs, err.Error())
+			return fmt.Errorf("Unable to Perform Discovery with discoveryIps: %v. Error: %s", volume.DiscoveryIPs, err.Error())
+		}
+	} else if volume.DiscoveryIP != "" {
+		targetSet, err = PerformDiscovery(volume.DiscoveryIP)
+		if err != nil {
+			log.Errorf("Unable to Perform Discovery with discoveryIp: %s. Error: %s", volume.DiscoveryIP, err.Error())
+			return fmt.Errorf("Unable to Perform Discovery with discoveryIp: %s. Error: %s", volume.DiscoveryIP, err.Error())
+		}
 	}
 
 	if volume.Chap == nil {
@@ -379,7 +391,7 @@ func GetIfaces() (ifaces []*model.Iface, err error) {
 	}
 
 	// get network interfaces
-	networks, err := GetNetworkInterfaces()
+	networks, err := GetNetworkInterfaces(false)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to get the network interfaces on host: Error: %s", err.Error())
 	}
@@ -500,6 +512,18 @@ func validateChapUserPassword(user []string, password []string) (chapInfo *model
 	}
 	chapInfo = &model.ChapInfo{Name: user[0], Password: password[0]}
 	return chapInfo, nil
+}
+func PerformDiscoveries(discoveryIPs []string) (a model.IscsiTargets, err error) {
+	var iscsiTargets model.IscsiTargets
+	for _, discoveryIP := range discoveryIPs {
+		targets, err := PerformDiscovery(discoveryIP)
+		if err != nil {
+			log.Error(err.Error())
+			continue
+		}
+		iscsiTargets = append(iscsiTargets, targets...)
+	}
+	return iscsiTargets, err
 }
 
 // PerformDiscovery : adds iscsi targets to iscsi database after performing

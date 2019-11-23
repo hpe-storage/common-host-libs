@@ -105,13 +105,14 @@ type Mount struct {
 
 //Network : network interface info for host
 type Network struct {
-	Name        string `json:"name,omitempty"`
-	AddressV4   string `json:"address_v4,omitempty"`
-	MaskV4      string `json:"mask_v4,omitempty"`
-	BroadcastV4 string `json:",omitempty"`
-	Mac         string `json:",omitempty"`
-	Mtu         int64  `json:",omitempty"`
-	Up          bool
+	Name         string `json:"name,omitempty"`
+	AddressV4    string `json:"address_v4,omitempty"`
+	MaskV4       string `json:"mask_v4,omitempty"`
+	BroadcastV4  string `json:",omitempty"`
+	Mac          string `json:",omitempty"`
+	Mtu          int64  `json:",omitempty"`
+	Up           bool
+	CIDRNetworks []*string `json:",omitempty"`
 }
 
 //Initiator : Host initiator
@@ -180,6 +181,7 @@ type Volume struct {
 	AccessProtocol string                 `json:"access_protocol,omitempty"`
 	Iqn            string                 `json:"iqn,omitempty"`
 	DiscoveryIP    string                 `json:"discovery_ip,omitempty"` // this field needs to be moved out ?
+	DiscoveryIPs   []string               `json:"discovery_ips,omitempty"`
 	MountPoint     string                 `json:"Mountpoint,omitempty"`
 	Status         map[string]interface{} `json:"status,omitempty"` // interface so that we can map any number of arguments
 	Chap           *ChapInfo              `json:"chap_info,omitempty"`

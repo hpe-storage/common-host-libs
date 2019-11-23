@@ -575,7 +575,7 @@ func getHostNetworks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	nics, err = linux.GetNetworkInterfaces()
+	nics, err = linux.GetNetworkInterfaces(false)
 	if err != nil {
 		handleError(w, chapiResp, err, http.StatusInternalServerError)
 		return
