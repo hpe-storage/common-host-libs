@@ -965,7 +965,7 @@ func DeleteDevice(dev *model.Device) (err error) {
 	}
 
 	//check if device is mounted or has holders
-	err := checkIfDeviceCanBeDeleted(dev)
+	err = checkIfDeviceCanBeDeleted(dev)
 	if err != nil {
 		return err
 	}
