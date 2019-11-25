@@ -183,7 +183,7 @@ func retryCleanupDeviceAndSlaves(dev *model.Device) error {
 
 	// check if mpathName exists for the device, else populate it
 	if dev.MpathName == "" {
-		err = setAltFullPathName(dev)
+		err := setAltFullPathName(dev)
 		if err != nil {
 			return err
 		}
