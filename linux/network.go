@@ -54,7 +54,7 @@ func GetHostNameAndDomain() ([]string, error) {
 //GetDomainName : of the host
 func getDomainName() (string, error) {
 	var addr string
-	interfaces, err := getInterfacesIPAddr()
+	interfaces, err := getNetworkInterfaces()
 	if err != nil {
 		return "", err
 	}
@@ -110,43 +110,58 @@ func GetIPV4NetworkAddress(ipv4Address, netMask string) (networkAddress string, 
 }
 
 //GetNetworkInterfaces : get the array of network interfaces
-func GetNetworkInterfaces(cidrOnly bool) ([]*model.Network, error) {
-	log.Tracef(">>>>> GetNetworkInterfaces called with %v", cidrOnly)
+func GetNetworkInterfaces() ([]*model.Network, error) {
+	log.Trace(">>>>> GetNetworkInterfaces called")
 	defer log.Trace("<<<<< GetNetworkInterfaces")
 
-	if cidrOnly {
-		networks, err := getCIDRNetworks()
-		return networks, err
+	networkInterfaces, err := getNetworkInterfaces()
+	if len(networkInterfaces) == 0 {
+		return nil, fmt.Errorf("no valid IpV4 networks found")
 	}
-	interfaces, err := getInterfacesIPAddr()
-	return interfaces, err
+	return networkInterfaces, err
 }
 
-func getCIDRNetworks() ([]*model.Network, error) {
-	log.Trace(">>>> getCIDRNetworks called")
-	defer log.Trace("<<<<< getCIDRNetworks")
-	var nics []*model.Network
-
-	addrs, err := net.InterfaceAddrs()
+// retrieve network interfaces
+func getNetworkInterfaces() ([]*model.Network, error) {
+	log.Trace(">>>>> getNetworkInterfaces called")
+	defer log.Trace("<<<<< getNetworkInterfaces")
+	ifaces, err := net.Interfaces()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to retrieve network interfaces %s", err.Error())
 	}
+	var nics []*model.Network
+	for _, i := range ifaces {
+		addrs, err := i.Addrs()
+		if err != nil {
+			log.Tracef(err.Error())
+			continue
+		}
+		for _, addr := range addrs {
+			networkIp, ok := addr.(*net.IPNet)
+			if ok && !networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil && networkIp.Mask != nil {
+				mask := networkIp.Mask
+				if len(mask) != 4 {
+					// continue with other addresses
+					continue
+				}
+				nic := &model.Network{
+					Name:        i.Name,
+					AddressV4:   networkIp.IP.To4().String(),
+					MaskV4:      fmt.Sprintf("%d.%d.%d.%d", mask[0], mask[1], mask[2], mask[3]),
+					Mtu:         int64(i.MTU),
+					Mac:         i.HardwareAddr.String(),
+					CidrNetwork: addr.String(),
+				}
+				if strings.Contains(i.Flags.String(), "up") {
+					nic.Up = true
+				} else {
+					nic.Up = false
+				}
+				nics = append(nics, nic)
+			}
 
-	cidrNetworks := []*string{}
-	for _, addr := range addrs {
-		networkIp, ok := addr.(*net.IPNet)
-		if ok && !networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil {
-			cidrNetwork := addr.String()
-			cidrNetworks = append(cidrNetworks, &cidrNetwork)
 		}
 	}
-
-	if len(cidrNetworks) == 0 {
-		return nil, fmt.Errorf("no valid IpV4 network found")
-	}
-
-	nic := &model.Network{CIDRNetworks: cidrNetworks}
-	nics = append(nics, nic)
 	return nics, nil
 }
 
@@ -170,6 +185,7 @@ func getMaskString(intMask int) string {
 	return maskV4
 }
 
+//TODO: remove this
 func getInterfacesIPAddr() ([]*model.Network, error) {
 	log.Trace(">>>>> getInterfacesIpAddr")
 	defer log.Trace("<<<<< getInterfacesIPAddr")

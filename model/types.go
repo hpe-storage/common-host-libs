@@ -105,14 +105,14 @@ type Mount struct {
 
 //Network : network interface info for host
 type Network struct {
-	Name         string `json:"name,omitempty"`
-	AddressV4    string `json:"address_v4,omitempty"`
-	MaskV4       string `json:"mask_v4,omitempty"`
-	BroadcastV4  string `json:",omitempty"`
-	Mac          string `json:",omitempty"`
-	Mtu          int64  `json:",omitempty"`
-	Up           bool
-	CIDRNetworks []*string `json:",omitempty"`
+	Name        string `json:"name,omitempty"`
+	AddressV4   string `json:"address_v4,omitempty"`
+	MaskV4      string `json:"mask_v4,omitempty"`
+	BroadcastV4 string `json:",omitempty"`
+	Mac         string `json:",omitempty"`
+	Mtu         int64  `json:",omitempty"`
+	Up          bool
+	CidrNetwork string
 }
 
 //Initiator : Host initiator

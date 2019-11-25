@@ -87,7 +87,7 @@ func generateUniqueNodeId() (string, error) {
 
 func getMacAddresses() ([]string, error) {
 	// get mac address
-	nics, err := linux.GetNetworkInterfaces(false)
+	nics, err := linux.GetNetworkInterfaces()
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (driver *LinuxDriver) GetHostInfo() (*model.Host, error) {
 		return nil, err
 	}
 
-	nics, err := linux.GetNetworkInterfaces(false)
+	nics, err := linux.GetNetworkInterfaces()
 	if err != nil {
 		log.Errorln("GetNetworkInterfaces returned error:", err)
 		if len(nics) == 0 {
@@ -153,8 +153,7 @@ func (driver *LinuxDriver) GetHostInitiators() ([]*model.Initiator, error) {
 
 // GetHostNetworks reports the networks on this host
 func (driver *LinuxDriver) GetHostNetworks() ([]*model.Network, error) {
-	// need cidr network addresses
-	return linux.GetNetworkInterfaces(true)
+	return linux.GetNetworkInterfaces()
 }
 
 // GetHostNameAndDomain reports the host name and domain

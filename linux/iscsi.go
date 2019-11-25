@@ -391,7 +391,7 @@ func GetIfaces() (ifaces []*model.Iface, err error) {
 	}
 
 	// get network interfaces
-	networks, err := GetNetworkInterfaces(false)
+	networks, err := GetNetworkInterfaces()
 	if err != nil {
 		return nil, fmt.Errorf("Unable to get the network interfaces on host: Error: %s", err.Error())
 	}
