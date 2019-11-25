@@ -109,7 +109,7 @@
         "severity": "warning",
         "description": "Minimum queue_depth of 64 is recommended for each iSCSI session/path. Can be set in /etc/iscsi/iscsid.conf",
         "parameter": "queue_depth",
-        "recommendation": "64"
+        "recommendation": "256"
     },
     {
         "category": "iscsi",
