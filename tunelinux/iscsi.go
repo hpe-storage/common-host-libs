@@ -364,6 +364,11 @@ func SetIscsiRecommendations() (err error) {
 					continue
 				}
 			}
+			if recommendation.Parameter == "replacement_timeout" {
+				continue
+			}
+
+
 			// Modify iscsid.conf settings accordingly
 			err = SetIscsiParamRecommendation(recommendation.Parameter, recommendation.Recommendation)
 			if err != nil {
@@ -417,3 +422,39 @@ func ConfigureIscsi() (err error) {
 
 	return nil
 }
+
+// Update replacement timeout for logged-in sessions
+func UpdateIscsiSessionReplacementTimeout() (err error) {
+        var parameter string
+        var recommendedValue string
+	var formattedParam string
+
+        err = loadTemplateSettings()
+        if err != nil {
+                return err
+        }
+
+        parameter = "node.session.timeo.replacement_timeout"
+	formattedParam = "replacement_timeout"
+        iscsiParamMap, _ := getParamToTemplateFieldMap(Iscsi, "recommendation", "")
+        recommendedValue = iscsiParamMap[formattedParam]
+
+        // Get logged-in iSCSi sessions
+        iscsiTargets, err := linux.GetIscsiTargets()
+        if err != nil {
+                log.Error("Unable to get logged-in iscsi session to update recommendations, error: ", err.Error())
+                return err
+        }
+
+        for _, iscsiTarget := range iscsiTargets {
+        	err = SetIscsiSessionParam(*iscsiTarget, parameter, recommendedValue)
+                if err != nil {
+                	log.Error("Unable to update iscsi session param ", parameter, " target: ", iscsiTarget.Name, "error: ", err.Error())
+                        continue
+                }
+                log.Info("Successfully updated iscsi session param", parameter, " for target: ", iscsiTarget.Name)
+        }
+
+        return nil
+}
+
