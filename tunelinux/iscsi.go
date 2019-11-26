@@ -446,13 +446,15 @@ func UpdateIscsiSessionReplacementTimeout() (err error) {
                 return err
         }
 
-        for _, iscsiTarget := range iscsiTargets {
-        	err = SetIscsiSessionParam(*iscsiTarget, parameter, recommendedValue)
-                if err != nil {
-                	log.Error("Unable to update iscsi session param ", parameter, " target: ", iscsiTarget.Name, "error: ", err.Error())
-                        continue
+	for _, iscsiTarget := range iscsiTargets {
+                if strings.Contains(iscsiTarget.Name, "nimblestorage") {
+                        err = SetIscsiSessionParam(*iscsiTarget, parameter, recommendedValue)
+                        if err != nil {
+                                log.Error("Unable to update iscsi session param ", parameter, " target: ", iscsiTarget.Name, "error: ", err.Error())
+                                continue
+                        }
+                        log.Info("Successfully updated iscsi session param", parameter, " for target: ", iscsiTarget.Name)
                 }
-                log.Info("Successfully updated iscsi session param", parameter, " for target: ", iscsiTarget.Name)
         }
 
         return nil
