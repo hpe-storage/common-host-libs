@@ -118,13 +118,13 @@ func RescanAndLoginToTarget(volume *model.Volume) (err error) {
 	}
 	// give preference to slice of discovery IPs over a single discovery IP
 	if len(volume.DiscoveryIPs) > 0 {
-		targetSet, err = PerformDiscoveries(volume.DiscoveryIPs)
+		targetSet, err = PerformDiscovery(volume.DiscoveryIPs)
 		if err != nil {
 			log.Errorf("Unable to Perform Discovery with discoveryIps: %v. Error: %s", volume.DiscoveryIPs, err.Error())
 			return fmt.Errorf("Unable to Perform Discovery with discoveryIps: %v. Error: %s", volume.DiscoveryIPs, err.Error())
 		}
 	} else if volume.DiscoveryIP != "" {
-		targetSet, err = PerformDiscovery(volume.DiscoveryIP)
+		targetSet, err = PerformDiscovery([]string{volume.DiscoveryIP})
 		if err != nil {
 			log.Errorf("Unable to Perform Discovery with discoveryIp: %s. Error: %s", volume.DiscoveryIP, err.Error())
 			return fmt.Errorf("Unable to Perform Discovery with discoveryIp: %s. Error: %s", volume.DiscoveryIP, err.Error())
@@ -205,7 +205,9 @@ func isReachable(initiatorIP, targetIP string) (reachable bool, err error) {
 	pinger.SetPrivileged(true)
 
 	// Ping target from initiatorPort
-	pinger.Source = initiatorIP
+	if initiatorIP != "" {
+		pinger.Source = initiatorIP
+	}
 
 	// Count tells pinger to stop after sending (and receiving) Count echo packets
 	pinger.Count = PingCount
@@ -513,34 +515,43 @@ func validateChapUserPassword(user []string, password []string) (chapInfo *model
 	chapInfo = &model.ChapInfo{Name: user[0], Password: password[0]}
 	return chapInfo, nil
 }
-func PerformDiscoveries(discoveryIPs []string) (a model.IscsiTargets, err error) {
-	var iscsiTargets model.IscsiTargets
-	for _, discoveryIP := range discoveryIPs {
-		targets, err := PerformDiscovery(discoveryIP)
-		if err != nil {
-			log.Error(err.Error())
-			continue
-		}
-		iscsiTargets = append(iscsiTargets, targets...)
-	}
-	return iscsiTargets, err
-}
 
 // PerformDiscovery : adds iscsi targets to iscsi database after performing
 // send targets
-func PerformDiscovery(discoveryIP string) (a model.IscsiTargets, err error) {
-	log.Tracef(">>>>> PerformDiscovery with discovery IP %s", discoveryIP)
+func PerformDiscovery(discoveryIPs []string) (a model.IscsiTargets, err error) {
+	log.Tracef(">>>>> PerformDiscovery with discovery IPs %s", discoveryIPs)
 	defer log.Trace("<<<<< PerformDiscovery")
 
 	iscsiMutex.Lock()
 	defer iscsiMutex.Unlock()
 
-	args := []string{"-m", "discovery", "-t", "st", "-p", discoveryIP, "-o", "new"}
-	out, _, err := util.ExecCommandOutput(iscsicmd, args)
+	var isDiscoveryIpReachable bool
+	var out string
+	for _, discoveryIP := range discoveryIPs {
+		// find the first discovery ip which is reachable
+		isDiscoveryIpReachable, err = isReachable("", discoveryIP)
+		if err != nil {
+			continue
+		}
+		if isDiscoveryIpReachable {
+			args := []string{"-m", "discovery", "-t", "st", "-p", discoveryIP, "-o", "new"}
+			out, _, err = util.ExecCommandOutput(iscsicmd, args)
+			if err != nil {
+				log.Error(err.Error())
+				continue
+			}
+			break
+		}
+	}
+
+	if !isDiscoveryIpReachable {
+		return nil, fmt.Errorf("no reachable discovery ip found. Please sanity check host OS and array IP configuration, network, netmask and gateway.")
+	}
+
 	if err != nil {
-		log.Error(err.Error())
 		return nil, err
 	}
+
 	log.Trace(out)
 
 	var iscsiTargets model.IscsiTargets
@@ -776,7 +787,7 @@ func rescanIscsiHosts(iscsiHosts []string, lunID string) (err error) {
 	return nil
 }
 
-func addIscsiPortBinding(networks []*model.Network) error {
+func addIscsiPortBinding(networks []*model.NetworkInterface) error {
 	// Get iscsi ifaces bound to network interfaces
 	ifaces, err := GetIfaces()
 	// treat iface path not found error as no ifaces bound
@@ -813,7 +824,7 @@ func addIscsiPortBinding(networks []*model.Network) error {
 }
 
 // returns iface matching the network address specified or nil otherwise
-func getMatchingIface(ifaces []*model.Iface, network *model.Network) (iface *model.Iface) {
+func getMatchingIface(ifaces []*model.Iface, network *model.NetworkInterface) (iface *model.Iface) {
 	for _, iface := range ifaces {
 		if network.AddressV4 == iface.Network.AddressV4 {
 			return iface
@@ -823,7 +834,7 @@ func getMatchingIface(ifaces []*model.Iface, network *model.Network) (iface *mod
 }
 
 // creates an iSCSI iface for specified network name
-func createIface(network model.Network) error {
+func createIface(network model.NetworkInterface) error {
 	iscsiMutex.Lock()
 	defer iscsiMutex.Unlock()
 
@@ -837,7 +848,7 @@ func createIface(network model.Network) error {
 }
 
 // binds an iSCSI iface with specified network name
-func bindIface(network model.Network) error {
+func bindIface(network model.NetworkInterface) error {
 	iscsiMutex.Lock()
 	defer iscsiMutex.Unlock()
 

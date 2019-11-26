@@ -110,7 +110,7 @@ func GetIPV4NetworkAddress(ipv4Address, netMask string) (networkAddress string, 
 }
 
 //GetNetworkInterfaces : get the array of network interfaces
-func GetNetworkInterfaces() ([]*model.Network, error) {
+func GetNetworkInterfaces() ([]*model.NetworkInterface, error) {
 	log.Trace(">>>>> GetNetworkInterfaces called")
 	defer log.Trace("<<<<< GetNetworkInterfaces")
 
@@ -122,14 +122,14 @@ func GetNetworkInterfaces() ([]*model.Network, error) {
 }
 
 // retrieve network interfaces
-func getNetworkInterfaces() ([]*model.Network, error) {
+func getNetworkInterfaces() ([]*model.NetworkInterface, error) {
 	log.Trace(">>>>> getNetworkInterfaces called")
 	defer log.Trace("<<<<< getNetworkInterfaces")
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return nil, fmt.Errorf("unable to retrieve network interfaces %s", err.Error())
 	}
-	var nics []*model.Network
+	var nics []*model.NetworkInterface
 	for _, i := range ifaces {
 		addrs, err := i.Addrs()
 		if err != nil {
@@ -144,7 +144,7 @@ func getNetworkInterfaces() ([]*model.Network, error) {
 					// continue with other addresses
 					continue
 				}
-				nic := &model.Network{
+				nic := &model.NetworkInterface{
 					Name:        i.Name,
 					AddressV4:   networkIp.IP.To4().String(),
 					MaskV4:      fmt.Sprintf("%d.%d.%d.%d", mask[0], mask[1], mask[2], mask[3]),
@@ -186,12 +186,12 @@ func getMaskString(intMask int) string {
 }
 
 //TODO: remove this
-func getInterfacesIPAddr() ([]*model.Network, error) {
+func getInterfacesIPAddr() ([]*model.NetworkInterface, error) {
 	log.Trace(">>>>> getInterfacesIpAddr")
 	defer log.Trace("<<<<< getInterfacesIPAddr")
 
-	var nics []*model.Network
-	var nic *model.Network
+	var nics []*model.NetworkInterface
+	var nic *model.NetworkInterface
 	args := []string{"addr"}
 	out, _, err := util.ExecCommandOutput(ipcommand, args)
 	if err != nil {
@@ -213,15 +213,15 @@ func getInterfacesIPAddr() ([]*model.Network, error) {
 				return nics, er
 			}
 			if matchedMap["UP"] == up {
-				nic = &model.Network{Name: matchedMap["Name"], Mtu: mtu, Up: true}
+				nic = &model.NetworkInterface{Name: matchedMap["Name"], Mtu: mtu, Up: true}
 			} else if matchedMap["UP"] == unknown {
 				// ip addr and ip link shows state as UNKNOWN with old kernel versions(/sys/class/net/docker0/operstate)
 				// https://access.redhat.com/solutions/1443363
 				// obtain using ethtool
 				status := getInterfaceStatus(matchedMap["Name"])
-				nic = &model.Network{Name: matchedMap["Name"], Mtu: mtu, Up: status}
+				nic = &model.NetworkInterface{Name: matchedMap["Name"], Mtu: mtu, Up: status}
 			} else {
-				nic = &model.Network{Name: matchedMap["Name"], Mtu: mtu, Up: false}
+				nic = &model.NetworkInterface{Name: matchedMap["Name"], Mtu: mtu, Up: false}
 			}
 		} else {
 			if nic != nil {
@@ -254,7 +254,7 @@ func getInterfaceStatus(name string) bool {
 	return false
 }
 
-func matchIPPattern(line string, nic *model.Network) (*model.Network, error) {
+func matchIPPattern(line string, nic *model.NetworkInterface) (*model.NetworkInterface, error) {
 	log.Tracef(">>>> matchIPPattern called with %s", line)
 	defer log.Trace("<<<<< matchIPPattern")
 

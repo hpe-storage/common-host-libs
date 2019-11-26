@@ -152,7 +152,7 @@ func (driver *LinuxDriver) GetHostInitiators() ([]*model.Initiator, error) {
 }
 
 // GetHostNetworks reports the networks on this host
-func (driver *LinuxDriver) GetHostNetworks() ([]*model.Network, error) {
+func (driver *LinuxDriver) GetHostNetworks() ([]*model.NetworkInterface, error) {
 	return linux.GetNetworkInterfaces()
 }
 
