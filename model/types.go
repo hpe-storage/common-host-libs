@@ -86,13 +86,13 @@ func (e VolumeAccessType) String() string {
 
 // Host : provide host information
 type Host struct {
-	UUID           string              `json:"id,omitempty"`
-	Name           string              `json:"name,omitempty"`
-	Domain         string              `json:"domain,omitempty"`
-	NodeID         string              `json:"node_id,omitempty"`
-	AccessProtocol string              `json:"access_protocol,omitempty"`
-	Networks       []*NetworkInterface `json:"networks,omitempty"`
-	Initiators     []*Initiator        `json:"initiators,omitempty"`
+	UUID              string              `json:"id,omitempty"`
+	Name              string              `json:"name,omitempty"`
+	Domain            string              `json:"domain,omitempty"`
+	NodeID            string              `json:"node_id,omitempty"`
+	AccessProtocol    string              `json:"access_protocol,omitempty"`
+	NetworkInterfaces []*NetworkInterface `json:"networks,omitempty"`
+	Initiators        []*Initiator        `json:"initiators,omitempty"`
 }
 
 //Mount struct ID data type is string
@@ -281,8 +281,8 @@ type FcHostPort struct {
 
 // Iface represents iface configuring with port binding
 type Iface struct {
-	Name    string
-	Network *NetworkInterface
+	Name             string
+	NetworkInterface *NetworkInterface
 }
 
 // IscsiTargets : array of pointers to IscsiTarget

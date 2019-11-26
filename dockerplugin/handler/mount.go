@@ -238,17 +238,17 @@ func filterHostNetworks(pluginReq *PluginRequest) error {
 	index := 0
 	for _, initiator := range initiators {
 		// ignore unwanted networks based on user input
-		for _, network := range pluginReq.Host.Networks {
+		for _, network := range pluginReq.Host.NetworkInterfaces {
 			// check if initiator ip addresses or interfaces are provided to match with current node
 			if (isIPAddress(initiator) && network.AddressV4 == initiator) || network.Name == initiator {
-				pluginReq.Host.Networks[index] = network
+				pluginReq.Host.NetworkInterfaces[index] = network
 				log.Debugf("matched filtered network %s, ip %s", network.Name, network.AddressV4)
 				index++
 			}
 		}
 	}
 	// trim unwanted network interfaces
-	pluginReq.Host.Networks = pluginReq.Host.Networks[:index]
+	pluginReq.Host.NetworkInterfaces = pluginReq.Host.NetworkInterfaces[:index]
 
 	return nil
 }
@@ -603,7 +603,7 @@ func isCurrentHostAttachedIscsi(volume *model.Volume, pluginReq *PluginRequest) 
 			}
 		}
 		if iscsiSession.InitiatorIP != "" {
-			for _, network := range pluginReq.Host.Networks {
+			for _, network := range pluginReq.Host.NetworkInterfaces {
 				if strings.TrimSpace(iscsiSession.InitiatorIP) == strings.TrimSpace(network.AddressV4) {
 					log.Debugf("host iscsi initiator %s matched volume iscsi connection", network.AddressV4)
 					return true

@@ -321,14 +321,14 @@ func addTarget(target *model.IscsiTarget, ifaces []*model.Iface) (err error) {
 	if len(ifaces) > 0 {
 		for _, iface := range ifaces {
 			// verify if the target is reachable from this interface
-			reachable, err := isReachable(iface.Network.AddressV4, target.Address)
+			reachable, err := isReachable(iface.NetworkInterface.AddressV4, target.Address)
 			if err != nil {
-				log.Warnf("failed to run ping test from %s --> (%s)", iface.Network.AddressV4, target.Address)
+				log.Warnf("failed to run ping test from %s --> (%s)", iface.NetworkInterface.AddressV4, target.Address)
 				// if we cannot issue ping for some reason, proceed with iscsi login
 				reachable = true
 			}
 			if !reachable {
-				log.Errorf("ping test failed from %s --> (%s), skipping iscsi login on this portal to %s", iface.Network.AddressV4, target.Address, target.Name)
+				log.Errorf("ping test failed from %s --> (%s), skipping iscsi login on this portal to %s", iface.NetworkInterface.AddressV4, target.Address, target.Name)
 				continue
 			}
 			// login using each iface bound
@@ -405,7 +405,7 @@ func GetIfaces() (ifaces []*model.Iface, err error) {
 			for _, network := range networks {
 				if network.Name == strings.TrimSpace(lines[0]) {
 					log.Trace("found iface ", file.Name(), " bound to network ", network)
-					iface.Network = network
+					iface.NetworkInterface = network
 					log.Trace("iface added ", iface.Name)
 					ifaces = append(ifaces, iface)
 					break
@@ -803,7 +803,7 @@ func addIscsiPortBinding(networks []*model.NetworkInterface) error {
 		if iface != nil {
 			found = true
 			// check if iface had binding with network interface
-			if iface.Network.Name == network.Name {
+			if iface.NetworkInterface.Name == network.Name {
 				bound = true
 			}
 		}
@@ -826,7 +826,7 @@ func addIscsiPortBinding(networks []*model.NetworkInterface) error {
 // returns iface matching the network address specified or nil otherwise
 func getMatchingIface(ifaces []*model.Iface, network *model.NetworkInterface) (iface *model.Iface) {
 	for _, iface := range ifaces {
-		if network.AddressV4 == iface.Network.AddressV4 {
+		if network.AddressV4 == iface.NetworkInterface.AddressV4 {
 			return iface
 		}
 	}
