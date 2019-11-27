@@ -345,7 +345,7 @@ func SetIscsiSessionParam(target model.IscsiTarget, parameter string, value stri
 }
 
 // SetIscsiRecommendations set iscsi param recommendations
-func SetIscsiRecommendations() (err error) {
+func SetIscsiRecommendations(global bool) (err error) {
 	log.Trace("SetIscsiRecommendations called")
 	var remediations []*Recommendation
 	// Get iSCSI recommendations
@@ -364,16 +364,14 @@ func SetIscsiRecommendations() (err error) {
 					continue
 				}
 			}
-			if recommendation.Parameter == "replacement_timeout" {
-				continue
-			}
 
-
-			// Modify iscsid.conf settings accordingly
-			err = SetIscsiParamRecommendation(recommendation.Parameter, recommendation.Recommendation)
-			if err != nil {
-				// continue with other recommendations
-				continue
+			if !global {
+				// Modify iscsid.conf settings accordingly only when global param is not set
+				err = SetIscsiParamRecommendation(recommendation.Parameter, recommendation.Recommendation)
+				if err != nil {
+					// continue with other recommendations
+					continue
+				}
 			}
 			// append to remediations list for corrected settings
 			remediations = append(remediations, recommendation)
@@ -394,6 +392,7 @@ func SetIscsiRecommendations() (err error) {
 
 // ConfigureIscsi verifies and install necessary iSCSI packages if not present. It also makes sure if service is running.
 func ConfigureIscsi() (err error) {
+	global := false
 	log.Traceln(">>>>> ConfigureIscsi")
 	defer log.Traceln("<<<<< ConfigureIscsi")
 
@@ -415,7 +414,7 @@ func ConfigureIscsi() (err error) {
 		return err
 	}
 
-	err = SetIscsiRecommendations()
+	err = SetIscsiRecommendations(global)
 	if err != nil {
 		return err
 	}
@@ -423,40 +422,4 @@ func ConfigureIscsi() (err error) {
 	return nil
 }
 
-// Update replacement timeout for logged-in sessions
-func UpdateIscsiSessionReplacementTimeout() (err error) {
-        var parameter string
-        var recommendedValue string
-	var formattedParam string
-
-        err = loadTemplateSettings()
-        if err != nil {
-                return err
-        }
-
-        parameter = "node.session.timeo.replacement_timeout"
-	formattedParam = "replacement_timeout"
-        iscsiParamMap, _ := getParamToTemplateFieldMap(Iscsi, "recommendation", "")
-        recommendedValue = iscsiParamMap[formattedParam]
-
-        // Get logged-in iSCSi sessions
-        iscsiTargets, err := linux.GetIscsiTargets()
-        if err != nil {
-                log.Error("Unable to get logged-in iscsi session to update recommendations, error: ", err.Error())
-                return err
-        }
-
-	for _, iscsiTarget := range iscsiTargets {
-                if strings.Contains(iscsiTarget.Name, "nimblestorage") {
-                        err = SetIscsiSessionParam(*iscsiTarget, parameter, recommendedValue)
-                        if err != nil {
-                                log.Error("Unable to update iscsi session param ", parameter, " target: ", iscsiTarget.Name, "error: ", err.Error())
-                                continue
-                        }
-                        log.Info("Successfully updated iscsi session param", parameter, " for target: ", iscsiTarget.Name)
-                }
-        }
-
-        return nil
-}
 
