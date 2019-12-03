@@ -365,7 +365,7 @@ func SetIscsiRecommendations(global bool) (err error) {
 				}
 			}
 
-			if !global {
+			if global {
 				// Modify iscsid.conf settings accordingly only when global param is not set
 				err = SetIscsiParamRecommendation(recommendation.Parameter, recommendation.Recommendation)
 				if err != nil {
