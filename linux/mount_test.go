@@ -2,8 +2,12 @@ package linux
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/hpe-storage/common-host-libs/model"
+	"github.com/hpe-storage/common-host-libs/util"
 )
 
 var (
@@ -19,6 +23,63 @@ func TestMountDevice(t *testing.T) {
 	if err == nil {
 		t.Error("empty device or mountpoint should not be allowed to be mounted")
 	}
+}
+
+// TestCreateFilesystemWithOptions take 18 seconds on a OSX laptop running in a vm and in a container
+// This test wont fire unless the GOOS is linux and mkfs.xfs is installed (it isn't in golang:1.x)
+func TestCreateFilesystemWithOptions(t *testing.T) {
+	// This test requires linux
+	if runtime.GOOS != "linux" {
+		return
+	}
+
+	// This test requires xfs
+	// apt-get update && apt-get install xfsprogs
+	_, rc, _ := util.ExecCommandOutputWithTimeout("which", []string{"mkfs.xfs"}, 5)
+	if rc != 0 {
+		return
+	}
+
+	device := &model.Device{
+		AltFullPathName: "/tmp/disk",
+	}
+
+	var optionTests = []struct {
+		name      string
+		options   []string
+		shouldErr bool
+	}{
+		{"xfs with wrong options", []string{"-m", "XXXscrc=1", "-K", "-i", "maxpct=0"}, true},
+		{"xfs with no options", nil, false},
+		{"xfs with options", []string{"-m", "crc=1", "-K", "-i", "maxpct=0"}, false},
+	}
+
+	for _, tc := range optionTests {
+		t.Run(tc.name, func(t *testing.T) {
+			// create a small device
+			_, _, err := util.ExecCommandOutputWithTimeout("rm", []string{"-f", device.AltFullPathName}, 5)
+			if err != nil {
+				t.Error(tc.name, "Unable to remove device", device.AltFullPathName, err.Error())
+			}
+			_, _, err = util.ExecCommandOutputWithTimeout("dd", []string{"if=/dev/zero", "of=" + device.AltFullPathName, "count=4096", "bs=4096"}, 30)
+			if err != nil {
+				t.Error(tc.name, "Unable to create device ", device.AltFullPathName, err.Error())
+			}
+
+			// try to treat it as a real device
+			err = SetupFilesystemWithOptions(device, "xfs", tc.options)
+			if err == nil {
+				t.Error(tc.name, "Expected SetupFilesystemWithOptions(...) to fail")
+			}
+
+			// test filesystem creation
+			err = RetryCreateFileSystemWithOptions(device.AltFullPathName, "xfs", tc.options)
+			if err != nil && tc.shouldErr != true {
+				t.Error(tc.name, "Expected RetryCreateFileSystemWithOptions(...) should not fail!", err.Error())
+			}
+		})
+	}
+
 }
 
 func TestUnmount(t *testing.T) {
