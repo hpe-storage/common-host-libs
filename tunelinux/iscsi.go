@@ -392,7 +392,6 @@ func SetIscsiRecommendations(global bool) (err error) {
 
 // ConfigureIscsi verifies and install necessary iSCSI packages if not present. It also makes sure if service is running.
 func ConfigureIscsi() (err error) {
-	global := false
 	log.Traceln(">>>>> ConfigureIscsi")
 	defer log.Traceln("<<<<< ConfigureIscsi")
 
@@ -414,7 +413,7 @@ func ConfigureIscsi() (err error) {
 		return err
 	}
 
-	err = SetIscsiRecommendations(global)
+	err = SetIscsiRecommendations(true)
 	if err != nil {
 		return err
 	}
