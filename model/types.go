@@ -308,11 +308,11 @@ type FilesystemOpts struct {
 
 // GetCreateOpts returns a clean array that can be passed to the command line
 func (f FilesystemOpts) GetCreateOpts() []string {
-	cleanCharRe := regexp.MustCompile(`[^a-zA-Z0-9=, \-]`)
-	singleSpacesRe := regexp.MustCompile(`\s+`)
+	cleanCharRegex := regexp.MustCompile(`[^a-zA-Z0-9=, \-]`)
+	singleSpacesRegex := regexp.MustCompile(`\s+`)
 
-	clean := cleanCharRe.ReplaceAllString(strings.Trim(f.CreateOpts, " "), "")
-	cleanSlice := strings.Split(singleSpacesRe.ReplaceAllString(clean, " "), " ")
+	clean := cleanCharRegex.ReplaceAllString(strings.Trim(f.CreateOpts, " "), "")
+	cleanSlice := strings.Split(singleSpacesRegex.ReplaceAllString(clean, " "), " ")
 	if len(cleanSlice) == 1 && cleanSlice[0] == "" {
 		return nil
 	}
