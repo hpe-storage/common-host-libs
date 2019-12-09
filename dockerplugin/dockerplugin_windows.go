@@ -12,7 +12,7 @@ func RunNimbledockerd(c chan error, version string) (err error) {
 	// version from build process
 	plugin.Version = version
 	// create listener for the socket
-	localListener, globalListener, err := plugin.PreparePluginSocket()
+	listener, err := plugin.PreparePluginSocket()
 	if err != nil {
 		return err
 	}
@@ -37,13 +37,12 @@ func RunNimbledockerd(c chan error, version string) (err error) {
 	// since windows doesnt support K8s yet.
 	//plugin.InitializeDeleteConflictDelay()
 
-	// listen on the local port
-	localRouter := NewRouter()
-	// listen on the global port
-	globalRouter := NewRouter()
-	//use channel to listen to local port
-	go runNimbledockerd(localListener, localRouter, c)
-	//use channel to listen to global port
-	go runNimbledockerd(globalListener, globalRouter, c)
+	// Control the mountConflictDelay behavior as it is causing default timeout 120 sec.
+	plugin.InitializeMountConflictDelay()
+	// listen on the http port
+	router := NewRouter()
+
+	//use channel to listen to multiple ports simultaneously
+	go runNimbledockerd(listener, router, c)
 	return nil
 }

@@ -136,14 +136,14 @@ type VersionResponse struct {
 
 // Host is a duplicate of model.Host which references a Network defined in this package
 type Host struct {
-	UUID           string             `json:"id,omitempty"`
-	Name           string             `json:"name,omitempty"`
-	Domain         string             `json:"domain,omitempty"`
-	NodeID         string             `json:"node_id,omitempty"`
-	AccessProtocol string             `json:"access_protocol,omitempty"`
-	Networks       []*model.Network   `json:"networks,omitempty"`
-	Initiators     []*model.Initiator `json:"initiators,omitempty"`
-	Version        string             `json:"version,omitempty"`
+	UUID              string                    `json:"id,omitempty"`
+	Name              string                    `json:"name,omitempty"`
+	Domain            string                    `json:"domain,omitempty"`
+	NodeID            string                    `json:"node_id,omitempty"`
+	AccessProtocol    string                    `json:"access_protocol,omitempty"`
+	NetworkInterfaces []*model.NetworkInterface `json:"networks,omitempty"`
+	Initiators        []*model.Initiator        `json:"initiators,omitempty"`
+	Version           string                    `json:"version,omitempty"`
 }
 
 // populate hostcontext into request and fetch user info if running in cloud vm

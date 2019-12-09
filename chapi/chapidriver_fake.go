@@ -35,7 +35,7 @@ func (driver *FakeDriver) GetHostInitiators() ([]*model.Initiator, error) {
 }
 
 // GetHostNetworks reports the networks on this host
-func (driver *FakeDriver) GetHostNetworks() ([]*model.Network, error) {
+func (driver *FakeDriver) GetHostNetworks() ([]*model.NetworkInterface, error) {
 	return nil, nil
 }
 
@@ -45,6 +45,15 @@ func (driver *FakeDriver) GetHostNameAndDomain() ([]string, error) {
 		"host1",
 		"host1.domain.com",
 	}, nil
+}
+
+// GetDevice will return device matching given volume serial
+func (driver *FakeDriver) GetDevice(volume *model.Volume) (*model.Device, error) {
+	device := &model.Device{
+		SerialNumber:    volume.SerialNumber,
+		AltFullPathName: "/dev/mapper/fakeMpath",
+	}
+	return device, nil
 }
 
 // CreateDevices will create devices on this host based on the volume details provided
@@ -93,6 +102,11 @@ func (driver *FakeDriver) GetMountOptions(device *model.Device, mountPoint strin
 
 // BindMount binds the existing mountpoint to another mountpoint
 func (driver *FakeDriver) BindMount(mountPoint string, newMountPoint string, rbind bool) error {
+	return nil
+}
+
+// BindUnmount unmounts the given bind mount
+func (driver *FakeDriver) BindUnmount(mountPoint string) error {
 	return nil
 }
 

@@ -9,11 +9,11 @@ import (
 	"os"
 	"strings"
 
-	uuid "github.com/satori/go.uuid"
 	"github.com/hpe-storage/common-host-libs/linux"
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/model"
 	"github.com/hpe-storage/common-host-libs/util"
+	uuid "github.com/satori/go.uuid"
 	"sort"
 	"sync"
 )
@@ -139,9 +139,9 @@ func (driver *LinuxDriver) GetHostInfo() (*model.Host, error) {
 	}
 
 	host := &model.Host{
-		Name:     hostAndDomain[0],
-		Domain:   hostAndDomain[1],
-		Networks: nics,
+		Name:              hostAndDomain[0],
+		Domain:            hostAndDomain[1],
+		NetworkInterfaces: nics,
 	}
 	return host, nil
 }
@@ -152,7 +152,7 @@ func (driver *LinuxDriver) GetHostInitiators() ([]*model.Initiator, error) {
 }
 
 // GetHostNetworks reports the networks on this host
-func (driver *LinuxDriver) GetHostNetworks() ([]*model.Network, error) {
+func (driver *LinuxDriver) GetHostNetworks() ([]*model.NetworkInterface, error) {
 	return linux.GetNetworkInterfaces()
 }
 
@@ -164,6 +164,10 @@ func (driver *LinuxDriver) GetHostNameAndDomain() ([]string, error) {
 // CreateDevices will create devices on this host based on the volume details provided
 func (driver *LinuxDriver) CreateDevices(volumes []*model.Volume) ([]*model.Device, error) {
 	return linux.CreateNimbleDevices(volumes)
+}
+
+func (driver *LinuxDriver) GetDevice(volume *model.Volume) (*model.Device, error) {
+	return linux.GetDeviceFromVolume(volume)
 }
 
 // CreateFilesystemOnDevice writes the given filesystem on the given device
@@ -238,9 +242,16 @@ func (driver *LinuxDriver) MountDevice(device *model.Device, mountPoint string, 
 
 	// Setup FS if requested
 	if fsOpts != nil {
-		// Create filesystem if not present
-		if err := linux.SetupFilesystem(device, fsOpts.Type); err != nil {
-			return nil, fmt.Errorf("Error creating filesystem %s on device with serialNumber %s, %v", fsOpts.Type, device.SerialNumber, err.Error())
+		if fsOpts.GetCreateOpts() != nil {
+			// Create filesystem if not present
+			if err := linux.SetupFilesystemWithOptions(device, fsOpts.Type, fsOpts.GetCreateOpts()); err != nil {
+				return nil, fmt.Errorf("Error creating filesystem %s on device with serialNumber %s, %v", fsOpts.Type, device.SerialNumber, err.Error())
+			}
+		} else {
+			// Create filesystem if not present
+			if err := linux.SetupFilesystem(device, fsOpts.Type); err != nil {
+				return nil, fmt.Errorf("Error creating filesystem %s on device with serialNumber %s, %v", fsOpts.Type, device.SerialNumber, err.Error())
+			}
 		}
 		log.Tracef("Filesystem %+v setup successful,", fsOpts)
 	}
@@ -274,6 +285,15 @@ func (driver *LinuxDriver) BindMount(mountPoint string, newMountPoint string, rb
 
 	// Bind Mount
 	return linux.RetryBindMount(mountPoint, newMountPoint, rbind)
+}
+
+// BindUnmount unmounts the given bind mount
+func (driver *LinuxDriver) BindUnmount(mountPoint string) error {
+	log.Tracef(">>>>> BindUnmount, mountPoint: %s", mountPoint)
+	defer log.Trace("<<<<< BindMount")
+
+	// Unmount given bind mount
+	return linux.RetryBindUnmount(mountPoint)
 }
 
 // UnmountDevice unmounts the given device from the given mount point

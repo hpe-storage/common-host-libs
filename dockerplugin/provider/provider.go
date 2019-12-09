@@ -62,6 +62,8 @@ const (
 	// env params
 	// EnvIP represents provider IP env
 	EnvIP = "PROVIDER_IP"
+	// EnvService represents service name when provider running as k8s service
+	EnvService = "PROVIDER_SERVICE"
 	// EnvUsername represents provider username env
 	EnvUsername = "PROVIDER_USERNAME"
 	// EnvPassword represents provider password env
@@ -144,6 +146,14 @@ func GetProviderURI(defaultProviderPortal, defaultProviderPort, basePath string)
 
 	if envport := os.Getenv(EnvPort); envport != "" {
 		port = envport
+	}
+
+	// if service name is provided, then handle container-provider running as k8s service
+	if envService := os.Getenv(EnvService); envService != "" {
+		// override with service name
+		portal = envService
+		// allow http connection to service
+		os.Setenv(EnvInsecure, "true")
 	}
 
 	if port == "" || portal == "" {

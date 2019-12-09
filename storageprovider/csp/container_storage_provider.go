@@ -16,6 +16,7 @@ import (
 	"google.golang.org/grpc/codes"
 	grpcstatus "google.golang.org/grpc/status"
 
+	"github.com/hpe-storage/common-host-libs/concurrent"
 	"github.com/hpe-storage/common-host-libs/connectivity"
 	"github.com/hpe-storage/common-host-libs/jsonutil"
 	log "github.com/hpe-storage/common-host-libs/logger"
@@ -29,6 +30,10 @@ const (
 	arrayIPHeader  = "x-array-ip"
 
 	descriptionKey = "description"
+)
+
+var (
+	loginMutex = concurrent.NewMapMutex()
 )
 
 // DataWrapper is used to represent a generic JSON API payload
@@ -68,7 +73,7 @@ func NewContainerStorageProvider(credentials *storageprovider.Credentials) (*Con
 	// Initialize the container provider client here so we don't have to do it in every method
 	client, err := getCspClient(credentials)
 	if err != nil {
-		log.Trace("Failed to initialize CSP client")
+		log.Errorf("Failed to initialize CSP client, Error: %s", err.Error())
 		return nil, err
 	}
 
@@ -79,13 +84,12 @@ func NewContainerStorageProvider(credentials *storageprovider.Credentials) (*Con
 
 	log.Trace("Attempting initial login to CSP")
 	status, err := csp.login()
-
 	if status != http.StatusOK {
 		log.Errorf("Failed to login to CSP.  Status code: %d.  Error: %s", status, err.Error())
 		return nil, err
 	}
 	if err != nil {
-		log.Tracef("Failed to login to CSP.  Error: %s", err.Error())
+		log.Errorf("Failed to login to CSP.  Error: %s", err.Error())
 		return nil, err
 	}
 
@@ -107,8 +111,12 @@ func (provider *ContainerStorageProvider) login() (int, error) {
 
 	// If serviceName is not specified (i.e, Off-Array), then pass the array IP address as well.
 	if provider.Credentials.ServiceName != "" {
+		log.Infof("About to attempt login to CSP for backend %s", provider.Credentials.Backend)
 		token.ArrayIP = provider.Credentials.Backend
 	}
+
+	loginMutex.Lock(provider.Credentials.Backend)
+	defer loginMutex.Unlock(provider.Credentials.Backend)
 
 	status, err := provider.Client.DoJSON(
 		&connectivity.Request{
@@ -116,7 +124,7 @@ func (provider *ContainerStorageProvider) login() (int, error) {
 			Path:          "/containers/v1/tokens",
 			Payload:       &DataWrapper{Data: token},
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {
@@ -129,23 +137,46 @@ func (provider *ContainerStorageProvider) login() (int, error) {
 
 // invoke is used to invoke all methods against the CSP. Error handling should be added here.
 // Currently, it will login again if the server responds with a status code of unauthorized.
-func (provider *ContainerStorageProvider) invoke(request *connectivity.Request) (int, error) {
+func (provider *ContainerStorageProvider) invoke(request *connectivity.Request) (status int, err error) {
 	request.Header = make(map[string]string)
+	// Perform login attempt when AuthToken is empty
+	if provider.AuthToken == "" {
+		log.Info("Cached auth-token is empty, attempting login to CSP")
+		status, err = provider.login()
+		if status != http.StatusOK {
+			log.Errorf("Failed login attempt. Status %d. Error: %s", status, err.Error())
+			return status, err
+		}
+		if err != nil {
+			log.Errorf("Error while attempting login to CSP. Error: %s", err.Error())
+			return http.StatusInternalServerError, err
+		}
+		log.Info("Successfully re-generated new login auth-token")
+	}
+
 	request.Header[tokenHeader] = provider.AuthToken
 	if provider.Credentials.ServiceName != "" {
+		log.Tracef("About to invoke CSP request for backend %s", provider.Credentials.Backend)
 		request.Header[arrayIPHeader] = provider.Credentials.Backend
 	}
 
 	// Temporary copy of the Path as it gets modified/changed in the DoJSON() method.
 	// This is required to re-attempt with the original request once login is successful.
 	reqPath := request.Path
-	status, err := provider.Client.DoJSON(request)
+	status, err = provider.Client.DoJSON(request)
+	if status == http.StatusOK {
+		return status, nil
+	}
 	if status == http.StatusUnauthorized {
 		log.Info("Received unauthorization error. Attempting login...")
 		status, err = provider.login()
 		if status != http.StatusOK {
 			log.Errorf("Failed login during re-attempt. Status %d. Error: %s", status, err.Error())
 			return status, err
+		}
+		if err != nil {
+			log.Errorf("Error while login to CSP during re-attempt. Error: %s", err.Error())
+			return http.StatusInternalServerError, err
 		}
 		request.Path = reqPath      // Set the original path value
 		request.ResponseError = nil // Reset the previous error response
@@ -167,7 +198,7 @@ func (provider *ContainerStorageProvider) SetNodeContext(node *model.Node) error
 			Path:          "/containers/v1/hosts",
 			Payload:       &DataWrapper{Data: node},
 			Response:      nil,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {
@@ -231,7 +262,7 @@ func (provider *ContainerStorageProvider) CreateVolume(name, description string,
 			Path:          "/containers/v1/volumes",
 			Payload:       &DataWrapper{Data: volume},
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {
@@ -325,7 +356,7 @@ func (provider *ContainerStorageProvider) CloneVolume(name, description, sourceI
 			Path:          "/containers/v1/volumes",
 			Payload:       &DataWrapper{Data: volume},
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {
@@ -355,7 +386,7 @@ func (provider *ContainerStorageProvider) DeleteVolume(id string, force bool) er
 			Path:          fmt.Sprintf("/containers/v1/volumes/%s?force=%v", id, force),
 			Payload:       nil,
 			Response:      nil,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {
@@ -385,7 +416,7 @@ func (provider *ContainerStorageProvider) PublishVolume(id, hostUUID, accessProt
 			Path:          fmt.Sprintf("/containers/v1/volumes/%s/actions/publish", id),
 			Payload:       &DataWrapper{Data: publishOptions},
 			Response:      &dataResponse,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {
@@ -405,7 +436,7 @@ func (provider *ContainerStorageProvider) UnpublishVolume(id, hostUUID string) e
 			Path:          fmt.Sprintf("/containers/v1/volumes/%s/actions/unpublish", id),
 			Payload:       &DataWrapper{Data: &model.PublishOptions{HostUUID: hostUUID}},
 			Response:      nil,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {
@@ -437,7 +468,7 @@ func (provider *ContainerStorageProvider) ExpandVolume(id string, requestBytes i
 			Path:          fmt.Sprintf("/containers/v1/volumes/%s", id),
 			Payload:       &DataWrapper{Data: volume},
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {
@@ -453,16 +484,22 @@ func (provider *ContainerStorageProvider) GetVolume(id string) (*model.Volume, e
 		Data: &model.Volume{},
 	}
 	var errorResponse *ErrorsPayload
-
-	status, err := provider.invoke(
+	var status int
+	var err error
+	status, err = provider.invoke(
 		&connectivity.Request{
 			Action:        "GET",
 			Path:          fmt.Sprintf("/containers/v1/volumes/%s", id),
 			Payload:       nil,
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
+
+	if status == http.StatusOK {
+		return dataWrapper.Data.(*model.Volume), nil
+	}
+
 	if status == http.StatusNotFound {
 		return nil, nil
 	}
@@ -471,7 +508,7 @@ func (provider *ContainerStorageProvider) GetVolume(id string) (*model.Volume, e
 		return nil, handleError(status, errorResponse)
 	}
 
-	return dataWrapper.Data.(*model.Volume), err
+	return nil, err
 }
 
 // GetVolumeByName will return information about the given volume
@@ -487,7 +524,7 @@ func (provider *ContainerStorageProvider) GetVolumeByName(name string) (*model.V
 			Path:          fmt.Sprintf("/containers/v1/volumes?name=%s", name),
 			Payload:       nil,
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if status == http.StatusNotFound {
@@ -528,7 +565,7 @@ func (provider *ContainerStorageProvider) GetVolumes() ([]*model.Volume, error) 
 			Path:          "/containers/v1/volumes",
 			Payload:       nil,
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {
@@ -571,7 +608,7 @@ func (provider *ContainerStorageProvider) GetSnapshots(volumeID string) ([]*mode
 			Path:          path,
 			Payload:       nil,
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {
@@ -609,7 +646,7 @@ func (provider *ContainerStorageProvider) GetSnapshot(id string) (*model.Snapsho
 			Path:          fmt.Sprintf("/containers/v1/snapshots/%s", id),
 			Payload:       nil,
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if status == http.StatusNotFound {
@@ -638,7 +675,7 @@ func (provider *ContainerStorageProvider) GetSnapshotByName(name string, volumeI
 			Path:          fmt.Sprintf("/containers/v1/snapshots?name=%s&volume_id=%s", name, volumeID),
 			Payload:       nil,
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 
@@ -694,7 +731,7 @@ func (provider *ContainerStorageProvider) CreateSnapshot(name, description, sour
 			Path:          "/containers/v1/snapshots",
 			Payload:       &DataWrapper{Data: snapshot},
 			Response:      &dataWrapper,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 
@@ -726,7 +763,7 @@ func (provider *ContainerStorageProvider) DeleteSnapshot(id string) error {
 			Path:          fmt.Sprintf("/containers/v1/snapshots/%s", id),
 			Payload:       nil,
 			Response:      nil,
-			ResponseError: errorResponse,
+			ResponseError: &errorResponse,
 		},
 	)
 	if errorResponse != nil {

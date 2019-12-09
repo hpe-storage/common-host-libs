@@ -143,8 +143,8 @@ func buildHostContext(body io.ReadCloser) (*Host, error) {
 	}
 	// populate host context
 	hostContext = &Host{
-		Initiators: initiators,
-		Networks:   networks,
+		Initiators:        initiators,
+		NetworkInterfaces: networks,
 	}
 	hostContext.Domain = host.Domain
 	hostContext.Name = host.Name
