@@ -345,7 +345,7 @@ func SetIscsiSessionParam(target model.IscsiTarget, parameter string, value stri
 }
 
 // SetIscsiRecommendations set iscsi param recommendations
-func SetIscsiRecommendations() (err error) {
+func SetIscsiRecommendations(global bool) (err error) {
 	log.Trace("SetIscsiRecommendations called")
 	var remediations []*Recommendation
 	// Get iSCSI recommendations
@@ -364,11 +364,14 @@ func SetIscsiRecommendations() (err error) {
 					continue
 				}
 			}
-			// Modify iscsid.conf settings accordingly
-			err = SetIscsiParamRecommendation(recommendation.Parameter, recommendation.Recommendation)
-			if err != nil {
-				// continue with other recommendations
-				continue
+
+			if global {
+				// Modify iscsid.conf settings accordingly only when global param is not set
+				err = SetIscsiParamRecommendation(recommendation.Parameter, recommendation.Recommendation)
+				if err != nil {
+					// continue with other recommendations
+					continue
+				}
 			}
 			// append to remediations list for corrected settings
 			remediations = append(remediations, recommendation)
@@ -405,11 +408,11 @@ func ConfigureIscsi() (err error) {
 	}
 
 	// Set best practice settings
-	err = SetIscsiRecommendations()
+	err = SetIscsiRecommendations(true)
 	if err != nil {
 		return err
 	}
-
+  
 	// Start service
 	err = linux.ServiceCommand(iscsi, "start")
 	if err != nil {
@@ -418,3 +421,5 @@ func ConfigureIscsi() (err error) {
 
 	return nil
 }
+
+
