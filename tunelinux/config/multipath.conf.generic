@@ -15,6 +15,10 @@ blacklist_exceptions {
         vendor  "Nimble"
         product "Server"
     }
+    device {
+        vendor  "3PARdata"
+        product "VV"
+    }
 }
 devices {
     device {

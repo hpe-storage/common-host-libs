@@ -469,7 +469,7 @@ func multipathGetPathsOfDevice(dev *model.Device, needActivePath bool) (paths []
 			if !needActivePath {
 				log.Tracef("needActive %v dev(%s) dm_st(%s) hcil(%s) for uuid(%s)", needActivePath, entry[1], entry[2], entry[3], entry[0])
 				path := &model.PathInfo{
-					UUID:     entry[0],
+					UUID:     entry[0][1:],
 					Device:   entry[1],
 					DmState:  entry[2],
 					Hcil:     entry[3],
@@ -480,7 +480,7 @@ func multipathGetPathsOfDevice(dev *model.Device, needActivePath bool) (paths []
 			} else if len(entry) >= 5 && entry[2] == model.ActiveState.String() && entry[5] == "ready" {
 				log.Tracef("needActive %v dev(%s) chk_st(%s) dm_st(%s) for uuid(%s)", needActivePath, entry[1], entry[5], entry[2], entry[0])
 				path := &model.PathInfo{
-					UUID:     entry[0],
+					UUID:     entry[0][1:],
 					Device:   entry[1],
 					DmState:  entry[2],
 					Hcil:     entry[3],
