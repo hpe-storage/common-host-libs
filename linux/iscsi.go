@@ -444,6 +444,9 @@ func isSupportedTarget(targetName string) bool {
 
 // GetLoggedInIscsiTargets returns currently logged-in iscsi targets
 func GetLoggedInIscsiTargets() (targets []string, err error) {
+	log.Trace(">>>>> GetLoggedInIscsiTargets")
+	defer log.Trace("<<<<< GetLoggedInIscsiTargets")
+
 	// verify iscsi session directory exists
 	exists, _, _ := util.FileExists(iscsiSessionDir)
 	if !exists {
@@ -454,7 +457,7 @@ func GetLoggedInIscsiTargets() (targets []string, err error) {
 		return nil, fmt.Errorf("unable to fetch iscsi session entries, err %s", err.Error())
 	}
 	for _, session := range sessions {
-		targetPath := fmt.Sprintf("/sys/class/iscsi_session/%s/targetname", session)
+		targetPath := fmt.Sprintf("/sys/class/iscsi_session/%s/targetname", session.Name())
 		exists, _, _ := util.FileExists(targetPath)
 		if exists {
 			targetName, err := ioutil.ReadFile(targetPath)
@@ -463,13 +466,35 @@ func GetLoggedInIscsiTargets() (targets []string, err error) {
 				log.Warnf("unable to read targetname from %s, err %s", targetPath, err.Error())
 				continue
 			}
-			if isSupportedTarget(string(targetName)) {
-				targets = append(targets, string(targetName))
+			// ReadFile appends \n to the string
+			targetNameStr := strings.TrimSuffix(string(targetName), "\n")
+			if isSupportedTarget(targetNameStr) {
+				targets = append(targets, targetNameStr)
 			}
 		}
 	}
+	if len(targets) > 0 {
+		targets = removeDuplicates(targets)
+	}
 	log.Debugf("found %d logged-in targets", len(targets))
 	return targets, nil
+}
+
+func removeDuplicates(targets []string) []string {
+	// Use map to record duplicates as we find them.
+	encountered := map[string]bool{}
+	var result []string
+
+	for _, target := range targets {
+		if encountered[target] == false {
+			// Record this element as an encountered element.
+			encountered[target] = true
+			// Append to result slice.
+			result = append(result, target)
+		}
+	}
+	// Return the new slice.
+	return result
 }
 
 // GetIscsiTargets gets targets connected on host from /dev/disk/by-path entries
