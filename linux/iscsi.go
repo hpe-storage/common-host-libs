@@ -21,13 +21,13 @@ import (
 const (
 	iscsicmd                = "iscsiadm"
 	lscmd                   = "ls"
-	iscsiadmPattern         = "(?m)^(?P<address>.*):(?P<port>\\d*),(?P<tag>\\d*) (?P<target>iqn.2007-11.com.nimblestorage:.*)$"
+	iscsiadmPattern         = "(?m)^(?P<address>.*):(?P<port>\\d*),(?P<tag>\\d*) (?P<target>iqn.*(REPLACE_VENDOR):.*)$"
+	byPathTargetPattern     = "^ip-(?P<address>.*):(?P<port>\\d*)-iscsi-(?P<target>iqn.*(REPLACE_VENDOR):.*)-lun"
 	diskbypath              = "/dev/disk/by-path"
 	ifacePath               = "/var/lib/iscsi/ifaces"
 	altIfacePath            = "/etc/iscsi/ifaces"
 	iscsiHostPathFormat     = "/sys/class/iscsi_host/"
 	ifaceNetNamePattern     = "^iface.net_ifacename\\s*=\\s*(?P<network>.*)"
-	byPathTargetPattern     = "^ip-(?P<address>.*):(?P<port>\\d*)-iscsi-(?P<target>iqn.2007-11.com.nimblestorage:.*)-lun"
 	hostDeviceFormat        = "/sys/class/scsi_host/host%s/device/"
 	sessionIDPattern        = "session(?P<sessionid>\\d+)"
 	hostTargetNameFormat    = "/sys/class/scsi_host/host%s/device/session%s/iscsi_session/session%s/targetname"
@@ -52,10 +52,12 @@ const (
 	PingInterval            = 10 * time.Millisecond
 	PingTimeout             = 5 * time.Second
 	DefaultIscsiPort        = 3260
+	iscsiSessionDir         = "/sys/class/iscsi_session"
 )
 
 var (
-	iscsiMutex sync.Mutex
+	iscsiMutex           sync.Mutex
+	targetVendorPatterns = []string{"com.nimblestorage", "com.3pardata"}
 )
 
 //type of Scope (volume, group)
@@ -77,6 +79,20 @@ func (e targetScope) String() string {
 	default:
 		return "" // default targetScope is empty which is treated at volume scope
 	}
+}
+
+// return iscsiadmPattern with vendor replacement eg. (com.nimblestorage|com.3pardata)
+// "(?m)^(?P<address>.*):(?P<port>\\d*),(?P<tag>\\d*) (?P<target>iqn.*(REPLACE_VENDORNAME):.*)$"
+func getIscsiadmPattern() string {
+	vendorPattern := strings.Join(targetVendorPatterns, "|")
+	return strings.Replace(iscsiadmPattern, "REPLACE_VENDOR", vendorPattern, -1)
+}
+
+// return byPathTargetPattern with vendor replacement eg. (com.nimblestorage|com.3pardata)
+// "^ip-(?P<address>.*):(?P<port>\\d*)-iscsi-(?P<target>iqn.*(REPLACE_VENDORNAME):.*)-lun"
+func getByPathTargetPattern() string {
+	vendorPattern := strings.Join(targetVendorPatterns, "|")
+	return strings.Replace(byPathTargetPattern, "REPLACE_VENDOR", vendorPattern, -1)
 }
 
 // RescanAndLoginToTarget does a Iscsi login to the target
@@ -416,7 +432,48 @@ func GetIfaces() (ifaces []*model.Iface, err error) {
 	return ifaces, nil
 }
 
-// GetIscsiTargets from the host
+// Check for only supported target types
+func isSupportedTarget(targetName string) bool {
+	for _, pattern := range targetVendorPatterns {
+		if strings.Contains(targetName, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// GetLoggedInIscsiTargets returns currently logged-in iscsi targets
+func GetLoggedInIscsiTargets() (targets []string, err error) {
+	// verify iscsi session directory exists
+	exists, _, _ := util.FileExists(iscsiSessionDir)
+	if !exists {
+		return nil, nil
+	}
+	sessions, err := ioutil.ReadDir(iscsiSessionDir)
+	if err != nil {
+		return nil, fmt.Errorf("unable to fetch iscsi session entries, err %s", err.Error())
+	}
+	for _, session := range sessions {
+		targetPath := fmt.Sprintf("/sys/class/iscsi_session/%s/targetname", session)
+		exists, _, _ := util.FileExists(targetPath)
+		if exists {
+			targetName, err := ioutil.ReadFile(targetPath)
+			if err != nil {
+				// log and continue with other sessions
+				log.Warnf("unable to read targetname from %s, err %s", targetPath, err.Error())
+				continue
+			}
+			if isSupportedTarget(string(targetName)) {
+				targets = append(targets, string(targetName))
+			}
+		}
+	}
+	log.Debugf("found %d logged-in targets", len(targets))
+	return targets, nil
+}
+
+// GetIscsiTargets gets targets connected on host from /dev/disk/by-path entries
+// NOTE: this will fetch only targets with at-least one device discovered
 func GetIscsiTargets() (a model.IscsiTargets, err error) {
 	log.Trace(">>>>> GetIscsiTargets")
 	defer log.Trace("<<<<< GetIscsiTargets")
@@ -433,7 +490,7 @@ func GetIscsiTargets() (a model.IscsiTargets, err error) {
 		return iscsiTargets, err
 	}
 
-	r := regexp.MustCompile(byPathTargetPattern)
+	r := regexp.MustCompile(getByPathTargetPattern())
 	for _, f := range files {
 		a := r.MatchString(f.Name())
 		if a == true {
@@ -556,7 +613,7 @@ func PerformDiscovery(discoveryIPs []string) (a model.IscsiTargets, err error) {
 
 	var iscsiTargets model.IscsiTargets
 	// parse the lines into output
-	r := regexp.MustCompile(iscsiadmPattern)
+	r := regexp.MustCompile(getIscsiadmPattern())
 
 	listOut := r.FindAllString(out, -1)
 

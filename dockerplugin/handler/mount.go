@@ -133,7 +133,7 @@ func VolumeDriverMount(w http.ResponseWriter, r *http.Request) {
 	log.Trace("retrieved volume response from container provider for volume: %+v", volume)
 
 	//4.  Get mounts from host
-	err = chapiClient.GetMounts(&respMount, plugin.GetDeviceSerialNumber(volume.SerialNumber))
+	err = chapiClient.GetMounts(&respMount, volume.SerialNumber)
 	if err != nil && !(strings.Contains(err.Error(), "object was not found")) {
 		mr = MountResponse{Err: err.Error()}
 		json.NewEncoder(w).Encode(mr)
@@ -464,7 +464,7 @@ func cleanupStaleMounts(containerProviderClient *connectivity.Client, chapiClien
 	}
 	log.Tracef("volumeInfo is %+v", volumeInfo)
 	// get the mounts of the volumes's serial number
-	_ = chapiClient.GetMounts(&respMount, plugin.GetDeviceSerialNumber(volumeInfo.SerialNumber))
+	_ = chapiClient.GetMounts(&respMount, volumeInfo.SerialNumber)
 	if respMount == nil || len(respMount) == 0 {
 		log.Tracef("no existing stale mounts found for volume %s, continue with mount", volumeInfo.Name)
 		return
