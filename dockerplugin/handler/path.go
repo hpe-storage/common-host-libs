@@ -73,7 +73,7 @@ func VolumeDriverPath(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//2. get mount for the volume object obtained from array
-	err = chapiClient.GetMounts(&respMount, plugin.GetDeviceSerialNumber(volResp.Volume.SerialNumber))
+	err = chapiClient.GetMounts(&respMount, volResp.Volume.SerialNumber)
 	if err != nil && !(strings.Contains(err.Error(), "object was not found")) {
 		mr = MountResponse{Err: err.Error()}
 		json.NewEncoder(w).Encode(mr)

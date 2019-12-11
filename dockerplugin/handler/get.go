@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/hpe-storage/common-host-libs/chapi"
 	"github.com/hpe-storage/common-host-libs/connectivity"
-	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
 	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/model"
@@ -74,7 +73,7 @@ func VolumeDriverGet(w http.ResponseWriter, r *http.Request) {
 		}
 		var respMount []*model.Mount
 
-		err = chapiClient.GetMounts(&respMount, plugin.GetDeviceSerialNumber(volumeResp.Volume.SerialNumber))
+		err = chapiClient.GetMounts(&respMount, volumeResp.Volume.SerialNumber)
 		if err != nil && !(strings.Contains(err.Error(), "object was not found")) {
 			vr := VolumeResponse{Err: err.Error()}
 			json.NewEncoder(w).Encode(vr)
@@ -89,7 +88,7 @@ func VolumeDriverGet(w http.ResponseWriter, r *http.Request) {
 
 func setVolumeStatus(respMount []*model.Mount, volumeResp *VolumeResponse) {
 	for _, mount := range respMount {
-		if mount.Device.SerialNumber == plugin.GetDeviceSerialNumber(volumeResp.Volume.SerialNumber) {
+		if mount.Device.SerialNumber == volumeResp.Volume.SerialNumber {
 			log.Trace("Mount Point found ", mount.Mountpoint)
 			volumeResp.Volume.MountPoint = mount.Mountpoint
 			if mount.Device != nil && mount.Device.AltFullPathName != "" {

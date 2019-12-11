@@ -266,7 +266,7 @@ func GetRecommendations() (settings []*Recommendation, err error) {
 	var fcRecommendations []*Recommendation
 
 	// Get all nimble devices
-	devices, err := linux.GetNimbleDmDevices(false, "", "")
+	devices, err := linux.GetLinuxDmDevices(false, "", "")
 	if err != nil {
 		log.Error("Unable to get Nimble devices ", err.Error())
 		return nil, err

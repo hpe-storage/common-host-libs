@@ -120,18 +120,12 @@ func excludeMountDirFromUpdateDb() error {
 	return linux.ExcludeMountDirFromUpdateDb(MountDir)
 }
 
-//GetDeviceSerialNumber :  Get the host device serial number from the volume SN
-// TODO: move this to linux chapi, client should not be doing these platform specific tweaks
-func GetDeviceSerialNumber(arraySn string) string {
-	log.Tracef("GetDeviceSerialNumber called with %s", arraySn)
-	return "2" + arraySn
-}
-
 // set default filesystem
 func setDefaultFilesystem(reqOpts map[string]interface{}) (err error) {
 	// dont need to set the default filesystem for linux.
 	return nil
 }
+
 func setDefaultVolumeDir(reqOpts map[string]interface{}) (err error) {
 	// dont need to se the default here for linux
 	return nil

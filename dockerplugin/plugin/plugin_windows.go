@@ -3,9 +3,6 @@
 package plugin
 
 import (
-
-
-
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/util"
 	"github.com/hpe-storage/common-host-libs/windows"
@@ -80,17 +77,11 @@ func PreparePluginSocket() (listner net.Listener, err error) {
 	// local listen
 	listner, err = net.Listen(windows.Proto, windows.Hostname+":"+windows.PluginListenPort)
 	if err != nil {
-		log.Fatal("Listen err on http port %s, err %s:", windows.PluginListenPort,err.Error())
+		log.Fatal("Listen err on http port %s, err %s:", windows.PluginListenPort, err.Error())
 		return nil, err
 	}
 
 	return listner, nil
-}
-
-//GetDeviceSerialNumber :  Get the host device serial Number from the Volume SN
-func GetDeviceSerialNumber(arraySn string) string {
-	log.Tracef("GetDeviceSerialNumber called with %s", arraySn)
-	return arraySn
 }
 
 // set default filesystem
