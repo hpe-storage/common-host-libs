@@ -95,6 +95,122 @@ func getByPathTargetPattern() string {
 	return strings.Replace(byPathTargetPattern, "REPLACE_VENDOR", vendorPattern, -1)
 }
 
+// getReachableDiscoveryPortals returns list of target portals which are reachable from given input
+// if provided portals are virtual IP's(i.e virtualPortal is true) then only single reachable VIP will be returned
+func getReachableDiscoveryPortals(discoveryIPs []string, virtualPortal bool) (reachablePortals []string, err error) {
+	for _, discoveryIP := range discoveryIPs {
+		// determine if this is reachable
+		isPortalReachable, err := isReachable("", discoveryIP)
+		if err != nil {
+			log.Warnf("unable to determine if target portal %s is reachable, ignoring this for discovery", discoveryIP)
+			continue
+		}
+		if isPortalReachable {
+			reachablePortals = append(reachablePortals, discoveryIP)
+			if virtualPortal {
+				// if virtual portal ip then one reachable entry is sufficient for discovery
+				return reachablePortals, nil
+			}
+		}
+	}
+	return reachablePortals, nil
+}
+
+// areTargetsLoggedIn returns true if all specified targets are logged-in
+func areTargetsLoggedIn(requiredTargets []string) (bool, error) {
+	loggedInTargets, err := GetLoggedInIscsiTargets()
+	if err != nil {
+		return false, fmt.Errorf("unable to determine already logged-in targets, err %s", err.Error())
+	}
+	for _, requiredTarget := range requiredTargets {
+		found := false
+		for _, loggedInTarget := range loggedInTargets {
+			if loggedInTarget == requiredTarget {
+				found = true
+			}
+		}
+		if !found {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func loginToVolume(volume *model.Volume) (err error) {
+	log.Tracef(">>>>> loginToVolume for volume %s", volume.Name)
+	defer log.Tracef("<<<<< loginToVolume")
+
+	// get candidates for discovery
+	var reachablePortals []string
+	if len(volume.TargetNames()) > 0 {
+		// if multiple targets for single volume, then fetch all reachable discovery portals
+		reachablePortals, _ = getReachableDiscoveryPortals(volume.DiscoveryIPs, false)
+	} else {
+		reachablePortals, _ = getReachableDiscoveryPortals(volume.DiscoveryIPs, true)
+	}
+	if len(reachablePortals) == 0 {
+		return fmt.Errorf("none of the discovery portals provided [%+v] are reachable", volume.DiscoveryIPs)
+	}
+	// perform discovery and login to targets
+	discoveredTargets, err := PerformDiscovery(reachablePortals)
+	if err != nil {
+		return err
+	}
+
+	// Get iscsi ifaces bound to network interfaces
+	ifaces, err := GetIfaces()
+	// treat iface path not found error as no ifaces bound
+	if err != nil && !os.IsNotExist(err) {
+		log.Errorf("Unable to retrieve iSCSI bound ifaces. Error: %s", err.Error())
+		return fmt.Errorf("Unable to retrieve iSCSI bound ifaces. Error: %s", err.Error())
+	}
+
+	// login to all targets for given volume
+	for _, target := range volume.Iqns {
+		if volume.Chap == nil {
+			err = loginToTarget(discoveredTargets, target, ifaces, "", "", volume.ConnectionMode)
+		} else {
+			err = loginToTarget(discoveredTargets, target, ifaces, volume.Chap.Name, volume.Chap.Password, volume.ConnectionMode)
+		}
+		if err != nil {
+			err = fmt.Errorf("Unable to login to target: %s, Error: %s", target, err.Error())
+			log.Error(err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
+// HandleIscsiDiscovery performs iscsi target discovery and create sessions as required.
+func HandleIscsiDiscovery(volume *model.Volume) (err error) {
+	log.Tracef(">>>>> HandleIscsiDiscovery for volume %s", volume.Name)
+	defer log.Tracef("<<<<< HandleIscsiDiscovery")
+
+	// determine if all required targets are already logged-in
+	loggedIn, err := areTargetsLoggedIn(volume.TargetNames())
+	if err != nil {
+		return err
+	}
+
+	if !loggedIn {
+		loginToVolume(volume)
+	}
+
+	// single-target-single-lun models doesn't require SCSI resan to be performed
+	if !strings.EqualFold(volume.TargetScope, GroupScope.String()) {
+		return nil
+	}
+
+	// perform SCSI rescan to create linux block devices
+	err = RescanIscsi(volume.LunID)
+	if err != nil {
+		log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
+		return fmt.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
+	}
+	return nil
+}
+
+// TODO cleanup
 // RescanAndLoginToTarget does a Iscsi login to the target
 // nolint : gocyclo
 func RescanAndLoginToTarget(volume *model.Volume) (err error) {
@@ -760,7 +876,7 @@ func iscsiLogoutOfTarget(target *model.IscsiTarget) (err error) {
 	defer iscsiMutex.Unlock()
 
 	if target == nil || target.Name == "" {
-		return fmt.Errorf("Empty target to logout")
+		return fmt.Errorf("Empty target name provided to logout")
 	}
 	args := []string{"--mode", "node", "-u", "-T", target.Name}
 	out, _, err := util.ExecCommandOutput(iscsicmd, args)
