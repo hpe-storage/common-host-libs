@@ -127,6 +127,7 @@ func areTargetsLoggedIn(requiredTargets []string) (bool, error) {
 		for _, loggedInTarget := range loggedInTargets {
 			if loggedInTarget == requiredTarget {
 				found = true
+				break
 			}
 		}
 		if !found {
@@ -137,7 +138,7 @@ func areTargetsLoggedIn(requiredTargets []string) (bool, error) {
 }
 
 func loginToVolume(volume *model.Volume) (err error) {
-	log.Tracef(">>>>> loginToVolume for volume %s", volume.Name)
+	log.Tracef(">>>>> loginToVolume for volume %s, lun %s", volume.SerialNumber, volume.LunID)
 	defer log.Tracef("<<<<< loginToVolume")
 
 	// get candidates for discovery
@@ -161,19 +162,19 @@ func loginToVolume(volume *model.Volume) (err error) {
 	ifaces, err := GetIfaces()
 	// treat iface path not found error as no ifaces bound
 	if err != nil && !os.IsNotExist(err) {
-		log.Errorf("Unable to retrieve iSCSI bound ifaces. Error: %s", err.Error())
-		return fmt.Errorf("Unable to retrieve iSCSI bound ifaces. Error: %s", err.Error())
+		log.Errorf("unable to retrieve iSCSI bound ifaces. Error: %s", err.Error())
+		return fmt.Errorf("unable to retrieve iSCSI bound ifaces. Error: %s", err.Error())
 	}
 
 	// login to all targets for given volume
-	for _, target := range volume.Iqns {
+	for _, target := range volume.TargetNames() {
 		if volume.Chap == nil {
 			err = loginToTarget(discoveredTargets, target, ifaces, "", "", volume.ConnectionMode)
 		} else {
 			err = loginToTarget(discoveredTargets, target, ifaces, volume.Chap.Name, volume.Chap.Password, volume.ConnectionMode)
 		}
 		if err != nil {
-			err = fmt.Errorf("Unable to login to target: %s, Error: %s", target, err.Error())
+			err = fmt.Errorf("unable to login to target: %s, Error: %s", target, err.Error())
 			log.Error(err.Error())
 			return err
 		}
@@ -183,7 +184,7 @@ func loginToVolume(volume *model.Volume) (err error) {
 
 // HandleIscsiDiscovery performs iscsi target discovery and create sessions as required.
 func HandleIscsiDiscovery(volume *model.Volume) (err error) {
-	log.Tracef(">>>>> HandleIscsiDiscovery for volume %s", volume.Name)
+	log.Tracef(">>>>> HandleIscsiDiscovery for volume %s, lun %s", volume.SerialNumber, volume.LunID)
 	defer log.Tracef("<<<<< HandleIscsiDiscovery")
 
 	// determine if all required targets are already logged-in
