@@ -143,7 +143,7 @@ func loginToVolume(volume *model.Volume) (err error) {
 
 	// get candidates for discovery
 	var reachablePortals []string
-	if len(volume.TargetNames()) > 0 {
+	if len(volume.TargetNames()) > 1 {
 		// if multiple targets for single volume, then fetch all reachable discovery portals
 		reachablePortals, _ = getReachableDiscoveryPortals(volume.DiscoveryIPs, false)
 	} else {
