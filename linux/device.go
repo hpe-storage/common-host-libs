@@ -393,7 +393,7 @@ func rescanLoginVolume(volume *model.Volume) error {
 			}
 		}
 		// iSCSI volume
-		err = RescanAndLoginToTarget(volume)
+		err = HandleIscsiDiscovery(volume)
 		if err != nil {
 			return err
 		}
@@ -449,8 +449,8 @@ func createLinuxDevice(volume *model.Volume) (dev *model.Device, err error) {
 	// cleanup paths which maybe part of lsscsi but not in multipath as we haven't found the device yet
 	cleanupStaleScsiPaths(volume)
 	// try to logout the iscsi target if we could not find a device by now for VST Volume
-	if volume.TargetScope != GroupScope.String() && volume.Iqn != "" {
-		iscsiLogoutOfTarget(&model.IscsiTarget{Name: volume.Iqn})
+	if volume.TargetScope != GroupScope.String() && len(volume.TargetNames()) != 0 {
+		iscsiLogoutOfTarget(&model.IscsiTarget{Name: volume.TargetNames()[0]})
 	}
 	// Reached here signifies the device was not found, throw an error
 	return nil, fmt.Errorf("device not found with serial %s or target %s", volume.SerialNumber, volume.Iqn)
