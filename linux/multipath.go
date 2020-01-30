@@ -228,7 +228,7 @@ func cleanupDeviceAndSlaves(dev *model.Device) (err error) {
 	// remove dm device
 	removeErr := multipathRemoveDmDevice(dev)
 	if removeErr != nil {
-		log.Error(err)
+		log.Error(removeErr.Error())
 		// proceed with the rest of the path cleanup nevertheless, as mpath might get deleted asynchronously
 	}
 
@@ -243,6 +243,7 @@ func cleanupDeviceAndSlaves(dev *model.Device) (err error) {
 		log.Debugf("volume scoped target %+v, initiating iscsi logout and delete", dev.IscsiTarget)
 		err = logoutAndDeleteIscsiTarget(dev)
 		if err != nil {
+			log.Error(err.Error())
 			return err
 		}
 	} else {
@@ -320,24 +321,10 @@ func multipathDisableQueuing(dev *model.Device) (err error) {
 	return nil
 }
 
-// multipathRemoveDmDevice : remove multipath device ps via dmsetup
+// multipathRemoveDmDevice : remove multipath device ps via multipathd
 func multipathRemoveDmDevice(dev *model.Device) (err error) {
 	log.Tracef(">>>>> multipathRemoveDmDevice called for %+v", dev)
 	defer log.Trace("<<<<< multipathRemoveDmDevice")
-
-	err = multipathRemoveMapDmSetup(dev)
-	if err != nil {
-		return fmt.Errorf("failed to remove multipath device %s. Error: %s ", dev.MpathName, err.Error())
-	}
-
-	log.Debugf("successfully removed the dm device %s", dev.MpathName)
-	return nil
-}
-
-// multipathRemoveMapDmSetup : remove multipath maps via dmsetup
-func multipathRemoveMapDmSetup(dev *model.Device) (err error) {
-	log.Tracef(">>>>> multipathRemoveMapDmSetup called for %+v", dev)
-	defer log.Trace("<<<<< multipathRemoveMapDmSetup")
 
 	multipathMutex.Lock()
 	defer multipathMutex.Unlock()
@@ -348,14 +335,16 @@ func multipathRemoveMapDmSetup(dev *model.Device) (err error) {
 			return err
 		}
 	}
-	args := []string{"remove", "--force", dev.MpathName}
-	out, _, err := util.ExecCommandOutput(dmsetupcommand, args)
+	args := []string{"remove", "map", dev.MpathName}
+	out, _, err := util.ExecCommandOutput(multipathd, args)
 	if err != nil {
 		return fmt.Errorf("failed to remove multipath map for %s. Error: %s", dev.MpathName, err.Error())
 	}
-	if out != "" && strings.Contains(out, deviceDoesNotExist) == false {
+	if out != "" && !strings.Contains(out, "ok") && !strings.Contains(out, deviceDoesNotExist) {
 		return fmt.Errorf("failed to remove device map for %s. Error: %s", dev.MpathName, out)
 	}
+
+	log.Debugf("successfully removed the dm device %s", dev.MpathName)
 	return nil
 }
 
