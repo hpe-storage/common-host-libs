@@ -321,7 +321,7 @@ func multipathDisableQueuing(dev *model.Device) (err error) {
 	return nil
 }
 
-// multipathRemoveDmDevice : remove multipath device ps via multipathd
+// multipathRemoveDmDevice : remove multipath device ps via dmsetup
 func multipathRemoveDmDevice(dev *model.Device) (err error) {
 	log.Tracef(">>>>> multipathRemoveDmDevice called for %+v", dev)
 	defer log.Trace("<<<<< multipathRemoveDmDevice")
@@ -335,8 +335,8 @@ func multipathRemoveDmDevice(dev *model.Device) (err error) {
 			return err
 		}
 	}
-	args := []string{"remove", "map", dev.MpathName}
-	out, _, err := util.ExecCommandOutput(multipathd, args)
+	args := []string{"remove", "--force", dev.MpathName}
+	out, _, err := util.ExecCommandOutput(dmsetupcommand, args)
 	if err != nil {
 		return fmt.Errorf("failed to remove multipath map for %s. Error: %s", dev.MpathName, err.Error())
 	}
