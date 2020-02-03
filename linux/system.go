@@ -105,7 +105,7 @@ func IsVirtualMachine() (isVM bool, err error) {
 		// dmidecode can be missing, perform another best attempt to determine if running as vm using sysfs
 		lines, err2 := util.FileGetStringsWithPattern(dmiSysfsPath, hypervisorTypePattern)
 		if err2 != nil {
-			log.Error("unable to get system information using dmesg as well ", err2.Error())
+			log.Error("unable to get system information using sysfs as well ", err2.Error())
 			// return original error with dmidecode
 			return false, errors.New("cannot determine if system is of type virtual machine, " + err.Error())
 		}
