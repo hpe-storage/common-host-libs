@@ -1067,7 +1067,7 @@ func getDeviceHolders(dev *model.Device) (h string, err error) {
 
 // RescanSize performs size rescan of all scsi devices on host and updates applicable multipath devices
 // TODO: replace rescan-scsi-bus.sh dependency with manual rescan of scsi devices
-func RescanForCapacityUpdates() error {
+func RescanForCapacityUpdates(devicePath string) error {
 	log.Tracef(">>>>> RescanForCapacityUpdates")
 	defer log.Traceln("<<<<< RescanForCapacityUpdates")
 
@@ -1077,25 +1077,27 @@ func RescanForCapacityUpdates() error {
 		return err
 	}
 
-	// reconfigure multipath maps to apply new size
-	args = []string{"reconfigure"}
-	_, _, err = util.ExecCommandOutput("multipathd", args)
-	if err != nil {
-		return err
+	if devicePath != "" {
+		// reload multipath map to apply new size
+		args = []string{"-r", devicePath}
+		_, _, err = util.ExecCommandOutput("multipath", args)
+		if err != nil {
+			return err
+		}
 	}
-
 	return nil
 }
 
 // ExpandDevice expands device and filesystem at given targetPath to underlying volume size
+// targetPath is /dev/dm-* for block device and mountpoint for filesystem based device
 func ExpandDevice(targetPath string, volAccessType model.VolumeAccessType) error {
 	log.Tracef(">>>>> ExpandDevice called with targetPath: %s, volAccessType: %s", targetPath, volAccessType.String())
 	defer log.Traceln("<<<<< ExpandDevice")
 
 	// If Block volume access type
 	if volAccessType == model.BlockType {
-		// resize device
-		if err := RescanForCapacityUpdates(); err != nil {
+		// resize device with targetPath, i.e /dev/dm-*
+		if err := RescanForCapacityUpdates(targetPath); err != nil {
 			return fmt.Errorf("unable to perform rescan to update device capacity for %s, error :%s",
 				targetPath, err.Error())
 		}
@@ -1108,8 +1110,8 @@ func ExpandDevice(targetPath string, volAccessType model.VolumeAccessType) error
 	if err != nil || devPath == "" {
 		return fmt.Errorf("unable to get device mounted at %s", targetPath)
 	}
-	// resize device
-	err = RescanForCapacityUpdates()
+	// resize device with devPath, i.e /dev/mapper/mpath*
+	err = RescanForCapacityUpdates(devPath)
 	if err != nil {
 		return fmt.Errorf("unable to perform rescan to update device capacity for %s, error :%s", devPath, err.Error())
 	}
