@@ -1068,7 +1068,7 @@ func getDeviceHolders(dev *model.Device) (h string, err error) {
 // RescanSize performs size rescan of all scsi devices on host and updates applicable multipath devices
 // TODO: replace rescan-scsi-bus.sh dependency with manual rescan of scsi devices
 func RescanForCapacityUpdates(devicePath string) error {
-	log.Tracef(">>>>> RescanForCapacityUpdates")
+	log.Tracef(">>>>> RescanForCapacityUpdates called for %s", devicePath)
 	defer log.Traceln("<<<<< RescanForCapacityUpdates")
 
 	args := []string{"-s", "-m"}
@@ -1078,9 +1078,11 @@ func RescanForCapacityUpdates(devicePath string) error {
 	}
 
 	if devicePath != "" {
+		// multipathd takes either mpathx(without prefix) or /dev/dm-x as input
+		devicePath = strings.TrimPrefix(devicePath, "/dev/mapper/")
 		// reload multipath map to apply new size
-		args = []string{"-r", devicePath}
-		_, _, err = util.ExecCommandOutput("multipath", args)
+		args = []string{"reload", "map", devicePath}
+		_, _, err = util.ExecCommandOutput("multipathd", args)
 		if err != nil {
 			return err
 		}
