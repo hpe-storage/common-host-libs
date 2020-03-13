@@ -1086,7 +1086,7 @@ func RescanForCapacityUpdates(devicePath string) error {
 		if err != nil {
 			return err
 		}
-		if strings.Contains(out, "timeout") {
+		if !strings.Contains(out, "ok") {
 			return fmt.Errorf("failed to rescan device %s on resize, err: %s", devicePath, out)
 		}
 	}
