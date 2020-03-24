@@ -55,6 +55,14 @@ func TestPluginSuite(t *testing.T) {
 	}
 	assert.True(t, updatedVolume.Size == volume.Size*2)
 
+	editConfig := make(map[string]interface{})
+	editConfig["editme"] = "edited"
+	editedVolume, err := provider.EditVolume(volume.ID, editConfig)
+	if err != nil {
+		t.Fatal("Failed to edit volume")
+	}
+	assert.True(t, editedVolume.Config["editme"] == "edited")
+
 	// CloneVolume without a source snapshot ID will indirectly test snapshot creation
 	clone := createClone(t, provider, volume.ID, "", cloneSize)
 
