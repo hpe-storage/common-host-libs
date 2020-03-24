@@ -462,7 +462,7 @@ func (provider *ContainerStorageProvider) ExpandVolume(id string, requestBytes i
 	return response, err
 }
 
-// EditVolume creates a volume on the CSP
+// EditVolume edits a volume on the CSP
 func (provider *ContainerStorageProvider) EditVolume(id string, opts map[string]interface{}) (*model.Volume, error) {
 	log.Tracef(">>>>> EditVolume, id: %s, opts: %v", id, opts)
 	defer log.Trace("<<<<< EditVolume")
