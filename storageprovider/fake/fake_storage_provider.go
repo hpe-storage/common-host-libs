@@ -44,9 +44,10 @@ func (provider *StorageProvider) CreateVolume(name, description string, size int
 		return nil, fmt.Errorf("Volume named %s already exists", name)
 	}
 	fakeVolume := model.Volume{
-		ID:   name,
-		Name: name,
-		Size: size,
+		ID:     name,
+		Name:   name,
+		Size:   size,
+		Config: opts,
 	}
 	provider.volumes[name] = fakeVolume
 	return &fakeVolume, nil
@@ -217,11 +218,22 @@ func (provider *StorageProvider) ExpandVolume(id string, requestBytes int64) (*m
 	if _, ok := provider.volumes[id]; !ok {
 		return nil, fmt.Errorf("Could not find volume with id %s", id)
 	}
-	fakeVolume := model.Volume{
-		ID:   id,
-		Size: requestBytes,
+	fakeVolume := provider.volumes[id]
+	// update volume, so that new size will be reflected
+	fakeVolume.Size = requestBytes
+	return &fakeVolume, nil
+}
+
+// EditVolume will edit the fake volume with requested params
+func (provider *StorageProvider) EditVolume(id string, parameters map[string]interface{}) (*model.Volume, error) {
+	if _, ok := provider.volumes[id]; !ok {
+		return nil, fmt.Errorf("Could not find volume with id %s", id)
 	}
-	// update volume in the map, so that new size will be reflected
-	provider.volumes[id] = fakeVolume
+
+	// update volume in the map, so that new properties will be reflected
+	fakeVolume := provider.volumes[id]
+	for key, value := range parameters {
+		fakeVolume.Config[key] = value
+	}
 	return &fakeVolume, nil
 }
