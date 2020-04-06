@@ -224,7 +224,7 @@ func (provider *StorageProvider) ExpandVolume(id string, requestBytes int64) (*m
 	return &fakeVolume, nil
 }
 
-// ExpandVolume will expand the fake volume to requested size
+// EditVolume will edit the fake volume with requested params
 func (provider *StorageProvider) EditVolume(id string, parameters map[string]interface{}) (*model.Volume, error) {
 	if _, ok := provider.volumes[id]; !ok {
 		return nil, fmt.Errorf("Could not find volume with id %s", id)
