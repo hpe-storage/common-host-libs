@@ -263,6 +263,37 @@ func (provider *ContainerStorageProvider) CreateVolume(name, description string,
 	return response, err
 }
 
+// CreateVolume creates a volume on the CSP
+func (provider *ContainerStorageProvider) CreateVolumeGroup(name, description string, opts map[string]interface{}) (*model.VolumeGroup, error) {
+	log.Infof(">>>>> CreateVolumeGroup, name: %s, opts: %+v", name, opts)
+	defer log.Info("<<<<< CreateVolumeGroup")
+
+	response := &model.VolumeGroup{}
+	var errorResponse *ErrorsPayload
+
+	volume_group := &model.VolumeGroup{
+		Name:        name,
+		Description: description,
+		Config:      opts,
+	}
+
+	// Create the volume on the array
+	status, err := provider.invoke(
+		&connectivity.Request{
+			Action:        "POST",
+			Path:          "/containers/v1/volume_groups",
+			Payload:       &volume_group,
+			Response:      &response,
+			ResponseError: &errorResponse,
+		},
+	)
+	if errorResponse != nil {
+		return nil, handleError(status, errorResponse)
+	}
+
+	return response, err
+}
+
 // CloneVolume clones a volume on the CSP
 // nolint : gocyclo
 func (provider *ContainerStorageProvider) CloneVolume(name, description, sourceID, snapshotID string, size int64, opts map[string]interface{}) (*model.Volume, error) {

@@ -11,15 +11,17 @@ import (
 
 // StorageProvider is an implementor of the StorageProvider interface
 type StorageProvider struct {
-	volumes   map[string]model.Volume
-	snapshots map[string]model.Snapshot
+	volumes      map[string]model.Volume
+	snapshots    map[string]model.Snapshot
+	volumeGroups map[string]model.VolumeGroup
 }
 
 // NewFakeStorageProvider returns a fake storage provider
 func NewFakeStorageProvider() *StorageProvider {
 	return &StorageProvider{
-		volumes:   make(map[string]model.Volume),
-		snapshots: make(map[string]model.Snapshot),
+		volumes:      make(map[string]model.Volume),
+		snapshots:    make(map[string]model.Snapshot),
+		volumeGroups: make(map[string]model.VolumeGroup),
 	}
 }
 
@@ -51,6 +53,20 @@ func (provider *StorageProvider) CreateVolume(name, description string, size int
 	}
 	provider.volumes[name] = fakeVolume
 	return &fakeVolume, nil
+}
+
+// CreateVolume returns a fake volume group
+func (provider *StorageProvider) CreateVolumeGroup(name, description string, opts map[string]interface{}) (*model.VolumeGroup, error) {
+	if _, ok := provider.volumes[name]; ok {
+		return nil, fmt.Errorf("Volume named %s already exists", name)
+	}
+	fakeVolumeGroup := model.VolumeGroup{
+		ID:     name,
+		Name:   name,
+		Config: opts,
+	}
+	provider.volumeGroups[name] = fakeVolumeGroup
+	return &fakeVolumeGroup, nil
 }
 
 // CloneVolume returns a fake volume

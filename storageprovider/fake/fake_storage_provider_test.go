@@ -10,11 +10,12 @@ import (
 )
 
 const (
-	volumeName   = "testCspVol"
-	volumeSize   = 1024 * 1024 * 1024
-	snapshotName = "testCspSnapshot"
-	cloneName    = "testCspVolClone"
-	cloneSize    = 2 * 1024 * 1024 * 1024
+	volumeName      = "testCspVol"
+	volumeSize      = 1024 * 1024 * 1024
+	snapshotName    = "testCspSnapshot"
+	cloneName       = "testCspVolClone"
+	cloneSize       = 2 * 1024 * 1024 * 1024
+	volumeGroupName = "testCspVolumeGroup"
 )
 
 // nolint: gocyclo
@@ -100,6 +101,13 @@ func TestPluginSuite(t *testing.T) {
 
 	// Delete the parent
 	deleteVolume(t, provider, volume)
+
+	// Create Volume Group
+	config["test"] = "test"
+	volumeGroup, err := provider.CreateVolume(volumeGroupName, volumeGroupName, config)
+	if err != nil {
+		t.Fatal("Failed to create volume group" + volumeGroupName)
+	}
 }
 
 func fakeCsp() *StorageProvider {
