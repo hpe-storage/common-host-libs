@@ -104,7 +104,7 @@ func TestPluginSuite(t *testing.T) {
 
 	// Create Volume Group
 	config["test"] = "test"
-	volumeGroup, err := provider.CreateVolume(volumeGroupName, volumeGroupName, config)
+	volumeGroup, err := provider.CreateVolumeGroup(volumeGroupName, volumeGroupName, config)
 	if err != nil {
 		t.Fatal("Failed to create volume group" + volumeGroupName)
 	}
