@@ -91,7 +91,7 @@ func (w *FileWatch) StartWatcher() {
 	log.Trace(">>>>> StartWatcher")
 	defer log.Trace("<<<<< StartWatcher")
 	pid := os.Getpid()
-	log.Tracef("CSI watcher [%d PID] successful started", pid)
+	log.Tracef("Watcher [%d PID] successful started", pid)
 	// forever
 	for {
 		select {
@@ -101,11 +101,11 @@ func (w *FileWatch) StartWatcher() {
 			w.watchList.Close()
 			return
 		case <-w.watchList.Events:
-			log.Infof("CSI Watcher [%d PID], received notification", pid)
-			// There might be spurious update, to control the events sleep for 5 mins.
-			time.Sleep(5* time.Minute)
+			log.Infof("Watcher [%d PID], received notification", pid)
 			w.watchRun()
-			log.Infof("CSI Wacther [%d PID], notification served", pid)
+			log.Infof("Watcher [%d PID], notification served", pid)
+			// There might be spurious update, to control the events sleep for 1 min.
+			time.Sleep(1* time.Minute)
 		}
 	}
 }
