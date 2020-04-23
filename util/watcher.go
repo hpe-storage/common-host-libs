@@ -13,6 +13,7 @@ import (
 	notify "github.com/fsnotify/fsnotify"
 	log "github.com/hpe-storage/common-host-libs/logger"
 )
+const tickerDefaultDelay = 60 // Min
 // FileWatch contains watcher attributes.
 type FileWatch struct {
 	// Channel to receive the stop event.
@@ -91,7 +92,17 @@ func (w *FileWatch) StartWatcher() {
 	log.Trace(">>>>> StartWatcher")
 	defer log.Trace("<<<<< StartWatcher")
 	pid := os.Getpid()
-	log.Tracef("Watcher [%d PID] successful started", pid)
+	log.Tracef("Watcher [%d PID] is successfully started", pid)
+
+	// Control the ticker interval, dont want to frequently wakeup
+	// watcher as it is only needed when there is event notification. So if there is
+	// event notification, ticker is set to wake up every one miniute otherwise sleep
+	// for 1 hour.
+	var delayControlFlag time.Duration = tickerDefaultDelay
+
+	// This is used to control the flow of events, we dont want to process frequent update
+	// If there are multiple update within 1 min, only process one event and ignore the rest of the events
+	isSpuriousUpdate:=false
 	// forever
 	for {
 		select {
@@ -101,11 +112,19 @@ func (w *FileWatch) StartWatcher() {
 			w.watchList.Close()
 			return
 		case <-w.watchList.Events:
-			log.Infof("Watcher [%d PID], received notification", pid)
-			w.watchRun()
-			log.Infof("Watcher [%d PID], notification served", pid)
-			// There might be spurious update, to control the events sleep for 1 min.
-			time.Sleep(1* time.Minute)
+			// There might be spurious update, ignore the event if it occurs within 1 min.
+			if !isSpuriousUpdate {
+				log.Infof("Watcher [%d PID], received notification", pid)
+				w.watchRun()
+				log.Infof("Watcher [%d PID], notification served", pid)
+				isSpuriousUpdate = true
+				delayControlFlag = 1
+			} else {
+				log.Warnf("Watcher [%d PID], received spurious notification, ignore", pid)
+			}
+		case <-time.NewTicker(time.Minute * delayControlFlag).C:
+			isSpuriousUpdate = false
+			delayControlFlag = tickerDefaultDelay
 		}
 	}
 }
