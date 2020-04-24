@@ -96,7 +96,7 @@ func (w *FileWatch) StartWatcher() {
 
 	// Control the ticker interval, dont want to frequently wakeup
 	// watcher as it is only needed when there is event notification. So if there is
-	// event notification, ticker is set to wake up every one miniute otherwise sleep
+	// event notification, ticker is set to wake up every one minute otherwise sleep
 	// for 1 hour.
 	var delayControlFlag time.Duration = tickerDefaultDelay
 
