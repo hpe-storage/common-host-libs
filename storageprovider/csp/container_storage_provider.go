@@ -263,10 +263,10 @@ func (provider *ContainerStorageProvider) CreateVolume(name, description string,
 	return response, err
 }
 
-// CreateVolume creates a volume on the CSP
+// CreateVolumeGroup creates a volume group on the CSP
 func (provider *ContainerStorageProvider) CreateVolumeGroup(name, description string, opts map[string]interface{}) (*model.VolumeGroup, error) {
-	log.Infof(">>>>> CreateVolumeGroup, name: %s, opts: %+v", name, opts)
-	defer log.Info("<<<<< CreateVolumeGroup")
+	log.Tracef(">>>>> CreateVolumeGroup, name: %s, opts: %+v", name, opts)
+	defer log.Trace("<<<<< CreateVolumeGroup")
 
 	response := &model.VolumeGroup{}
 	var errorResponse *ErrorsPayload
@@ -277,7 +277,7 @@ func (provider *ContainerStorageProvider) CreateVolumeGroup(name, description st
 		Config:      opts,
 	}
 
-	// Create the volume on the array
+	// Create the volume group on the array
 	status, err := provider.invoke(
 		&connectivity.Request{
 			Action:        "POST",
@@ -292,6 +292,33 @@ func (provider *ContainerStorageProvider) CreateVolumeGroup(name, description st
 	}
 
 	return response, err
+}
+
+// DeleteVolumeGroup deletes a volume group on the CSP
+func (provider *ContainerStorageProvider) DeleteVolumeGroup(id string) error {
+	log.Tracef(">>>>> DeleteVolumeGroup, id: %s", id)
+	defer log.Trace("<<<<< DeleteVolumeGroup")
+
+	var errorResponse *ErrorsPayload
+
+	// Delete the volume group on the array
+	status, err := provider.invoke(
+		&connectivity.Request{
+			Action:        "DELETE",
+			Path:          fmt.Sprintf("/containers/v1/volume_groups/%s", id),
+			Payload:       nil,
+			Response:      nil,
+			ResponseError: &errorResponse,
+		},
+	)
+	if errorResponse != nil {
+		return handleError(status, errorResponse)
+	}
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // CloneVolume clones a volume on the CSP
@@ -502,9 +529,15 @@ func (provider *ContainerStorageProvider) EditVolume(id string, opts map[string]
 	var errorResponse *ErrorsPayload
 
 	volume := &model.Volume{
-		ID:     id,
-		Config: opts,
+		ID: id,
 	}
+
+	// volumeGroupId is part of volume object and should be removed from opts
+	if val, ok := opts["volumeGroupId"]; ok {
+		delete(opts, "volumeGroupId")
+		volume.VolumeGroupId = val.(string)
+	}
+	volume.Config = opts
 
 	// Edit the volume on the array
 	status, err := provider.invoke(
