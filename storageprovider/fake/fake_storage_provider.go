@@ -57,8 +57,8 @@ func (provider *StorageProvider) CreateVolume(name, description string, size int
 
 // CreateVolume returns a fake volume group
 func (provider *StorageProvider) CreateVolumeGroup(name, description string, opts map[string]interface{}) (*model.VolumeGroup, error) {
-	if _, ok := provider.volumes[name]; ok {
-		return nil, fmt.Errorf("Volume named %s already exists", name)
+	if _, ok := provider.volumeGroups[name]; ok {
+		return nil, fmt.Errorf("Volume Group named %s already exists", name)
 	}
 	fakeVolumeGroup := model.VolumeGroup{
 		ID:     name,
@@ -114,6 +114,15 @@ func (provider *StorageProvider) DeleteVolume(id string, force bool) error {
 	}
 
 	return fmt.Errorf("Could not find volume with id %s", id)
+}
+
+// DeleteVolumeGroup removes a fake volumeGroup
+func (provider *StorageProvider) DeleteVolumeGroup(id string) error {
+	if _, ok := provider.volumeGroups[id]; ok {
+		delete(provider.volumeGroups, id)
+		return nil
+	}
+	return fmt.Errorf("Could not find volume group with id %s", id)
 }
 
 // PublishVolume returns fake publish data

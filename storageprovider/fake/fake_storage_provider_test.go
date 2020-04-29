@@ -104,10 +104,14 @@ func TestPluginSuite(t *testing.T) {
 
 	// Create Volume Group
 	config["test"] = "test"
-	_, err = provider.CreateVolumeGroup(volumeGroupName, volumeGroupName, config)
+
+	volumeGroup, err := provider.CreateVolumeGroup(volumeGroupName, volumeGroupName, config)
 	if err != nil {
 		t.Fatal("Failed to create volume group" + volumeGroupName)
 	}
+	// Delete the Volume Group
+	deleteVolumeGroup(t, provider, volumeGroup)
+
 }
 
 func fakeCsp() *StorageProvider {
@@ -145,6 +149,14 @@ func deleteVolume(t *testing.T, provider *StorageProvider, volume *model.Volume)
 		t.Fatal("Error retrieving volume. Error: " + err.Error())
 	}
 	assert.Nil(t, volume)
+}
+
+// nolint: dupl
+func deleteVolumeGroup(t *testing.T, provider *StorageProvider, volumeGroup *model.VolumeGroup) {
+	err := provider.DeleteVolumeGroup(volumeGroup.ID)
+	if err != nil {
+		t.Fatal("Could not delete volume group" + volumeGroup.Name + ".  Error: " + err.Error())
+	}
 }
 
 // nolint: dupl
