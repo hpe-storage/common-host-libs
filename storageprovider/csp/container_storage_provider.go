@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	snapshotPrefix = "snap-for-clone-"
+	snapshotPrefix = "container-volume-snap-"
 	tokenHeader    = "x-auth-token"
 	arrayIPHeader  = "x-array-ip"
 
