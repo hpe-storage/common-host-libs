@@ -1,5 +1,5 @@
-hash: 55704a87a0078b7ea703ff0704d8be34e8b13348c9fc130ad4e5cce4c7953a2e
-updated: 2019-09-24T18:17:12.35910309-07:00
+hash: b18ebaccee40b1a1e05c75c5df460e20a61c24b6ceaad605e0cd22b4be125a15
+updated: 2020-05-07T09:04:53.741686-07:00
 imports:
 - name: github.com/coreos/etcd
   version: 98d308426819d892e149fe45f6fd542464cb1f9d
@@ -11,6 +11,8 @@ imports:
   - etcdserver/etcdserverpb
   - mvcc/mvccpb
   - pkg/types
+- name: github.com/fsnotify/fsnotify
+  version: 45d7d09e39ef4ac08d493309fa031790c15bfe8a
 - name: github.com/go-ole/go-ole
   version: 97b6244175ae18ea6eef668034fd6565847501c9
   subpackages:
@@ -22,7 +24,7 @@ imports:
   - proto
   - protoc-gen-gogo/descriptor
 - name: github.com/golang/protobuf
-  version: 6c65a5562fc06764971b7c5d05c76c75e84bdbf7
+  version: 84668698ea25b64748563aa20726db66a6b8d299
   subpackages:
   - proto
   - ptypes
@@ -40,7 +42,7 @@ imports:
 - name: github.com/kardianos/service
   version: 56787a3ea05e9b262708192e7ce3b500aba73561
 - name: github.com/konsorten/go-windows-terminal-sequences
-  version: f55edac94c9bbba5d6182a4be46d86a2c9b5b50e
+  version: edb144dfd453055e1e49a3d8b410a660b5a87613
 - name: github.com/mitchellh/mapstructure
   version: 3536a929edddb9a5b34bd6861dc4a9647cb459fe
 - name: github.com/satori/go.uuid
@@ -146,6 +148,8 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/stretchr/testify
-  version: f35b8ab0b5a2cef36673838d662e249dd9c94686
+  version: 15aff29f35e9a60566cc995c2c8b7452a758c443
   subpackages:
   - assert
+- name: gopkg.in/yaml.v3
+  version: 2ff61e1afc866138abf1a8adf3cc89721090ac31
