@@ -570,11 +570,16 @@ func MountDeviceWithFileSystem(devPath string, mountPoint string, options []stri
 	return mount, nil
 }
 
-func MountNFSShare(source string, targetPath string, options []string) error {
+func MountNFSShare(source string, targetPath string, options []string, nfsType string) error {
 	log.Tracef(">>>>> MountNFSShare called with source %s target %s", source, targetPath)
 	defer log.Tracef("<<<<< MountNFSShare")
 
-	args := []string{source, targetPath}
+	// default nfs version to 4.0
+	if nfsType == "" {
+		nfsType = "nfs4"
+	}
+
+	args := []string{fmt.Sprintf("-t %s", nfsType), source, targetPath}
 	optionArgs := []string{}
 	if len(options) != 0 {
 		optionArgs = append([]string{"-o"}, strings.Join(options, ","))
