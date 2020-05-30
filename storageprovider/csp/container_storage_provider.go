@@ -271,10 +271,10 @@ func (provider *ContainerStorageProvider) CreateSnapshotGroup(name, sourceVolume
 	response := &model.SnapshotGroup{}
 	var errorResponse *ErrorsPayload
 
+	// TODO: convert opts to any parameters needed for snapshotGroup
 	snapshot_group := &model.SnapshotGroup{
 		Name:                name,
 		SourceVolumeGroupID: sourceVolumeGroupID,
-		Config:              opts,
 	}
 
 	// Create the snapshot group on the array
