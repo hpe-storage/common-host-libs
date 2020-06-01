@@ -114,7 +114,7 @@ func TestPluginSuite(t *testing.T) {
 	// Create Snapshot Group
 	config["test"] = "test"
 
-	snapshotGroup, err := provider.CreateSnapshotGroup(snapshotGroupName, volumeGroup.ID)
+	snapshotGroup, err := provider.CreateSnapshotGroup(snapshotGroupName, volumeGroup.ID, config)
 	if err != nil {
 		t.Fatal("Failed to create snapshot group" + snapshotGroupName)
 	}
