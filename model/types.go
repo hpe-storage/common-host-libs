@@ -284,7 +284,7 @@ type AccessInfo struct {
 type BlockDeviceAccessInfo struct {
 	AccessProtocol string   `json:"access_protocol,omitempty"`
 	TargetNames    []string `json:"target_names,omitempty"`
-	LunID          string   `json:"lun_id,omitempty"`
+	LunID          []int32  `json:"lun_id,omitempty"`
 	IscsiAccessInfo
 }
 
