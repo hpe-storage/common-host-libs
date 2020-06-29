@@ -265,7 +265,7 @@ func GetLinuxDmDevices(needActivePath bool, serialNumber, lunID string) (a []*mo
 						// add all unique lun
 						lunIDSet[hcils[3]] = true
 						// handle lunID conflict when lunID is passed
-						if lunID != "" && hcils[3] != lunID {
+						if lunID != "" && !isLunIdPresentIn(hcils[3], lunID) {
 							device.State = model.LunIDConflict.String()
 							// delete the path which have a mismatch and continue with other paths
 							log.Warnf("device with serial %s has path with lunId %s instead of %s. Deleting path %s.", serialNumber, strings.Split(path.Hcil, ":")[3], lunID, path.Hcil)
@@ -325,6 +325,14 @@ func GetLinuxDmDevices(needActivePath bool, serialNumber, lunID string) (a []*mo
 		}
 	}
 	return devices, nil
+}
+func isLunIdPresentIn(searchLun string, luns string) bool {
+	for _, lun_id := range strings.Split(luns, ",") {
+		if searchLun == lun_id {
+			return true
+		}
+	}
+	return false
 }
 
 func getSizeOfDeviceInMiB(minorDev string, device *model.Device) (int64, error) {

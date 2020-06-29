@@ -898,10 +898,14 @@ func rescanIscsiHosts(iscsiHosts []string, lunID string) (err error) {
 					log.Tracef("error writing to file %s : %s", iscsiHostScanPath, err.Error())
 				}
 			} else {
-				err = ioutil.WriteFile(iscsiHostScanPath, []byte("- - "+lunID), 0644)
-				if err != nil {
-					log.Tracef("error writing to file %s : %s", iscsiHostScanPath, err.Error())
+				for _, lun_id := range strings.Split(lunID, ",") {
+					log.Printf("\n SCANNING lun id %v", lun_id)
+					err = ioutil.WriteFile(iscsiHostScanPath, []byte("- - "+lun_id), 0644)
+					if err != nil {
+						log.Tracef("error writing to file %s : %s", iscsiHostScanPath, err.Error())
+					}
 				}
+
 			}
 			if err != nil {
 				log.Errorf("unable to rescan for scsi devices on host %s err %s", iscsiHost, err.Error())
@@ -985,4 +989,3 @@ func bindIface(network model.NetworkInterface) error {
 	}
 	return nil
 }
-
