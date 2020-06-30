@@ -189,6 +189,7 @@ type Volume struct {
 	Networks       []*NetworkInterface    `json:"networks,omitempty"`
 	ConnectionMode string                 `json:"connection_mode,omitempty"`
 	LunID          string                 `json:"lun_id,omitempty"`
+	PeerLunIDs     string                 `json:"peer_lun_ids,omitempty"`
 	TargetScope    string                 `json:"target_scope,omitempty"` //GST="group", VST="volume" or empty(older array fiji etc), and no-op for FC
 	IscsiSessions  []*IscsiSession        `json:"iscsi_sessions,omitempty"`
 	FcSessions     []*FcSession           `json:"fc_sessions,omitempty"`
@@ -284,7 +285,8 @@ type AccessInfo struct {
 type BlockDeviceAccessInfo struct {
 	AccessProtocol string   `json:"access_protocol,omitempty"`
 	TargetNames    []string `json:"target_names,omitempty"`
-	LunID          []int32  `json:"lun_id,omitempty"`
+	LunID          int32    `json:"lun_id,omitempty"`
+	PeerLunIDs     []int32  `json:"peer_lun_ids,omitempty"`
 	IscsiAccessInfo
 }
 

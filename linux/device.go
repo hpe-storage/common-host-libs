@@ -180,8 +180,8 @@ func GetDmDeviceFromSerial(serial string) (*model.Device, error) {
 
 // GetLinuxDmDevices : Gets the list of Linux Multipath Devices
 // nolint : gocyclo
-func GetLinuxDmDevices(needActivePath bool, serialNumber, lunID string) (a []*model.Device, err error) {
-	log.Tracef(">>>>>> GetLinuxDmDevices called with %s and lunID %s", serialNumber, lunID)
+func GetLinuxDmDevices(needActivePath bool, vol *model.Volume) (a []*model.Device, err error) {
+	log.Tracef(">>>>>> GetLinuxDmDevices called with %s and lunID %s", vol.SerialNumber, vol.LunID)
 	defer log.Trace("<<<<<< GetLinuxDmDevices")
 	args := []string{"ls", "--target", "multipath"}
 	out, _, err := util.ExecCommandOutput(dmsetupcommand, args)
@@ -229,14 +229,14 @@ func GetLinuxDmDevices(needActivePath bool, serialNumber, lunID string) (a []*mo
 		mpathSerialNumber = strings.TrimPrefix(mpathSerialNumber, "mpath-")
 		// truncate scsi-id prefix added by multipathd(2 for EUI and 3 for NAA ID types)
 		mpathSerialNumber = mpathSerialNumber[1:]
-		if serialNumber != "" {
-			if !strings.EqualFold(mpathSerialNumber, serialNumber) {
-				log.Tracef("serialNumber %s not match with mpathSerialNumber, %s continuing..", mpathSerialNumber, serialNumber)
+		if vol.SerialNumber != "" {
+			if !strings.EqualFold(mpathSerialNumber, vol.SerialNumber) {
+				log.Tracef("serialNumber %s not match with mpathSerialNumber, %s continuing..", mpathSerialNumber, vol.SerialNumber)
 				continue
 			}
 		}
 
-		if serialNumber == "" || strings.EqualFold(mpathSerialNumber, serialNumber) {
+		if vol.SerialNumber == "" || strings.EqualFold(mpathSerialNumber, vol.SerialNumber) {
 			device.SerialNumber = mpathSerialNumber
 
 			sizeInMiB, err := getSizeOfDeviceInMiB(result["Minor"], device)
@@ -265,10 +265,12 @@ func GetLinuxDmDevices(needActivePath bool, serialNumber, lunID string) (a []*mo
 						// add all unique lun
 						lunIDSet[hcils[3]] = true
 						// handle lunID conflict when lunID is passed
-						if lunID != "" && !isLunIdPresentIn(hcils[3], lunID) {
+						if vol.LunID != "" && hcils[3] != vol.LunID &&
+							// lun id passed is not part of peer lun ids in case of peer persistence
+							!isLunIdPresentIn(hcils[3], vol.PeerLunIDs) {
 							device.State = model.LunIDConflict.String()
 							// delete the path which have a mismatch and continue with other paths
-							log.Warnf("device with serial %s has path with lunId %s instead of %s. Deleting path %s.", serialNumber, strings.Split(path.Hcil, ":")[3], lunID, path.Hcil)
+							log.Warnf("device with serial %s has path with lunId %s instead of %s. Deleting path %s.", vol.SerialNumber, strings.Split(path.Hcil, ":")[3], vol.LunID, path.Hcil)
 							deletePathByHctl(hcils[0], hcils[1], hcils[2], hcils[3])
 						}
 					}
@@ -284,7 +286,7 @@ func GetLinuxDmDevices(needActivePath bool, serialNumber, lunID string) (a []*mo
 			}
 
 			if device.State == model.LunIDConflict.String() {
-				err := fmt.Errorf("device with serial %s has path other than lunID %s. Failing request", serialNumber, lunID)
+				err := fmt.Errorf("device with serial %s has path other than lunID %s. Failing request", vol.SerialNumber, vol.LunID)
 				return nil, err
 			}
 			// if there are more than 1 lunID for the device, change the state to lunID conflict if not detected above when lunID is not passed
@@ -312,7 +314,7 @@ func GetLinuxDmDevices(needActivePath bool, serialNumber, lunID string) (a []*mo
 				log.Tracef("adding device to list %+v", device)
 				devices = append(devices, device)
 			}
-			if serialNumber != "" {
+			if vol.SerialNumber != "" {
 				// break here as we found device with specific serial number
 				break
 			}
@@ -387,9 +389,19 @@ func rescanLoginVolume(volume *model.Volume) error {
 	var err error
 	if strings.EqualFold(volume.AccessProtocol, "fc") {
 		// FC volume
+
 		err = RescanFcTarget(volume.LunID)
 		if err != nil {
 			return err
+		}
+		if len(volume.PeerLunIDs) > 0 {
+			// There are secondary LUN's to scan on FC
+			for _, lun_id := range strings.Split(volume.PeerLunIDs, ",") {
+				err = RescanFcTarget(lun_id)
+				if err != nil {
+					return err
+				}
+			}
 		}
 	} else {
 		// Check if client intends us to specifically login using multiple IP addresses(cloud volumes)
@@ -425,7 +437,7 @@ func createLinuxDevice(volume *model.Volume) (dev *model.Device, err error) {
 	// Start a Countdown ticker
 	var devices []*model.Device
 	for i := 0; i <= countdownTicker; i++ {
-		devices, err = GetLinuxDmDevices(true, volume.SerialNumber, volume.LunID)
+		devices, err = GetLinuxDmDevices(true, volume)
 		if err != nil {
 			return nil, err
 		}
@@ -547,7 +559,25 @@ func canHandleRemap(volume *model.Volume) (err error) {
 func handleOrphanPaths(volume *model.Volume) error {
 	log.Tracef(">>> handleOrphanPaths called with volume %s serial %s lun %s", volume.Name, volume.SerialNumber, volume.LunID)
 	defer log.Tracef("<<< handleOrphanPaths")
-	orphanHctls := multipathGetOrphanPathsByLunID(volume.LunID)
+	err := handleOrphanPathsForSpecificLunId(volume.LunID)
+	if err != nil {
+		return err
+	}
+	if len(volume.PeerLunIDs) > 0 {
+		for _, lunID := range strings.Split(volume.PeerLunIDs, ",") {
+			err := handleOrphanPathsForSpecificLunId(lunID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+
+}
+
+func handleOrphanPathsForSpecificLunId(lunID string) error {
+
+	orphanHctls := multipathGetOrphanPathsByLunID(lunID)
 	for _, pathHctl := range orphanHctls {
 		hctl := strings.Split(pathHctl, ":")
 		if len(hctl) != 4 {
@@ -588,7 +618,22 @@ func handleRemappedLun(volume *model.Volume) (err error) {
 		// format it into /proc/scsi/scsi format for matching eg: Lun: 00
 		lunID = "0" + volume.LunID
 	}
+	err = handleRemapForSpecificLunID(volume.SerialNumber, lunID, volume.AccessProtocol)
+	if err != nil {
+		return err
+	}
+	if len(volume.PeerLunIDs) > 0 {
+		for _, lunID = range strings.Split(volume.PeerLunIDs, ",") {
+			err = handleRemapForSpecificLunID(volume.SerialNumber, "0"+lunID, volume.AccessProtocol)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 
+}
+func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string) (err error) {
 	// example output from /proc/scsi/scsi
 	// Host: scsi7 Channel: 00 Id: 00 Lun: 00
 	procScsiRealPath := getProcScsiPath()
@@ -608,9 +653,9 @@ func handleRemappedLun(volume *model.Volume) (err error) {
 			continue
 		}
 		// refresh path serial and update paths if its remapped lun
-		remappedLunFound, oldSerial, err := checkRemappedLunPath(h, c, t, l, volume.SerialNumber, volume.LunID)
+		remappedLunFound, oldSerial, err := checkRemappedLunPath(h, c, t, l, serialNumber, lunID)
 		if err != nil {
-			log.Debugf("error occurred while checking for remapped Lun on %s, err %s", volume.SerialNumber, err.Error())
+			log.Debugf("error occurred while checking for remapped Lun on %s, err %s", serialNumber, err.Error())
 			// continue with other paths as best effort
 			continue
 		}
@@ -619,9 +664,9 @@ func handleRemappedLun(volume *model.Volume) (err error) {
 			continue
 		}
 		// cleanup multipath device and all its paths, as we found its remapped with different LUN underneath
-		cleanupUnmappedDevice(oldSerial, volume.LunID)
+		cleanupUnmappedDevice(oldSerial, lunID)
 		// perform SCSI lun rescan to discover new volume paths
-		if strings.EqualFold(volume.AccessProtocol, "fc") {
+		if strings.EqualFold(accessProtocol, "fc") {
 			RescanFcTarget(l)
 		} else {
 			RescanIscsi(l)
@@ -630,6 +675,7 @@ func handleRemappedLun(volume *model.Volume) (err error) {
 		break
 	}
 	return nil
+
 }
 
 func getProcScsiPath() string {
@@ -647,7 +693,7 @@ func cleanupUnmappedDevice(oldSerial string, volumelunID string) error {
 	defer log.Traceln("<<< cleanupUnmappedDevice")
 	var devices []*model.Device
 	var err error
-	devices, err = GetLinuxDmDevices(false, oldSerial, "")
+	devices, err = GetLinuxDmDevices(false, util.GetVolumeObject(oldSerial, ""))
 	if err != nil {
 		log.Errorf("error occurred while getting unmapped device for serial %s, err %s", oldSerial, err.Error())
 		return err
@@ -877,7 +923,7 @@ func GetDeviceFromVolume(vol *model.Volume) (*model.Device, error) {
 	log.Tracef(">>>>> GetDeviceFromVolume for serial %s", vol.SerialNumber)
 	defer log.Trace("<<<<< GetDeviceFromVolume")
 
-	devices, err := GetLinuxDmDevices(false, vol.SerialNumber, vol.LunID)
+	devices, err := GetLinuxDmDevices(false, vol)
 	if err != nil {
 		return nil, err
 	}

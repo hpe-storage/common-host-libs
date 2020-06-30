@@ -208,6 +208,16 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 		log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 		return fmt.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 	}
+	if len(volume.PeerLunIDs) > 0 {
+		// There are secondary LUN's to scan on FC
+		for _, lun_id := range strings.Split(volume.PeerLunIDs, ",") {
+			err = RescanIscsi(lun_id)
+			if err != nil {
+				log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
+				return fmt.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
+			}
+		}
+	}
 	return nil
 }
 
