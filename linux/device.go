@@ -267,7 +267,7 @@ func GetLinuxDmDevices(needActivePath bool, vol *model.Volume) (a []*model.Devic
 						// handle lunID conflict when lunID is passed
 						if vol.LunID != "" && hcils[3] != vol.LunID &&
 							// lun id passed is not part of peer lun ids in case of peer persistence
-							!isLunIdPresentIn(hcils[3], vol.PeerLunIDs) {
+							!isLunIdPresentIn(hcils[3], vol.SecondaryLunIDs) {
 							device.State = model.LunIDConflict.String()
 							// delete the path which have a mismatch and continue with other paths
 							log.Warnf("device with serial %s has path with lunId %s instead of %s. Deleting path %s.", vol.SerialNumber, strings.Split(path.Hcil, ":")[3], vol.LunID, path.Hcil)
@@ -394,9 +394,9 @@ func rescanLoginVolume(volume *model.Volume) error {
 		if err != nil {
 			return err
 		}
-		if len(volume.PeerLunIDs) > 0 {
+		if len(volume.SecondaryLunIDs) > 0 {
 			// There are secondary LUN's to scan on FC
-			for _, lun_id := range strings.Split(volume.PeerLunIDs, ",") {
+			for _, lun_id := range strings.Split(volume.SecondaryLunIDs, ",") {
 				err = RescanFcTarget(lun_id)
 				if err != nil {
 					return err
@@ -563,8 +563,8 @@ func handleOrphanPaths(volume *model.Volume) error {
 	if err != nil {
 		return err
 	}
-	if len(volume.PeerLunIDs) > 0 {
-		for _, lunID := range strings.Split(volume.PeerLunIDs, ",") {
+	if len(volume.SecondaryLunIDs) > 0 {
+		for _, lunID := range strings.Split(volume.SecondaryLunIDs, ",") {
 			err := handleOrphanPathsForSpecificLunId(lunID)
 			if err != nil {
 				return err
@@ -622,8 +622,8 @@ func handleRemappedLun(volume *model.Volume) (err error) {
 	if err != nil {
 		return err
 	}
-	if len(volume.PeerLunIDs) > 0 {
-		for _, lunID = range strings.Split(volume.PeerLunIDs, ",") {
+	if len(volume.SecondaryLunIDs) > 0 {
+		for _, lunID = range strings.Split(volume.SecondaryLunIDs, ",") {
 			err = handleRemapForSpecificLunID(volume.SerialNumber, "0"+lunID, volume.AccessProtocol)
 			if err != nil {
 				return err

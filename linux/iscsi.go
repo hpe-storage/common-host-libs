@@ -149,6 +149,12 @@ func loginToVolume(volume *model.Volume) (err error) {
 	} else {
 		reachablePortals, _ = getReachableDiscoveryPortals(volume.DiscoveryIPs, true)
 	}
+	if len(volume.SecondaryTargetNames) > 1 {
+		// if multiple targets for single volume, then fetch all reachable discovery portals
+		reachablePortals, _ = getReachableDiscoveryPortals(strings.Split(volume.SecondaryDiscoverIps, ","), false)
+	} else {
+		reachablePortals, _ = getReachableDiscoveryPortals(strings.Split(volume.SecondaryDiscoverIps, ","), true)
+	}
 	if len(reachablePortals) == 0 {
 		return fmt.Errorf("none of the discovery portals provided [%+v] are reachable", volume.DiscoveryIPs)
 	}
@@ -188,7 +194,15 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 	defer log.Tracef("<<<<< HandleIscsiDiscovery")
 
 	// determine if all required targets are already logged-in
-	loggedIn, err := areTargetsLoggedIn(volume.TargetNames())
+	var combinedTargetsNames []string
+	combinedTargetsNames = append(volume.TargetNames())
+
+	if len(volume.SecondaryTargetNames) > 0 {
+		combinedTargetsNames = append(strings.Split(volume.SecondaryTargetNames, ","))
+	}
+	log.Tracef("\nCOMBINED target names %v", combinedTargetsNames)
+
+	loggedIn, err := areTargetsLoggedIn(combinedTargetsNames)
 	if err != nil {
 		return err
 	}
@@ -208,9 +222,9 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 		log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 		return fmt.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 	}
-	if len(volume.PeerLunIDs) > 0 {
+	if len(volume.SecondaryLunIDs) > 0 {
 		// There are secondary LUN's to scan on FC
-		for _, lun_id := range strings.Split(volume.PeerLunIDs, ",") {
+		for _, lun_id := range strings.Split(volume.SecondaryLunIDs, ",") {
 			err = RescanIscsi(lun_id)
 			if err != nil {
 				log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
