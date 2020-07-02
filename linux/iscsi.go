@@ -149,11 +149,12 @@ func loginToVolume(volume *model.Volume) (err error) {
 	} else {
 		reachablePortals, _ = getReachableDiscoveryPortals(volume.DiscoveryIPs, true)
 	}
-	if len(volume.SecondaryTargetNames) > 1 {
+	secondaryTargetList := util.GetSecondaryArrayTargetNames(volume.SecondaryArrayDetails)
+	if len(secondaryTargetList) > 1 {
 		// if multiple targets for single volume, then fetch all reachable discovery portals
-		reachablePortals, _ = getReachableDiscoveryPortals(strings.Split(volume.SecondaryDiscoverIps, ","), false)
+		reachablePortals, _ = getReachableDiscoveryPortals(secondaryTargetList, false)
 	} else {
-		reachablePortals, _ = getReachableDiscoveryPortals(strings.Split(volume.SecondaryDiscoverIps, ","), true)
+		reachablePortals, _ = getReachableDiscoveryPortals(secondaryTargetList, true)
 	}
 	if len(reachablePortals) == 0 {
 		return fmt.Errorf("none of the discovery portals provided [%+v] are reachable", volume.DiscoveryIPs)
@@ -197,8 +198,9 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 	var combinedTargetsNames []string
 	combinedTargetsNames = append(volume.TargetNames())
 
-	if len(volume.SecondaryTargetNames) > 0 {
-		combinedTargetsNames = append(strings.Split(volume.SecondaryTargetNames, ","))
+	secondaryTargetList := util.GetSecondaryArrayTargetNames(volume.SecondaryArrayDetails)
+	if len(secondaryTargetList) > 0 {
+		combinedTargetsNames = append(secondaryTargetList)
 	}
 	log.Tracef("\nCOMBINED target names %v", combinedTargetsNames)
 
@@ -222,10 +224,11 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 		log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 		return fmt.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 	}
-	if len(volume.SecondaryLunIDs) > 0 {
+	lunIdList := util.GetSecondaryArrayLUNIds(volume.SecondaryArrayDetails)
+	if len(lunIdList) > 0 {
 		// There are secondary LUN's to scan on FC
-		for _, lun_id := range strings.Split(volume.SecondaryLunIDs, ",") {
-			err = RescanIscsi(lun_id)
+		for _, lun_id := range lunIdList {
+			err = RescanIscsi(strconv.Itoa(int(lun_id)))
 			if err != nil {
 				log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 				return fmt.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
@@ -922,14 +925,11 @@ func rescanIscsiHosts(iscsiHosts []string, lunID string) (err error) {
 					log.Tracef("error writing to file %s : %s", iscsiHostScanPath, err.Error())
 				}
 			} else {
-				for _, lun_id := range strings.Split(lunID, ",") {
-					log.Printf("\n SCANNING lun id %v", lun_id)
-					err = ioutil.WriteFile(iscsiHostScanPath, []byte("- - "+lun_id), 0644)
-					if err != nil {
-						log.Tracef("error writing to file %s : %s", iscsiHostScanPath, err.Error())
-					}
+				log.Printf("\n SCANNING iscsi lun id %v", lunID)
+				err = ioutil.WriteFile(iscsiHostScanPath, []byte("- - "+lunID), 0644)
+				if err != nil {
+					log.Tracef("error writing to file %s : %s", iscsiHostScanPath, err.Error())
 				}
-
 			}
 			if err != nil {
 				log.Errorf("unable to rescan for scsi devices on host %s err %s", iscsiHost, err.Error())

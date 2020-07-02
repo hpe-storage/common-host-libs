@@ -394,10 +394,12 @@ func rescanLoginVolume(volume *model.Volume) error {
 		if err != nil {
 			return err
 		}
-		if len(volume.SecondaryLunIDs) > 0 {
+		lunIdArray := util.GetSecondaryArrayLUNIds(volume.SecondaryArrayDetails)
+
+		if len(lunIdArray) > 0 {
 			// There are secondary LUN's to scan on FC
-			for _, lun_id := range strings.Split(volume.SecondaryLunIDs, ",") {
-				err = RescanFcTarget(lun_id)
+			for _, lun_id := range lunIdArray {
+				err = RescanFcTarget(strconv.Itoa(int(lun_id)))
 				if err != nil {
 					return err
 				}
@@ -563,9 +565,10 @@ func handleOrphanPaths(volume *model.Volume) error {
 	if err != nil {
 		return err
 	}
-	if len(volume.SecondaryLunIDs) > 0 {
-		for _, lunID := range strings.Split(volume.SecondaryLunIDs, ",") {
-			err := handleOrphanPathsForSpecificLunId(lunID)
+	lunIdArray := util.GetSecondaryArrayLUNIds(volume.SecondaryArrayDetails)
+	if len(lunIdArray) > 0 {
+		for _, lunID := range lunIdArray {
+			err := handleOrphanPathsForSpecificLunId(strconv.Itoa(int(lunID)))
 			if err != nil {
 				return err
 			}
@@ -622,9 +625,10 @@ func handleRemappedLun(volume *model.Volume) (err error) {
 	if err != nil {
 		return err
 	}
-	if len(volume.SecondaryLunIDs) > 0 {
-		for _, lunID = range strings.Split(volume.SecondaryLunIDs, ",") {
-			err = handleRemapForSpecificLunID(volume.SerialNumber, "0"+lunID, volume.AccessProtocol)
+	lunIdArray := util.GetSecondaryArrayLUNIds(volume.SecondaryArrayDetails)
+	if len(lunIdArray) > 0 {
+		for _, secLunID := range lunIdArray {
+			err = handleRemapForSpecificLunID(volume.SerialNumber, "0"+strconv.Itoa(int(secLunID)), volume.AccessProtocol)
 			if err != nil {
 				return err
 			}

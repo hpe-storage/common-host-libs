@@ -166,36 +166,37 @@ type DevicePartition struct {
 
 // Volume : Thin version of Volume object for Host side
 type Volume struct {
-	ID                   string                 `json:"id,omitempty"`
-	Name                 string                 `json:"name,omitempty"`
-	Size                 int64                  `json:"size,omitempty"` // size in bytes
-	Description          string                 `json:"description,omitempty"`
-	InUse                bool                   `json:"in_use,omitempty"` // deprecated for published in the CSP implementation
-	Published            bool                   `json:"published,omitempty"`
-	BaseSnapID           string                 `json:"base_snapshot_id,omitempty"`
-	ParentVolID          string                 `json:"parent_volume_id,omitempty"`
-	Clone                bool                   `json:"clone,omitempty"`
-	Config               map[string]interface{} `json:"config,omitempty"`
-	Metadata             []*KeyValue            `json:"metadata,omitempty"`
-	SerialNumber         string                 `json:"serial_number,omitempty"`
-	AccessProtocol       string                 `json:"access_protocol,omitempty"`
-	Iqn                  string                 `json:"iqn,omitempty"` // deprecated
-	Iqns                 []string               `json:"iqns,omitempty"`
-	DiscoveryIP          string                 `json:"discovery_ip,omitempty"` // deprecated
-	DiscoveryIPs         []string               `json:"discovery_ips,omitempty"`
-	MountPoint           string                 `json:"Mountpoint,omitempty"`
-	Status               map[string]interface{} `json:"status,omitempty"` // interface so that we can map any number of arguments
-	Chap                 *ChapInfo              `json:"chap_info,omitempty"`
-	Networks             []*NetworkInterface    `json:"networks,omitempty"`
-	ConnectionMode       string                 `json:"connection_mode,omitempty"`
-	LunID                string                 `json:"lun_id,omitempty"`
-	SecondaryLunIDs      string                 `json:"secondary_lun_ids,omitempty"`
-	SecondaryTargetNames string                 `json:"secondary_target_names,omitempty"`
-	SecondaryDiscoverIps string                 `json:"secondary_discovery_ips,omitempty"`
-	TargetScope          string                 `json:"target_scope,omitempty"` //GST="group", VST="volume" or empty(older array fiji etc), and no-op for FC
-	IscsiSessions        []*IscsiSession        `json:"iscsi_sessions,omitempty"`
-	FcSessions           []*FcSession           `json:"fc_sessions,omitempty"`
-	VolumeGroupId        string                 `json:"volume_group_id"`
+	ID                    string                 `json:"id,omitempty"`
+	Name                  string                 `json:"name,omitempty"`
+	Size                  int64                  `json:"size,omitempty"` // size in bytes
+	Description           string                 `json:"description,omitempty"`
+	InUse                 bool                   `json:"in_use,omitempty"` // deprecated for published in the CSP implementation
+	Published             bool                   `json:"published,omitempty"`
+	BaseSnapID            string                 `json:"base_snapshot_id,omitempty"`
+	ParentVolID           string                 `json:"parent_volume_id,omitempty"`
+	Clone                 bool                   `json:"clone,omitempty"`
+	Config                map[string]interface{} `json:"config,omitempty"`
+	Metadata              []*KeyValue            `json:"metadata,omitempty"`
+	SerialNumber          string                 `json:"serial_number,omitempty"`
+	AccessProtocol        string                 `json:"access_protocol,omitempty"`
+	Iqn                   string                 `json:"iqn,omitempty"` // deprecated
+	Iqns                  []string               `json:"iqns,omitempty"`
+	DiscoveryIP           string                 `json:"discovery_ip,omitempty"` // deprecated
+	DiscoveryIPs          []string               `json:"discovery_ips,omitempty"`
+	MountPoint            string                 `json:"Mountpoint,omitempty"`
+	Status                map[string]interface{} `json:"status,omitempty"` // interface so that we can map any number of arguments
+	Chap                  *ChapInfo              `json:"chap_info,omitempty"`
+	Networks              []*NetworkInterface    `json:"networks,omitempty"`
+	ConnectionMode        string                 `json:"connection_mode,omitempty"`
+	LunID                 string                 `json:"lun_id,omitempty"`
+	SecondaryLunIDs       string                 `json:"secondary_lun_ids,omitempty"`
+	SecondaryTargetNames  string                 `json:"secondary_target_names,omitempty"`
+	SecondaryDiscoverIps  string                 `json:"secondary_discovery_ips,omitempty"`
+	TargetScope           string                 `json:"target_scope,omitempty"` //GST="group", VST="volume" or empty(older array fiji etc), and no-op for FC
+	IscsiSessions         []*IscsiSession        `json:"iscsi_sessions,omitempty"`
+	FcSessions            []*FcSession           `json:"fc_sessions,omitempty"`
+	VolumeGroupId         string                 `json:"volume_group_id"`
+	SecondaryArrayDetails string                 `json:"secondary_array_details"`
 }
 
 func (v Volume) TargetNames() []string {
