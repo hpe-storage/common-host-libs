@@ -189,9 +189,6 @@ type Volume struct {
 	Networks              []*NetworkInterface    `json:"networks,omitempty"`
 	ConnectionMode        string                 `json:"connection_mode,omitempty"`
 	LunID                 string                 `json:"lun_id,omitempty"`
-	SecondaryLunIDs       string                 `json:"secondary_lun_ids,omitempty"`
-	SecondaryTargetNames  string                 `json:"secondary_target_names,omitempty"`
-	SecondaryDiscoverIps  string                 `json:"secondary_discovery_ips,omitempty"`
 	TargetScope           string                 `json:"target_scope,omitempty"` //GST="group", VST="volume" or empty(older array fiji etc), and no-op for FC
 	IscsiSessions         []*IscsiSession        `json:"iscsi_sessions,omitempty"`
 	FcSessions            []*FcSession           `json:"fc_sessions,omitempty"`
