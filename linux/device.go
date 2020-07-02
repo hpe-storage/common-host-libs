@@ -267,7 +267,7 @@ func GetLinuxDmDevices(needActivePath bool, vol *model.Volume) (a []*model.Devic
 						// handle lunID conflict when lunID is passed
 						if vol.LunID != "" && hcils[3] != vol.LunID &&
 							// lun id passed is not part of peer lun ids in case of peer persistence
-							!isLunIdPresentIn(hcils[3], vol.SecondaryLunIDs) {
+							!isLunIdPresentIn(hcils[3], util.GetSecondaryArrayLUNIds(vol.SecondaryArrayDetails)) {
 							device.State = model.LunIDConflict.String()
 							// delete the path which have a mismatch and continue with other paths
 							log.Warnf("device with serial %s has path with lunId %s instead of %s. Deleting path %s.", vol.SerialNumber, strings.Split(path.Hcil, ":")[3], vol.LunID, path.Hcil)
@@ -328,9 +328,9 @@ func GetLinuxDmDevices(needActivePath bool, vol *model.Volume) (a []*model.Devic
 	}
 	return devices, nil
 }
-func isLunIdPresentIn(searchLun string, luns string) bool {
-	for _, lun_id := range strings.Split(luns, ",") {
-		if searchLun == lun_id {
+func isLunIdPresentIn(searchLun string, luns []int32) bool {
+	for _, lun_id := range luns{
+		if searchLun == strconv.Itoa(int(lun_id)) {
 			return true
 		}
 	}

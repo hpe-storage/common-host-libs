@@ -33,7 +33,7 @@ func GetSecondaryArrayTargetNames(details string) []string {
 	var secondaryArrayDetails model.SecondaryBackendDetails
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
-		logger.Tracef("\n Error in GetSecondaryArrayLUNIds %s", err.Error())
+		logger.Tracef("\n Error in GetSecondaryArrayTargetNames %s", err.Error())
 	}
 	numberOfSecondaryBackends := len(secondaryArrayDetails.PeerArrayDetails)
 	var secondaryTargetNames []string
@@ -49,7 +49,7 @@ func GetSecondaryArrayDiscoveryIps(details string) []string {
 	var secondaryArrayDetails model.SecondaryBackendDetails
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
-		logger.Tracef("\n Error in GetSecondaryArrayLUNIds %s", err.Error())
+		logger.Tracef("\n Error in GetSecondaryArrayDiscoveryIps %s", err.Error())
 	}
 	numberOfSecondaryBackends := len(secondaryArrayDetails.PeerArrayDetails)
 	var secondaryDiscoverIps []string
