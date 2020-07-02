@@ -4,12 +4,14 @@ package tunelinux
 import (
 	"encoding/json"
 	"errors"
-	"github.com/hpe-storage/common-host-libs/linux"
-	log "github.com/hpe-storage/common-host-libs/logger"
-	"github.com/hpe-storage/common-host-libs/util"
 	"io/ioutil"
 	"os"
 	"sync"
+
+	"github.com/hpe-storage/common-host-libs/linux"
+	log "github.com/hpe-storage/common-host-libs/logger"
+	"github.com/hpe-storage/common-host-libs/model"
+	"github.com/hpe-storage/common-host-libs/util"
 )
 
 // Category recommendation category type
@@ -143,6 +145,10 @@ var (
 	configLock = new(sync.RWMutex)
 	// ConfigFile file path of template settings for recommendation.
 	ConfigFile = GetConfigFile()
+	// ChapConfigFile Config File path
+	ChapConfigFile = GetChapConfigFile()
+	// ChapSettings chap info settings
+	ChapSettings = new(model.ChapInfo)
 )
 
 const (
@@ -172,9 +178,38 @@ func GetConfigFile() (configFile string) {
 	return "./config.json"
 }
 
+// GetChapConfigFile get chap.json path
+func GetChapConfigFile() (configFile string) {
+	// TODO: check if we need to add any other paths for chap other than container plugins
+	return "/opt/hpe-storage/nimbletune/chap.json"
+}
+
 // SetConfigFile sets the config file path (overrides the default value)
 func SetConfigFile(configFile string) {
 	ConfigFile = configFile
+}
+
+func loadIscsiChapSettings() error {
+	configLock.Lock()
+	defer configLock.Unlock()
+
+	if ChapSettings.Name != "" && ChapSettings.Password != "" {
+		log.Trace("ChapSettings is already set")
+		return nil
+	}
+
+	log.Traceln("Reading ChapConfigFile: ", ChapConfigFile)
+	file, err := ioutil.ReadFile(ChapConfigFile)
+	if err != nil {
+		log.Error("ChapConfigFile read error: ", err.Error())
+		return err
+	}
+	err = json.Unmarshal(file, ChapSettings)
+	if err != nil {
+		log.Error("ChapConfigFile Unmarshall error: ", err.Error())
+		return err
+	}
+	return nil
 }
 
 // loadTemplateSettings synchronize and load configuration for template of recommended settings

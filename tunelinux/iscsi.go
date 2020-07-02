@@ -3,13 +3,14 @@ package tunelinux
 // Copyright 2019 Hewlett Packard Enterprise Development LP.
 import (
 	"errors"
-	"github.com/hpe-storage/common-host-libs/linux"
-	log "github.com/hpe-storage/common-host-libs/logger"
-	"github.com/hpe-storage/common-host-libs/util"
 	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
+
+	"github.com/hpe-storage/common-host-libs/linux"
+	log "github.com/hpe-storage/common-host-libs/logger"
+	"github.com/hpe-storage/common-host-libs/util"
 )
 
 const (
@@ -35,7 +36,8 @@ var (
 		"noop_out_timeout":    "node.conn[0].timeo.noop_out_timeout",
 		"noop_out_interval":   "node.conn[0].timeo.noop_out_interval",
 		"replacement_timeout": "node.session.timeo.replacement_timeout",
-		"nr_sessions":         "node.session.nr_sessions"}
+		"nr_sessions":         "node.session.nr_sessions",
+	}
 
 	// used to verify parameter settings in iscisd.conf
 	iscsiParamPatternMap = map[string]string{
@@ -46,7 +48,7 @@ var (
 		"noop_out_timeout":    noopOutTimeoutPattern,
 		"noop_out_interval":   noopOutTimeoutIntervalPattern,
 		"replacement_timeout": replacementTimeoutPattern,
-		"nr_sessions":         nrSessionsPattern}
+	}
 )
 
 // getIscsiParamRecommendation get the recommendation for given parameter and value
@@ -387,6 +389,16 @@ func SetIscsiRecommendations(global bool) (err error) {
 		log.Info("No further iSCSI recommendations are found for this host")
 	}
 	return nil
+}
+
+// GetIscsiChapSettings retrieves chap settings
+func GetIscsiChapSettings() (string, string, error) {
+	err := loadIscsiChapSettings()
+	if err != nil {
+		return "", "", err
+	}
+	log.Trace("retrieved ChapSettings for User ", ChapSettings.Name)
+	return ChapSettings.Name, ChapSettings.Password, nil
 }
 
 // ConfigureIscsi verifies and install necessary iSCSI packages if not present. It also makes sure if service is running.

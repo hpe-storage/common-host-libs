@@ -4,10 +4,6 @@ package linux
 
 import (
 	"fmt"
-	log "github.com/hpe-storage/common-host-libs/logger"
-	"github.com/hpe-storage/common-host-libs/model"
-	"github.com/hpe-storage/common-host-libs/util"
-	ping "github.com/sparrc/go-ping"
 	"io/ioutil"
 	"net"
 	"os"
@@ -16,6 +12,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	log "github.com/hpe-storage/common-host-libs/logger"
+	"github.com/hpe-storage/common-host-libs/model"
+	"github.com/hpe-storage/common-host-libs/util"
+	ping "github.com/sparrc/go-ping"
 )
 
 const (
@@ -45,6 +46,7 @@ const (
 	chapPasswordMaxLen      = 16
 	nodeChapUser            = "node.session.auth.username"
 	nodeChapPassword        = "node.session.auth.password"
+	nodeChapAuthmethod      = "node.session.auth.authmethod"
 	iscsiHostScanPathFormat = "/sys/class/scsi_host/%s/scan"
 	alreadyPresent          = "already present"
 	endPointNotConnected    = "transport endpoint is not connected"
@@ -193,6 +195,7 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 		return err
 	}
 
+	// TODO : update chap info for logged in sessions
 	if !loggedIn {
 		loginToVolume(volume)
 	}
@@ -220,6 +223,11 @@ func loginToTarget(targets model.IscsiTargets, targetIqn string, ifaces []*model
 			log.Debug("Found target :", "Target:", targetIqn)
 			// Update Chap credentials
 			if chapUser != "" && chapPassword != "" {
+				// update chap auth method
+				err = updateChapAuthmethod(target)
+				if err != nil {
+					return err
+				}
 				err = updateChapUser(target, chapUser)
 				if err != nil {
 					return err
@@ -327,6 +335,23 @@ func updateConnectionMode(target *model.IscsiTarget, targets model.IscsiTargets,
 		}
 	}
 	return
+}
+
+// update chap authmethod
+func updateChapAuthmethod(target *model.IscsiTarget) (err error) {
+	log.Tracef(">>>>> updateChapAuthmethod for target %s", target.Name)
+	defer log.Trace("<<<<< updateChapAuthmethod")
+	iscsiMutex.Lock()
+	defer iscsiMutex.Unlock()
+
+	args := []string{"--mode", "node", "--targetname", target.Name, "--portal", target.Address, "--op", "update", "-n", nodeChapAuthmethod, "-v", "CHAP"}
+	_, _, err = util.ExecCommandOutput(iscsicmd, args)
+	if err != nil {
+		log.Errorf("Unable to update chap authmethod for target %s error %s", target.Name, err.Error())
+		return fmt.Errorf("Unable to update chap authmethod for target %s error %s", target.Name, err.Error())
+	}
+	return nil
+
 }
 
 // updates iscsi node db with given chap username
@@ -985,4 +1010,3 @@ func bindIface(network model.NetworkInterface) error {
 	}
 	return nil
 }
-
