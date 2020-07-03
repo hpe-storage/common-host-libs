@@ -175,7 +175,17 @@ func loginToVolume(volume *model.Volume) (err error) {
 	}
 
 	// login to all targets for given volume
-	for _, target := range volume.TargetNames() {
+
+        var combinedTargetsNames []string
+        combinedTargetsNames = volume.TargetNames()
+
+        if len(secondaryTargetList) > 0 {
+                for _, val := range secondaryTargetList {
+                        combinedTargetsNames = append(combinedTargetsNames, val)
+                }
+        }
+        log.Tracef("\nCOMBINED target names %v", combinedTargetsNames)
+	for _, target := range combinedTargetsNames {
 		if volume.Chap == nil {
 			err = loginToTarget(discoveredTargets, target, ifaces, "", "", volume.ConnectionMode)
 		} else {
