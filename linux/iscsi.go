@@ -150,11 +150,12 @@ func loginToVolume(volume *model.Volume) (err error) {
 		reachablePortals, _ = getReachableDiscoveryPortals(volume.DiscoveryIPs, true)
 	}
 	secondaryTargetList := util.GetSecondaryArrayTargetNames(volume.SecondaryArrayDetails)
+	secondaryTargetDiscoveryIps := util.GetSecondaryArrayDiscoveryIps(volume.SecondaryArrayDetails)
 	if len(secondaryTargetList) > 1 {
 		// if multiple targets for single volume, then fetch all reachable discovery portals
-		reachablePortals, _ = getReachableDiscoveryPortals(secondaryTargetList, false)
+		reachablePortals, _ = getReachableDiscoveryPortals(secondaryTargetDiscoveryIps, false)
 	} else {
-		reachablePortals, _ = getReachableDiscoveryPortals(secondaryTargetList, true)
+		reachablePortals, _ = getReachableDiscoveryPortals(secondaryTargetDiscoveryIps, true)
 	}
 	if len(reachablePortals) == 0 {
 		return fmt.Errorf("none of the discovery portals provided [%+v] are reachable", volume.DiscoveryIPs)
