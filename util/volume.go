@@ -17,6 +17,7 @@ func GetVolumeObject(serialNumber, lunID string) *model.Volume {
 
 func GetSecondaryArrayLUNIds(details string) []int32 {
 	var secondaryArrayDetails model.SecondaryBackendDetails
+	logger.Tracef("\n About to unmarshal %s", details)
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
 		logger.Tracef("\n Error in GetSecondaryArrayLUNIds %s", err.Error())
@@ -33,6 +34,7 @@ func GetSecondaryArrayLUNIds(details string) []int32 {
 
 func GetSecondaryArrayTargetNames(details string) []string {
 	var secondaryArrayDetails model.SecondaryBackendDetails
+	logger.Tracef("\n About to unmarshal %s", details)
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
 		logger.Tracef("\n Error in GetSecondaryArrayTargetNames %s", err.Error())
@@ -51,6 +53,7 @@ func GetSecondaryArrayTargetNames(details string) []string {
 
 func GetSecondaryArrayDiscoveryIps(details string) []string {
 	var secondaryArrayDetails model.SecondaryBackendDetails
+	logger.Tracef("\n About to unmarshal %s", details)
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
 		logger.Tracef("\n Error in GetSecondaryArrayDiscoveryIps %s", err.Error())

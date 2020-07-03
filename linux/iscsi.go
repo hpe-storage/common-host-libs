@@ -197,11 +197,13 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 
 	// determine if all required targets are already logged-in
 	var combinedTargetsNames []string
-	combinedTargetsNames = append(volume.TargetNames())
+	combinedTargetsNames = volume.TargetNames()
 
 	secondaryTargetList := util.GetSecondaryArrayTargetNames(volume.SecondaryArrayDetails)
 	if len(secondaryTargetList) > 0 {
-		combinedTargetsNames = append(secondaryTargetList)
+		for _, val := range secondaryTargetList {
+			combinedTargetsNames = append(combinedTargetsNames, val)
+		}
 	}
 	log.Tracef("\nCOMBINED target names %v", combinedTargetsNames)
 
