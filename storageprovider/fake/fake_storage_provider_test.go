@@ -10,12 +10,13 @@ import (
 )
 
 const (
-	volumeName      = "testCspVol"
-	volumeSize      = 1024 * 1024 * 1024
-	snapshotName    = "testCspSnapshot"
-	cloneName       = "testCspVolClone"
-	cloneSize       = 2 * 1024 * 1024 * 1024
-	volumeGroupName = "testCspVolumeGroup"
+	volumeName        = "testCspVol"
+	volumeSize        = 1024 * 1024 * 1024
+	snapshotName      = "testCspSnapshot"
+	cloneName         = "testCspVolClone"
+	cloneSize         = 2 * 1024 * 1024 * 1024
+	volumeGroupName   = "testCspVolumeGroup"
+	snapshotGroupName = "testCspSnapshotGroup"
 )
 
 // nolint: gocyclo
@@ -109,6 +110,18 @@ func TestPluginSuite(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to create volume group" + volumeGroupName)
 	}
+
+	// Create Snapshot Group
+	config["test"] = "test"
+
+	snapshotGroup, err := provider.CreateSnapshotGroup(snapshotGroupName, volumeGroup.ID, config)
+	if err != nil {
+		t.Fatal("Failed to create snapshot group" + snapshotGroupName)
+	}
+
+	// Delete the Snapshot Group
+	deleteSnapshotGroup(t, provider, snapshotGroup)
+
 	// Delete the Volume Group
 	deleteVolumeGroup(t, provider, volumeGroup)
 
@@ -149,6 +162,14 @@ func deleteVolume(t *testing.T, provider *StorageProvider, volume *model.Volume)
 		t.Fatal("Error retrieving volume. Error: " + err.Error())
 	}
 	assert.Nil(t, volume)
+}
+
+// nolint: dupl
+func deleteSnapshotGroup(t *testing.T, provider *StorageProvider, snapshotGroup *model.SnapshotGroup) {
+	err := provider.DeleteSnapshotGroup(snapshotGroup.ID)
+	if err != nil {
+		t.Fatal("Could not delete snapshot group" + snapshotGroup.Name + ".  Error: " + err.Error())
+	}
 }
 
 // nolint: dupl
