@@ -151,7 +151,7 @@ func loginToVolume(volume *model.Volume) (err error) {
 	}
 	secondaryTargetList := util.GetSecondaryArrayTargetNames(volume.SecondaryArrayDetails)
 	secondaryTargetDiscoveryIps := util.GetSecondaryArrayDiscoveryIps(volume.SecondaryArrayDetails)
-	if len(secondaryTargetList) > 1 {
+	if len(secondaryTargetList) > 0 {
 		// if multiple targets for single volume, then fetch all reachable discovery portals
 		reachablePortals, _ = getReachableDiscoveryPortals(secondaryTargetDiscoveryIps, false)
 	} else {
