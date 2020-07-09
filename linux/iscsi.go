@@ -149,14 +149,7 @@ func loginToVolume(volume *model.Volume) (err error) {
 	} else {
 		reachablePortals, _ = getReachableDiscoveryPortals(volume.DiscoveryIPs, true)
 	}
-	secondaryTargetList := util.GetSecondaryArrayTargetNames(volume.SecondaryArrayDetails)
-	secondaryTargetDiscoveryIps := util.GetSecondaryArrayDiscoveryIps(volume.SecondaryArrayDetails)
-	if len(secondaryTargetList) > 0 {
-		// if multiple targets for single volume, then fetch all reachable discovery portals
-		reachablePortals, _ = getReachableDiscoveryPortals(secondaryTargetDiscoveryIps, false)
-	} else {
-		reachablePortals, _ = getReachableDiscoveryPortals(secondaryTargetDiscoveryIps, true)
-	}
+
 	if len(reachablePortals) == 0 {
 		return fmt.Errorf("none of the discovery portals provided [%+v] are reachable", volume.DiscoveryIPs)
 	}
@@ -176,16 +169,7 @@ func loginToVolume(volume *model.Volume) (err error) {
 
 	// login to all targets for given volume
 
-        var combinedTargetsNames []string
-        combinedTargetsNames = volume.TargetNames()
-
-        if len(secondaryTargetList) > 0 {
-                for _, val := range secondaryTargetList {
-                        combinedTargetsNames = append(combinedTargetsNames, val)
-                }
-        }
-        log.Tracef("\nCOMBINED target names %v", combinedTargetsNames)
-	for _, target := range combinedTargetsNames {
+	for _, target := range volume.TargetNames() {
 		if volume.Chap == nil {
 			err = loginToTarget(discoveredTargets, target, ifaces, "", "", volume.ConnectionMode)
 		} else {
@@ -205,19 +189,46 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 	log.Tracef(">>>>> HandleIscsiDiscovery for volume %s, lun %s", volume.SerialNumber, volume.LunID)
 	defer log.Tracef("<<<<< HandleIscsiDiscovery")
 
-	// determine if all required targets are already logged-in
-	var combinedTargetsNames []string
-	combinedTargetsNames = volume.TargetNames()
+	// Do iscsi discovery for Primary Backend
 
-	secondaryTargetList := util.GetSecondaryArrayTargetNames(volume.SecondaryArrayDetails)
-	if len(secondaryTargetList) > 0 {
-		for _, val := range secondaryTargetList {
-			combinedTargetsNames = append(combinedTargetsNames, val)
-		}
+	var primaryVolObj *model.Volume
+	primaryVolObj = &model.Volume{}
+	primaryVolObj.LunID = volume.LunID
+	primaryVolObj.Iqns = volume.Iqns
+	primaryVolObj.TargetScope = volume.TargetScope
+	primaryVolObj.DiscoveryIPs = volume.DiscoveryIPs
+	primaryVolObj.Chap = volume.Chap
+	primaryVolObj.ConnectionMode = volume.ConnectionMode
+	primaryVolObj.SerialNumber = volume.SerialNumber
+
+	err = handleIscsiDiscoveryForBackend(primaryVolObj, true)
+
+	if err != nil {
+		return err
 	}
-	log.Tracef("\nCOMBINED target names %v", combinedTargetsNames)
+	secondaryBackends := util.GetSecondaryBackends(volume.SecondaryArrayDetails)
 
-	loggedIn, err := areTargetsLoggedIn(combinedTargetsNames)
+	for _, secondaryLunInfo := range secondaryBackends {
+		// Do iscsi discovery for Each Secondary Backend
+		var secondaryVolObj *model.Volume
+		secondaryVolObj = &model.Volume{}
+		secondaryVolObj.LunID = strconv.Itoa(int(secondaryLunInfo.LunID))
+		secondaryVolObj.Iqns = secondaryLunInfo.TargetNames
+		secondaryVolObj.TargetScope = volume.TargetScope
+		secondaryVolObj.DiscoveryIPs = secondaryLunInfo.DiscoveryIPs
+		secondaryVolObj.Chap = volume.Chap
+		secondaryVolObj.ConnectionMode = volume.ConnectionMode
+		secondaryVolObj.SerialNumber = volume.SerialNumber
+
+		err = handleIscsiDiscoveryForBackend(secondaryVolObj, true)
+	}
+	return nil
+}
+func handleIscsiDiscoveryForBackend(volume *model.Volume, isPrimaryBackend bool) (err error) {
+	log.Tracef(">>>>> handleIscsiDiscoveryForBackend for volume obj : %v, isPrimary %v", volume, isPrimaryBackend)
+	defer log.Tracef("<<<<< handleIscsiDiscoveryForBackend")
+	// determine if all required targets are already logged-in
+	loggedIn, err := areTargetsLoggedIn(volume.TargetNames())
 	if err != nil {
 		return err
 	}
@@ -237,17 +248,7 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 		log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 		return fmt.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 	}
-	lunIdList := util.GetSecondaryArrayLUNIds(volume.SecondaryArrayDetails)
-	if len(lunIdList) > 0 {
-		// There are secondary LUN's to scan on FC
-		for _, lun_id := range lunIdList {
-			err = RescanIscsi(strconv.Itoa(int(lun_id)))
-			if err != nil {
-				log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
-				return fmt.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
-			}
-		}
-	}
+
 	return nil
 }
 

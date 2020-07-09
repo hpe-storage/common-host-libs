@@ -292,7 +292,7 @@ type BlockDeviceAccessInfo struct {
 
 // Information of LUN id, IQN, discovery IP's the secondary array
 type SecondaryBackendDetails struct {
-	PeerArrayDetails []SecondaryLunInfo
+	PeerArrayDetails []*SecondaryLunInfo
 }
 
 // Information of the each secondary array

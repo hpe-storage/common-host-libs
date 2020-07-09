@@ -1,3 +1,5 @@
+// Copyright 2020 Hewlett Packard Enterprise Development LP
+
 package util
 
 import (
@@ -7,7 +9,8 @@ import (
 )
 
 func GetVolumeObject(serialNumber, lunID string) *model.Volume {
-
+	logger.Tracef(">>>>> GetVolumeObject %s, %s", serialNumber, lunID)
+	defer logger.Tracef("<<<< GetVolumeObject")
 	var volObj *model.Volume
 	volObj.SerialNumber = serialNumber
 	volObj.LunID = lunID
@@ -16,12 +19,13 @@ func GetVolumeObject(serialNumber, lunID string) *model.Volume {
 }
 
 func GetSecondaryArrayLUNIds(details string) []int32 {
+	logger.Tracef(">>>>> GetSecondaryArrayLUNIds %s", details)
+	defer logger.Tracef("<<<< GetSecondaryArrayLUNIds")
 	var secondaryArrayDetails model.SecondaryBackendDetails
 	logger.Tracef("\n About to unmarshal %s", details)
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
 		logger.Tracef("\n Error in GetSecondaryArrayLUNIds %s", err.Error())
-		logger.Tracef("\n Passed string: %s", details)
 		return []int32{}
 	}
 	numberOfSecondaryBackends := len(secondaryArrayDetails.PeerArrayDetails)
@@ -33,12 +37,13 @@ func GetSecondaryArrayLUNIds(details string) []int32 {
 }
 
 func GetSecondaryArrayTargetNames(details string) []string {
+	logger.Tracef(">>>>> GetSecondaryArrayTargetNames %s", details)
+	defer logger.Tracef("<<<< GetSecondaryArrayTargetNames")
 	var secondaryArrayDetails model.SecondaryBackendDetails
 	logger.Tracef("\n About to unmarshal %s", details)
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
 		logger.Tracef("\n Error in GetSecondaryArrayTargetNames %s", err.Error())
-		logger.Tracef("\n Passed details %s", details)
 		return []string{}
 	}
 	numberOfSecondaryBackends := len(secondaryArrayDetails.PeerArrayDetails)
@@ -52,12 +57,13 @@ func GetSecondaryArrayTargetNames(details string) []string {
 }
 
 func GetSecondaryArrayDiscoveryIps(details string) []string {
+	logger.Tracef(">>>>> GetSecondaryArrayDiscoveryIps %s", details)
+	defer logger.Tracef("<<<< GetSecondaryArrayDiscoveryIps")
 	var secondaryArrayDetails model.SecondaryBackendDetails
 	logger.Tracef("\n About to unmarshal %s", details)
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
 		logger.Tracef("\n Error in GetSecondaryArrayDiscoveryIps %s", err.Error())
-		logger.Tracef("\n Passed details %s", details)
 		return []string{}
 	}
 	numberOfSecondaryBackends := len(secondaryArrayDetails.PeerArrayDetails)
@@ -68,4 +74,19 @@ func GetSecondaryArrayDiscoveryIps(details string) []string {
 		}
 	}
 	return secondaryDiscoverIps
+}
+
+func GetSecondaryBackends(details string) []*model.SecondaryLunInfo {
+	logger.Tracef(">>>>> GetSecondaryBackends %s", details)
+	defer logger.Tracef("<<<< GetSecondaryBackends")
+	var secondaryArrayDetails model.SecondaryBackendDetails
+	logger.Tracef("\n About to unmarshal %s", details)
+	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
+	if err != nil {
+		logger.Tracef("\n Error in GetSecondaryBackends %s", err.Error())
+		logger.Tracef("\n Passed details %s", details)
+		return nil
+	}
+	return secondaryArrayDetails.PeerArrayDetails
+
 }

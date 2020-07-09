@@ -329,7 +329,7 @@ func GetLinuxDmDevices(needActivePath bool, vol *model.Volume) (a []*model.Devic
 	return devices, nil
 }
 func isLunIdPresentIn(searchLun string, luns []int32) bool {
-	for _, lun_id := range luns{
+	for _, lun_id := range luns {
 		if searchLun == strconv.Itoa(int(lun_id)) {
 			return true
 		}
@@ -385,37 +385,75 @@ func setAltFullPathName(dev *model.Device) (err error) {
 
 // Helper function to perform rescan and detect the newly attached volume (FC/iSCSI volume)
 func rescanLoginVolume(volume *model.Volume) error {
-	log.Traceln("Called rescanVolume", volume.Name, "and accessProtocol", volume.AccessProtocol)
+	log.Traceln(">>>>> rescanLoginVolume %v", volume, "and accessProtocol", volume.AccessProtocol)
+	defer log.Traceln("<<<< rescanLoginVolume")
 	var err error
-	if strings.EqualFold(volume.AccessProtocol, "fc") {
-		// FC volume
+	var primaryVolObj *model.Volume
+	primaryVolObj = &model.Volume{}
+	primaryVolObj.Name = volume.Name
+	primaryVolObj.AccessProtocol = volume.AccessProtocol
+	primaryVolObj.LunID = volume.LunID
+	primaryVolObj.Iqns = volume.Iqns
+	primaryVolObj.TargetScope = volume.TargetScope
+	primaryVolObj.DiscoveryIPs = volume.DiscoveryIPs
+	primaryVolObj.Chap = volume.Chap
+	primaryVolObj.ConnectionMode = volume.ConnectionMode
+	primaryVolObj.SerialNumber = volume.SerialNumber
+	primaryVolObj.Networks = volume.Networks
 
-		err = RescanFcTarget(volume.LunID)
+	err = rescanLoginVolumeForBackend(primaryVolObj)
+
+	if err != nil {
+		return err
+	}
+
+	secondaryBackends := util.GetSecondaryBackends(volume.SecondaryArrayDetails)
+
+	for _, secondaryLunInfo := range secondaryBackends {
+		// Do iscsi discovery for Each Secondary Backend
+		var secondaryVolObj *model.Volume
+		secondaryVolObj = &model.Volume{}
+		secondaryVolObj.Name = volume.Name
+		secondaryVolObj.AccessProtocol = volume.AccessProtocol
+		secondaryVolObj.LunID = strconv.Itoa(int(secondaryLunInfo.LunID))
+		secondaryVolObj.Iqns = secondaryLunInfo.TargetNames
+		secondaryVolObj.TargetScope = volume.TargetScope
+		secondaryVolObj.DiscoveryIPs = secondaryLunInfo.DiscoveryIPs
+		secondaryVolObj.Chap = volume.Chap
+		secondaryVolObj.ConnectionMode = volume.ConnectionMode
+		secondaryVolObj.SerialNumber = volume.SerialNumber
+		secondaryVolObj.Networks = volume.Networks
+
+		err = rescanLoginVolumeForBackend(secondaryVolObj)
 		if err != nil {
 			return err
 		}
-		lunIdArray := util.GetSecondaryArrayLUNIds(volume.SecondaryArrayDetails)
+	}
+	return nil
+}
 
-		if len(lunIdArray) > 0 {
-			// There are secondary LUN's to scan on FC
-			for _, lun_id := range lunIdArray {
-				err = RescanFcTarget(strconv.Itoa(int(lun_id)))
-				if err != nil {
-					return err
-				}
-			}
+func rescanLoginVolumeForBackend(volObj *model.Volume) error {
+
+	log.Traceln("Called rescanLoginVolumeForBackend %v", volObj, "and accessProtocol", volObj.AccessProtocol)
+	var err error
+	if strings.EqualFold(volObj.AccessProtocol, "fc") {
+		// FC volume
+
+		err = RescanFcTarget(volObj.LunID)
+		if err != nil {
+			return err
 		}
 	} else {
 		// Check if client intends us to specifically login using multiple IP addresses(cloud volumes)
-		if len(volume.Networks) > 0 {
+		if len(volObj.Networks) > 0 {
 			// check if ifaces are created and enable port binding
-			err = addIscsiPortBinding(volume.Networks)
+			err = addIscsiPortBinding(volObj.Networks)
 			if err != nil {
 				return err
 			}
 		}
 		// iSCSI volume
-		err = HandleIscsiDiscovery(volume)
+		err = HandleIscsiDiscovery(volObj)
 		if err != nil {
 			return err
 		}
