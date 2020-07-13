@@ -12,6 +12,7 @@ func GetVolumeObject(serialNumber, lunID string) *model.Volume {
 	logger.Tracef(">>>>> GetVolumeObject %s, %s", serialNumber, lunID)
 	defer logger.Tracef("<<<< GetVolumeObject")
 	var volObj *model.Volume
+	volObj = &model.Volume{}
 	volObj.SerialNumber = serialNumber
 	volObj.LunID = lunID
 
