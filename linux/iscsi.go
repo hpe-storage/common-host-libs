@@ -4,10 +4,6 @@ package linux
 
 import (
 	"fmt"
-	log "github.com/hpe-storage/common-host-libs/logger"
-	"github.com/hpe-storage/common-host-libs/model"
-	"github.com/hpe-storage/common-host-libs/util"
-	ping "github.com/sparrc/go-ping"
 	"io/ioutil"
 	"net"
 	"os"
@@ -16,6 +12,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	log "github.com/hpe-storage/common-host-libs/logger"
+	"github.com/hpe-storage/common-host-libs/model"
+	"github.com/hpe-storage/common-host-libs/util"
+	ping "github.com/sparrc/go-ping"
 )
 
 const (
@@ -220,11 +221,11 @@ func loginToTarget(targets model.IscsiTargets, targetIqn string, ifaces []*model
 			log.Debug("Found target :", "Target:", targetIqn)
 			// Update Chap credentials
 			if chapUser != "" && chapPassword != "" {
-				err = updateChapUser(target, chapUser)
+				err = updateChapUser(target, targets, chapUser)
 				if err != nil {
 					return err
 				}
-				err = updateChapPassword(target, chapPassword)
+				err = updateChapPassword(target, targets, chapPassword)
 				if err != nil {
 					return err
 				}
@@ -330,36 +331,49 @@ func updateConnectionMode(target *model.IscsiTarget, targets model.IscsiTargets,
 }
 
 // updates iscsi node db with given chap username
-func updateChapUser(target *model.IscsiTarget, chapUser string) (err error) {
+func updateChapUser(target *model.IscsiTarget,targets model.IscsiTargets,  chapUser string) (err error) {
 	log.Tracef(">>>>> updateChapUser for target %s user %s", target.Name, chapUser)
 	defer log.Trace("<<<<< updateChapUser")
 
 	iscsiMutex.Lock()
 	defer iscsiMutex.Unlock()
 
-	args := []string{"--mode", "node", "--targetname", target.Name, "--portal", target.Address, "--op", "update", "-n", nodeChapUser, "-v", chapUser}
-	_, _, err = util.ExecCommandOutput(iscsicmd, args)
-	if err != nil {
-		log.Errorf("Unable to update chap username for node %s error %s", target.Name, err.Error())
-		return fmt.Errorf("Unable to update chap username for node %s error %s", target.Name, err.Error())
+	for _, t := range targets {
+		if t.Name != target.Name {
+			continue
+		}
+		log.Tracef("updating %s for target %s address %s", nodeChapUser, t.Name, t.Address)
+		// update nodeChapUser of all targets with same target name
+		args := []string{"--mode", "node", "--targetname", t.Name, "--portal", t.Address, "--op", "update", "-n", nodeChapUser, "-v", chapUser}
+		_, _, err = util.ExecCommandOutput(iscsicmd, args)
+		if err != nil {
+			log.Errorf("Unable to update chap username for node %s error %s", t.Name, err.Error())
+			return fmt.Errorf("Unable to update chap username for node %s error %s", target.Name, err.Error())
+		}
 	}
 	return nil
 }
 
 // updates iscsi node db with given chap password
-func updateChapPassword(target *model.IscsiTarget, chapPassword string) (err error) {
+func updateChapPassword(target *model.IscsiTarget, targets model.IscsiTargets, chapPassword string) (err error) {
 	log.Tracef(">>>>> updateChapPassword for target %s", target.Name)
 	defer log.Trace("<<<<< updateChapPassword")
 
 	iscsiMutex.Lock()
 	defer iscsiMutex.Unlock()
 
-	log.Tracef("updateChapPassword called for target %s", target.Name)
-	args := []string{"--mode", "node", "--targetname", target.Name, "--portal", target.Address, "--op", "update", "-n", nodeChapPassword, "-v", chapPassword}
-	_, _, err = util.ExecCommandOutput(iscsicmd, args)
-	if err != nil {
-		log.Errorf("Unable to update chap username for node %s error %s", target.Name, err.Error())
-		return fmt.Errorf("Unable to update chap username for node %s error %s", target.Name, err.Error())
+	for _, t := range targets {
+		if t.Name != target.Name {
+			continue
+		}
+		log.Tracef("updating %s for target %s address %s", nodeChapPassword, t.Name, t.Address)
+		// update nodeChapPassword of all targets with same target name
+		args := []string{"--mode", "node", "--targetname", t.Name, "--portal", t.Address, "--op", "update", "-n", nodeChapPassword, "-v", chapPassword}
+		_, _, err = util.ExecCommandOutput(iscsicmd, args)
+		if err != nil {
+			log.Errorf("Unable to update chap password for node %s address %s error %s", t.Name, t.Address, err.Error())
+			return fmt.Errorf("Unable to update chap password for node %s error %s", target.Name, err.Error())
+		}
 	}
 	return nil
 }
@@ -985,4 +999,3 @@ func bindIface(network model.NetworkInterface) error {
 	}
 	return nil
 }
-
