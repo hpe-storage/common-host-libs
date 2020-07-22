@@ -26,7 +26,7 @@ func GetSecondaryArrayLUNIds(details string) []int32 {
 	logger.Tracef("\n About to unmarshal %s", details)
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
-		logger.Tracef("\n Error in GetSecondaryArrayLUNIds %s", err.Error())
+		logger.Errorf("\n Error in GetSecondaryArrayLUNIds %s", err.Error())
 		return []int32{}
 	}
 	numberOfSecondaryBackends := len(secondaryArrayDetails.PeerArrayDetails)
@@ -44,7 +44,7 @@ func GetSecondaryArrayTargetNames(details string) []string {
 	logger.Tracef("\n About to unmarshal %s", details)
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
-		logger.Tracef("\n Error in GetSecondaryArrayTargetNames %s", err.Error())
+		logger.Errorf("\n Error in GetSecondaryArrayTargetNames %s", err.Error())
 		return []string{}
 	}
 	numberOfSecondaryBackends := len(secondaryArrayDetails.PeerArrayDetails)
@@ -64,7 +64,7 @@ func GetSecondaryArrayDiscoveryIps(details string) []string {
 	logger.Tracef("\n About to unmarshal %s", details)
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
-		logger.Tracef("\n Error in GetSecondaryArrayDiscoveryIps %s", err.Error())
+		logger.Errorf("\n Error in GetSecondaryArrayDiscoveryIps %s", err.Error())
 		return []string{}
 	}
 	numberOfSecondaryBackends := len(secondaryArrayDetails.PeerArrayDetails)
@@ -84,8 +84,8 @@ func GetSecondaryBackends(details string) []*model.SecondaryLunInfo {
 	logger.Tracef("\n About to unmarshal %s", details)
 	err := json.Unmarshal([]byte(details), &secondaryArrayDetails)
 	if err != nil {
-		logger.Tracef("\n Error in GetSecondaryBackends %s", err.Error())
-		logger.Tracef("\n Passed details %s", details)
+		logger.Errorf("\n Error in GetSecondaryBackends %s", err.Error())
+		logger.Errorf("\n Passed details %s", details)
 		return nil
 	}
 	return secondaryArrayDetails.PeerArrayDetails
