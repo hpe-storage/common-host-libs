@@ -117,6 +117,39 @@ func getReachableDiscoveryPortals(discoveryIPs []string, virtualPortal bool) (re
 	return reachablePortals, nil
 }
 
+func updateChapForLoggedInTargets(volume *model.Volume) {
+	log.Tracef(">>>>> updateChapForLoggedInTargets for volume %s", volume.SerialNumber)
+	defer log.Tracef("<<<<< updateChapForLoggedInTargets")
+	loggedInTargets, _ := GetIscsiNodesFromIsciadm()
+	var chapUser, chapPassword string
+	if volume.Chap == nil {
+		chapUser = ""
+		chapPassword = ""
+	} else {
+		chapUser = volume.Chap.Name
+		chapPassword = volume.Chap.Password
+	}
+	for _, targetName := range volume.TargetNames() {
+		for _, loggedInTarget := range loggedInTargets {
+			// update only the targets matching the target iqn
+			if loggedInTarget.Name == targetName {
+				log.Tracef("updating chapUser for Targets :%s Portal :%s to %s", loggedInTarget.Name, loggedInTarget.Address, chapUser)
+				// update chapuser irrespective (could be a toggle case chap->empty)
+				err := updateChapUser(loggedInTarget, chapUser)
+				if err != nil {
+					// log and proceed for other targets
+					log.Errorf(err.Error())
+				}
+				err = updateChapPassword(loggedInTarget, chapPassword)
+				if err != nil {
+					// log and proceed for other targets
+					log.Errorf(err.Error())
+				}
+			}
+		}
+	}
+}
+
 // areTargetsLoggedIn returns true if all specified targets are logged-in
 func areTargetsLoggedIn(requiredTargets []string) (bool, error) {
 	loggedInTargets, err := GetLoggedInIscsiTargets()
@@ -138,10 +171,16 @@ func areTargetsLoggedIn(requiredTargets []string) (bool, error) {
 	return true, nil
 }
 
-func loginToVolume(volume *model.Volume) (err error) {
+func loginToVolume(volume *model.Volume, alreadyLoggedIn bool) (err error) {
 	log.Tracef(">>>>> loginToVolume for volume %s, lun %s", volume.SerialNumber, volume.LunID)
 	defer log.Tracef("<<<<< loginToVolume")
 
+	// get loggedin targets and update
+	if alreadyLoggedIn {
+		// update chap info
+		updateChapForLoggedInTargets(volume)
+		return nil
+	}
 	// get candidates for discovery
 	var reachablePortals []string
 	if len(volume.TargetNames()) > 1 {
@@ -194,9 +233,8 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 		return err
 	}
 
-	if !loggedIn {
-		loginToVolume(volume)
-	}
+	// pass the loggedIn state to loginToVolume
+	loginToVolume(volume, loggedIn)
 
 	// single-target-single-lun models doesn't require SCSI resan to be performed
 	if !strings.EqualFold(volume.TargetScope, GroupScope.String()) {
@@ -219,32 +257,15 @@ func loginToTarget(targets model.IscsiTargets, targetIqn string, ifaces []*model
 		log.Traceln("Checking with TargetName:", target.Name)
 		if target.Name == targetIqn {
 			log.Debug("Found target :", "Target:", targetIqn)
-			// Update Chap credentials
-			if chapUser != "" && chapPassword != "" {
-				err = updateChapUser(target, targets, chapUser)
-				if err != nil {
-					return err
-				}
-				err = updateChapPassword(target, targets, chapPassword)
-				if err != nil {
-					return err
-				}
-			}
 			// Now login to the target
-			err := addTarget(target, ifaces)
+			err := addTarget(target, ifaces, chapUser, chapPassword, connectionMode)
 			if err != nil {
 				if !strings.Contains(err.Error(), alreadyPresent) {
 					err = fmt.Errorf("Unable to login to iscsi target %s. Error: %s", target.Name, err.Error())
 					log.Error(err.Error())
-					return err
+					// continue with other targets even if there is an error
 				}
 			}
-			if connectionMode != "" {
-				updateConnectionMode(target, targets, connectionMode)
-			} else {
-				log.Tracef("using node.startup=automatic for %s", target.Name)
-			}
-			break
 		}
 	}
 	return nil
@@ -301,12 +322,9 @@ func isReachable(initiatorIP, targetIP string) (reachable bool, err error) {
 	return true, nil
 }
 
-func updateConnectionMode(target *model.IscsiTarget, targets model.IscsiTargets, connectionMode string) {
+func updateConnectionMode(target *model.IscsiTarget, connectionMode string) {
 	log.Tracef(">>>>> updateConnectionMode for target %s mode %s", target.Name, connectionMode)
 	defer log.Trace("<<<<< updateConnectionMode")
-
-	iscsiMutex.Lock()
-	defer iscsiMutex.Unlock()
 
 	if !(connectionMode == "automatic" || connectionMode == "manual") {
 		err := fmt.Errorf("unsupported iscsi connection mode %s", connectionMode)
@@ -314,80 +332,68 @@ func updateConnectionMode(target *model.IscsiTarget, targets model.IscsiTargets,
 		return
 	}
 
-	for _, t := range targets {
-		if t.Name != target.Name {
-			continue
-		}
-		log.Tracef("updating node.startup for target %s address %s", t.Name, t.Address)
-		// update connection mode of all targets with same target name
-		args := []string{"--mode", "node", "--targetname", t.Name, "--portal", t.Address, "--op", "update", "-n", "node.startup", "-v", connectionMode}
-		_, _, err := util.ExecCommandOutput(iscsicmd, args)
-		if err != nil {
-			err = fmt.Errorf("Unable to update node.startup to %s for node %s error %s", connectionMode, t.Name, err.Error())
-			log.Errorf(err.Error())
-		}
+	log.Tracef("updating node.startup for target %s address %s", target.Name, target.Address)
+	// update connection mode of all targets with same target name
+	args := []string{"--mode", "node", "--targetname", target.Name, "--portal", target.Address, "--op", "update", "-n", "node.startup", "-v", connectionMode}
+	_, _, err := util.ExecCommandOutput(iscsicmd, args)
+	if err != nil {
+		err = fmt.Errorf("Unable to update node.startup to %s for node %s error %s", connectionMode, target.Name, err.Error())
+		log.Errorf(err.Error())
 	}
 	return
 }
 
 // updates iscsi node db with given chap username
-func updateChapUser(target *model.IscsiTarget,targets model.IscsiTargets,  chapUser string) (err error) {
-	log.Tracef(">>>>> updateChapUser for target %s user %s", target.Name, chapUser)
+func updateChapUser(target *model.IscsiTarget, chapUser string) (err error) {
+	log.Tracef(">>>>> updateChapUser for target %s portal %s, user %s", target.Name, target.Address, chapUser)
 	defer log.Trace("<<<<< updateChapUser")
 
-	iscsiMutex.Lock()
-	defer iscsiMutex.Unlock()
-
-	for _, t := range targets {
-		if t.Name != target.Name {
-			continue
-		}
-		log.Tracef("updating %s for target %s address %s", nodeChapUser, t.Name, t.Address)
-		// update nodeChapUser of all targets with same target name
-		args := []string{"--mode", "node", "--targetname", t.Name, "--portal", t.Address, "--op", "update", "-n", nodeChapUser, "-v", chapUser}
-		_, _, err = util.ExecCommandOutput(iscsicmd, args)
-		if err != nil {
-			log.Errorf("Unable to update chap username for node %s error %s", t.Name, err.Error())
-			return fmt.Errorf("Unable to update chap username for node %s error %s", target.Name, err.Error())
-		}
+	// update nodeChapUser of all targets with same target name
+	args := []string{"--mode", "node", "--targetname", target.Name, "--portal", target.Address, "--op", "update", "-n", nodeChapUser, "-v", chapUser}
+	_, _, err = util.ExecCommandOutput(iscsicmd, args)
+	if err != nil {
+		log.Errorf("Unable to update chap username for node %s error %s", target.Name, err.Error())
+		return fmt.Errorf("Unable to update chap username for node %s error %s", target.Name, err.Error())
 	}
 	return nil
 }
 
 // updates iscsi node db with given chap password
-func updateChapPassword(target *model.IscsiTarget, targets model.IscsiTargets, chapPassword string) (err error) {
-	log.Tracef(">>>>> updateChapPassword for target %s", target.Name)
+func updateChapPassword(target *model.IscsiTarget, chapPassword string) (err error) {
+	log.Tracef(">>>>> updateChapPassword for target %s portal %s", target.Name, target.Address)
 	defer log.Trace("<<<<< updateChapPassword")
 
-	iscsiMutex.Lock()
-	defer iscsiMutex.Unlock()
-
-	for _, t := range targets {
-		if t.Name != target.Name {
-			continue
-		}
-		log.Tracef("updating %s for target %s address %s", nodeChapPassword, t.Name, t.Address)
-		// update nodeChapPassword of all targets with same target name
-		args := []string{"--mode", "node", "--targetname", t.Name, "--portal", t.Address, "--op", "update", "-n", nodeChapPassword, "-v", chapPassword}
-		_, _, err = util.ExecCommandOutput(iscsicmd, args)
-		if err != nil {
-			log.Errorf("Unable to update chap password for node %s address %s error %s", t.Name, t.Address, err.Error())
-			return fmt.Errorf("Unable to update chap password for node %s error %s", target.Name, err.Error())
-		}
+	// update nodeChapPassword of all targets with same target name
+	args := []string{"--mode", "node", "--targetname", target.Name, "--portal", target.Address, "--op", "update", "-n", nodeChapPassword, "-v", chapPassword}
+	_, _, err = util.ExecCommandOutput(iscsicmd, args)
+	if err != nil {
+		log.Errorf("Unable to update chap password for node %s address %s error %s", target.Name, target.Address, err.Error())
+		return fmt.Errorf("Unable to update chap password for node %s error %s", target.Name, err.Error())
 	}
 	return nil
 }
 
 // addTarget : adds iscsi target to iscsi database
-func addTarget(target *model.IscsiTarget, ifaces []*model.Iface) (err error) {
+func addTarget(target *model.IscsiTarget, ifaces []*model.Iface, chapUser, chapPassword, connectionMode string) (err error) {
 	log.Tracef(">>>>> addTarget called with target: %s address: %s port: %s", target.Name, target.Address, target.Port)
 	defer log.Trace("<<<<< addTarget")
 
 	iscsiMutex.Lock()
 	defer iscsiMutex.Unlock()
 
+	// update chapuser irrespective (could be a toggle case chap->empty)
+	err = updateChapUser(target, chapUser)
+	if err != nil {
+		log.Errorf(err.Error())
+	}
+	err = updateChapPassword(target, chapPassword)
+	if err != nil {
+		log.Errorf(err.Error())
+	}
+
 	var out string
-	args := []string{"--mode", "node", "--targetname", target.Name, "--login"}
+	args := []string{"--mode", "node", "--targetname", target.Name, "--portal", target.Address, "--login"}
+
 	if len(ifaces) > 0 {
 		for _, iface := range ifaces {
 			// verify if the target is reachable from this interface
@@ -418,6 +424,14 @@ func addTarget(target *model.IscsiTarget, ifaces []*model.Iface) (err error) {
 		}
 		log.Trace("addTarget Response :", out)
 	}
+
+	// update connection
+	if connectionMode != "" {
+		updateConnectionMode(target, connectionMode)
+	} else {
+		log.Tracef("using node.startup=automatic for %s", target.Name)
+	}
+
 	if err != nil {
 		return fmt.Errorf("Unable to add login to iscsi target %s. Error: %s", target.Name, err.Error())
 	}
@@ -512,6 +526,7 @@ func GetLoggedInIscsiTargets() (targets []string, err error) {
 	}
 	for _, session := range sessions {
 		targetPath := fmt.Sprintf("/sys/class/iscsi_session/%s/targetname", session.Name())
+		//TODO : check session state
 		exists, _, _ := util.FileExists(targetPath)
 		if exists {
 			targetName, err := ioutil.ReadFile(targetPath)
@@ -650,6 +665,40 @@ func validateChapUserPassword(user []string, password []string) (chapInfo *model
 	}
 	chapInfo = &model.ChapInfo{Name: user[0], Password: password[0]}
 	return chapInfo, nil
+}
+
+// GetIscsiNodesFromIsciadm retrieves iscsi targets with iscsiadm command
+func GetIscsiNodesFromIsciadm() (a model.IscsiTargets, err error) {
+	log.Tracef(">>>>> GetIscsiNodesFromIsciadm called")
+	defer log.Trace("<<<<< GetIscsiNodesFromIsciadm")
+	var out string
+	var outList []string
+	args := []string{"-m", "node"}
+	out, _, _ = util.ExecCommandOutput(iscsicmd, args)
+	if err != nil {
+		log.Error(err.Error())
+	}
+	outList = append(outList, out)
+	log.Trace(outList)
+	var iscsiTargets model.IscsiTargets
+	// parse the lines into output
+	r := regexp.MustCompile(getIscsiadmPattern())
+
+	for _, outItem := range outList {
+		listOut := r.FindAllString(outItem, -1)
+		for _, line := range listOut {
+			result := util.FindStringSubmatchMap(line, r)
+			target := &model.IscsiTarget{
+				Name:    result["target"],
+				Address: result["address"],
+				Port:    result["port"],
+			}
+			log.Tracef("Name %s Address %s Port %s", target.Name, target.Address, target.Port)
+			iscsiTargets = append(iscsiTargets, target)
+		}
+	}
+	uniqueIscsiTargets := removeDuplicateTargets(iscsiTargets)
+	return uniqueIscsiTargets, err
 }
 
 // PerformDiscovery : adds iscsi targets to iscsi database after performing
