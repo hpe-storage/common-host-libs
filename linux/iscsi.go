@@ -171,16 +171,10 @@ func areTargetsLoggedIn(requiredTargets []string) (bool, error) {
 	return true, nil
 }
 
-func loginToVolume(volume *model.Volume, alreadyLoggedIn bool) (err error) {
+func loginToVolume(volume *model.Volume) (err error) {
 	log.Tracef(">>>>> loginToVolume for volume %s, lun %s", volume.SerialNumber, volume.LunID)
 	defer log.Tracef("<<<<< loginToVolume")
 
-	// get loggedin targets and update
-	if alreadyLoggedIn {
-		// update chap info
-		updateChapForLoggedInTargets(volume)
-		return nil
-	}
 	// get candidates for discovery
 	var reachablePortals []string
 	if len(volume.TargetNames()) > 1 {
@@ -233,8 +227,12 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 		return err
 	}
 
-	// pass the loggedIn state to loginToVolume
-	loginToVolume(volume, loggedIn)
+	if !loggedIn {
+		loginToVolume(volume)
+	} else {
+		// update chap info for already loggedIn targets
+		updateChapForLoggedInTargets(volume)
+	}
 
 	// single-target-single-lun models doesn't require SCSI resan to be performed
 	if !strings.EqualFold(volume.TargetScope, GroupScope.String()) {
