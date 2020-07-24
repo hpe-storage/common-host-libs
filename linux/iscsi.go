@@ -183,6 +183,7 @@ func loginToVolume(volume *model.Volume) (err error) {
 	} else {
 		reachablePortals, _ = getReachableDiscoveryPortals(volume.DiscoveryIPs, true)
 	}
+
 	if len(reachablePortals) == 0 {
 		return fmt.Errorf("none of the discovery portals provided [%+v] are reachable", volume.DiscoveryIPs)
 	}
@@ -201,6 +202,7 @@ func loginToVolume(volume *model.Volume) (err error) {
 	}
 
 	// login to all targets for given volume
+
 	for _, target := range volume.TargetNames() {
 		if volume.Chap == nil {
 			err = loginToTarget(discoveredTargets, target, ifaces, "", "", volume.ConnectionMode)
@@ -221,6 +223,44 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 	log.Tracef(">>>>> HandleIscsiDiscovery for volume %s, lun %s", volume.SerialNumber, volume.LunID)
 	defer log.Tracef("<<<<< HandleIscsiDiscovery")
 
+	// Do iscsi discovery for Primary Backend
+
+	var primaryVolObj *model.Volume
+	primaryVolObj = &model.Volume{}
+	primaryVolObj.LunID = volume.LunID
+	primaryVolObj.Iqns = volume.Iqns
+	primaryVolObj.TargetScope = volume.TargetScope
+	primaryVolObj.DiscoveryIPs = volume.DiscoveryIPs
+	primaryVolObj.Chap = volume.Chap
+	primaryVolObj.ConnectionMode = volume.ConnectionMode
+	primaryVolObj.SerialNumber = volume.SerialNumber
+
+	err = handleIscsiDiscoveryForBackend(primaryVolObj, true)
+
+	if err != nil {
+		return err
+	}
+	secondaryBackends := util.GetSecondaryBackends(volume.SecondaryArrayDetails)
+
+	for _, secondaryLunInfo := range secondaryBackends {
+		// Do iscsi discovery for Each Secondary Backend
+		var secondaryVolObj *model.Volume
+		secondaryVolObj = &model.Volume{}
+		secondaryVolObj.LunID = strconv.Itoa(int(secondaryLunInfo.LunID))
+		secondaryVolObj.Iqns = secondaryLunInfo.TargetNames
+		secondaryVolObj.TargetScope = volume.TargetScope
+		secondaryVolObj.DiscoveryIPs = secondaryLunInfo.DiscoveryIPs
+		secondaryVolObj.Chap = volume.Chap
+		secondaryVolObj.ConnectionMode = volume.ConnectionMode
+		secondaryVolObj.SerialNumber = volume.SerialNumber
+
+		err = handleIscsiDiscoveryForBackend(secondaryVolObj, true)
+	}
+	return nil
+}
+func handleIscsiDiscoveryForBackend(volume *model.Volume, isPrimaryBackend bool) (err error) {
+	log.Tracef(">>>>> handleIscsiDiscoveryForBackend for volume obj : %v, isPrimary %v", volume, isPrimaryBackend)
+	defer log.Tracef("<<<<< handleIscsiDiscoveryForBackend")
 	// determine if all required targets are already logged-in
 	loggedIn, err := areTargetsLoggedIn(volume.TargetNames())
 	if err != nil {
@@ -245,6 +285,7 @@ func HandleIscsiDiscovery(volume *model.Volume) (err error) {
 		log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 		return fmt.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 	}
+
 	return nil
 }
 
@@ -959,6 +1000,7 @@ func rescanIscsiHosts(iscsiHosts []string, lunID string) (err error) {
 					log.Tracef("error writing to file %s : %s", iscsiHostScanPath, err.Error())
 				}
 			} else {
+				log.Printf("\n SCANNING iscsi lun id %v", lunID)
 				err = ioutil.WriteFile(iscsiHostScanPath, []byte("- - "+lunID), 0644)
 				if err != nil {
 					log.Tracef("error writing to file %s : %s", iscsiHostScanPath, err.Error())
