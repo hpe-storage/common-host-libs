@@ -12,6 +12,7 @@ import (
 // StorageProvider is an implementor of the StorageProvider interface
 type StorageProvider struct {
 	volumes        map[string]model.Volume
+	pools          map[string]model.Pool
 	snapshots      map[string]model.Snapshot
 	volumeGroups   map[string]model.VolumeGroup
 	snapshotGroups map[string]model.SnapshotGroup
@@ -195,6 +196,22 @@ func (provider *StorageProvider) GetVolumes() ([]*model.Volume, error) {
 	}
 
 	return volumes, nil
+}
+
+// GetPools returns the fake pools saved in the map
+func (provider *StorageProvider) GetPools() ([]*model.Pool, error) {
+	var pools []*model.Pool
+
+	for _, pool := range provider.pools {
+		fakePool := &model.Pool{
+			ID:          pool.ID,
+			Name:        pool.Name,
+			Description: pool.Description,
+		}
+		pools = append(pools, fakePool)
+	}
+
+	return pools, nil
 }
 
 // GetSnapshots returns the fake snapshots saved in the map

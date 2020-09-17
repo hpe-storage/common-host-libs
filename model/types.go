@@ -1,3 +1,5 @@
+// Copyright 2019-2020 Hewlett Packard Enterprise Development LP
+
 package model
 
 import (
@@ -166,34 +168,54 @@ type DevicePartition struct {
 
 // Volume : Thin version of Volume object for Host side
 type Volume struct {
-	ID                    string                 `json:"id,omitempty"`
-	Name                  string                 `json:"name,omitempty"`
-	Size                  int64                  `json:"size,omitempty"` // size in bytes
-	Description           string                 `json:"description,omitempty"`
-	InUse                 bool                   `json:"in_use,omitempty"` // deprecated for published in the CSP implementation
-	Published             bool                   `json:"published,omitempty"`
-	BaseSnapID            string                 `json:"base_snapshot_id,omitempty"`
-	ParentVolID           string                 `json:"parent_volume_id,omitempty"`
-	Clone                 bool                   `json:"clone,omitempty"`
-	Config                map[string]interface{} `json:"config,omitempty"`
-	Metadata              []*KeyValue            `json:"metadata,omitempty"`
-	SerialNumber          string                 `json:"serial_number,omitempty"`
-	AccessProtocol        string                 `json:"access_protocol,omitempty"`
-	Iqn                   string                 `json:"iqn,omitempty"` // deprecated
-	Iqns                  []string               `json:"iqns,omitempty"`
-	DiscoveryIP           string                 `json:"discovery_ip,omitempty"` // deprecated
-	DiscoveryIPs          []string               `json:"discovery_ips,omitempty"`
-	MountPoint            string                 `json:"Mountpoint,omitempty"`
-	Status                map[string]interface{} `json:"status,omitempty"` // interface so that we can map any number of arguments
-	Chap                  *ChapInfo              `json:"chap_info,omitempty"`
-	Networks              []*NetworkInterface    `json:"networks,omitempty"`
-	ConnectionMode        string                 `json:"connection_mode,omitempty"`
-	LunID                 string                 `json:"lun_id,omitempty"`
-	TargetScope           string                 `json:"target_scope,omitempty"` //GST="group", VST="volume" or empty(older array fiji etc), and no-op for FC
-	IscsiSessions         []*IscsiSession        `json:"iscsi_sessions,omitempty"`
-	FcSessions            []*FcSession           `json:"fc_sessions,omitempty"`
-	VolumeGroupId         string                 `json:"volume_group_id"`
-	SecondaryArrayDetails string                 `json:"secondary_array_details,omitempty"`
+	ID                        string                 `json:"id,omitempty"`
+	Name                      string                 `json:"name,omitempty"`
+	Size                      int64                  `json:"size,omitempty"` // size in bytes
+	Description               string                 `json:"description,omitempty"`
+	InUse                     bool                   `json:"in_use,omitempty"` // deprecated for published in the CSP implementation
+	Published                 bool                   `json:"published,omitempty"`
+	BaseSnapID                string                 `json:"base_snapshot_id,omitempty"`
+	ParentVolID               string                 `json:"parent_volume_id,omitempty"`
+	Clone                     bool                   `json:"clone,omitempty"`
+	Config                    map[string]interface{} `json:"config,omitempty"`
+	Metadata                  []*KeyValue            `json:"metadata,omitempty"`
+	SerialNumber              string                 `json:"serial_number,omitempty"`
+	AccessProtocol            string                 `json:"access_protocol,omitempty"`
+	Iqn                       string                 `json:"iqn,omitempty"` // deprecated
+	Iqns                      []string               `json:"iqns,omitempty"`
+	DiscoveryIP               string                 `json:"discovery_ip,omitempty"` // deprecated
+	DiscoveryIPs              []string               `json:"discovery_ips,omitempty"`
+	MountPoint                string                 `json:"Mountpoint,omitempty"`
+	Status                    map[string]interface{} `json:"status,omitempty"` // interface so that we can map any number of arguments
+	Chap                      *ChapInfo              `json:"chap_info,omitempty"`
+	Networks                  []*NetworkInterface    `json:"networks,omitempty"`
+	ConnectionMode            string                 `json:"connection_mode,omitempty"`
+	LunID                     string                 `json:"lun_id,omitempty"`
+	TargetScope               string                 `json:"target_scope,omitempty"` //GST="group", VST="volume" or empty(older array fiji etc), and no-op for FC
+	IscsiSessions             []*IscsiSession        `json:"iscsi_sessions,omitempty"`
+	FcSessions                []*FcSession           `json:"fc_sessions,omitempty"`
+	VolumeGroupId             string                 `json:"volume_group_id"`
+	SecondaryArrayDetails     string                 `json:"secondary_array_details,omitempty"`
+	PoolName                  string                 `json:"pool_name"`
+	VolumeUsedBytes           int64                  `json:"volume_used_bytes,omitempty"`
+	VolumeFreeBytes           int64                  `json:"volume_free_bytes,omitempty"`
+	VolumeReservationRatio    int64                  `json:"volume_reservation_ratio,omitempty"`
+	DataCompressionSavedBytes int64                  `json:"data_compression_saved_bytes,omitempty"`
+	SnapshotUsedBytes         int64                  `json:"snapshot_used_bytes,omitempty"`
+}
+
+// Pool : Thin version of Pool object for Host side
+type Pool struct {
+	ID                 string `json:"id,omitempty"`
+	Name               string `json:"name,omitempty"`
+	Description        string `json:"description,omitempty"`
+	CapacityBytes      int64  `json:"capacity_bytes,omitempty"`
+	UsedBytes          int64  `json:"used_bytes,omitempty"`
+	AvailableBytes     int64  `json:"available_bytes,omitempty"`
+	UnusedReserveBytes int64  `json:"unused_reserve_bytes,omitempty"`
+	VolumeUsedBytes    int64  `json:"volume_used_bytes,omitempty"`
+	SnapshotUsedBytes  int64  `json:"snapshot_used_bytes,omitempty"`
+	DataReductionBytes int64  `json:"data_reduction_bytes,omitempty"`
 }
 
 func (v Volume) TargetNames() []string {

@@ -725,6 +725,40 @@ func (provider *ContainerStorageProvider) GetVolumes() ([]*model.Volume, error) 
 	return volumes, err
 }
 
+// GetPools returns all of the pools from the CSP
+func (provider *ContainerStorageProvider) GetPools() ([]*model.Pool, error) {
+	response := make([]*model.Pool, 0)
+	var errorResponse *ErrorsPayload
+
+	status, err := provider.invoke(
+		&connectivity.Request{
+			Action:        "GET",
+			Path:          "/containers/v1/pools",
+			Payload:       nil,
+			Response:      &response,
+			ResponseError: &errorResponse,
+		},
+	)
+	if errorResponse != nil {
+		return nil, handleError(status, errorResponse)
+	}
+
+	// unmarshal each pool... TODO: do this via reflection for all object types
+	values := reflect.ValueOf(response)
+	log.Tracef("Found %d pools", values.Len())
+	pools := make([]*model.Pool, values.Len())
+	for i := 0; i < values.Len(); i++ {
+		pool := &model.Pool{}
+		err = jsonutil.Decode(values.Index(i).Interface(), pool)
+		if err != nil {
+			return nil, fmt.Errorf("Error while decoding the volume response, err: %s", err.Error())
+		}
+		pools[i] = pool
+	}
+
+	return pools, err
+}
+
 // GetSnapshots returns all of the snapshots for the given source volume from the CSP
 func (provider *ContainerStorageProvider) GetSnapshots(volumeID string) ([]*model.Snapshot, error) {
 	response := make([]*model.Snapshot, 0)
