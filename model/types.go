@@ -194,6 +194,8 @@ type Volume struct {
 	FcSessions            []*FcSession           `json:"fc_sessions,omitempty"`
 	VolumeGroupId         string                 `json:"volume_group_id"`
 	SecondaryArrayDetails string                 `json:"secondary_array_details,omitempty"`
+	UsedBytes             int64                  `json:"used_bytes,omitempty"`
+	FreeBytes             int64                  `json:"free_bytes,omitempty"`
 }
 
 func (v Volume) TargetNames() []string {
