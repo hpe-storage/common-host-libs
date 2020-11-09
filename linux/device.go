@@ -244,8 +244,13 @@ func GetLinuxDmDevices(needActivePath bool, vol *model.Volume) (a []*model.Devic
 				return nil, err
 			}
 			device.Size = sizeInMiB
-
-			multipathdShowPaths, err := retryGetPathOfDevice(device, needActivePath)
+			var multipathdShowPaths [] *model.PathInfo
+			if vol.SecondaryArrayDetails != "" {
+				multipathdShowPaths, err = retryGetPathOfDevice(device, false)
+			} else {
+				multipathdShowPaths, err = retryGetPathOfDevice(device, needActivePath)
+			}
+			
 			if err != nil {
 				err = fmt.Errorf("unable to get scsi slaves for device:%s. Error: %s", device.SerialNumber, err.Error())
 				log.Debugf(err.Error())
@@ -492,8 +497,8 @@ func createLinuxDevice(volume *model.Volume) (dev *model.Device, err error) {
 				return d, nil
 			}
 			// Match TargetName/IQN only for VST type
-			if d.IscsiTarget != nil && volume.SerialNumber == "" && d.IscsiTarget.Name == volume.Iqn {
-				log.Debugf("Found device with matching target-name:%s scope:%s map:%s and slaves %+v", d.IscsiTarget.Name, d.IscsiTarget.Scope, d.AltFullPathName, d.Slaves)
+			if d.IscsiTarget[0] != nil && volume.SerialNumber == "" && d.IscsiTarget[0].Name == volume.Iqn {
+				log.Debugf("Found device with matching target-name:%s scope:%s map:%s and slaves %+v", d.IscsiTarget[0].Name, d.IscsiTarget[0].Scope, d.AltFullPathName, d.Slaves)
 				return d, nil
 			}
 		}

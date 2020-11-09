@@ -239,7 +239,7 @@ func cleanupDeviceAndSlaves(dev *model.Device) (err error) {
 	}
 
 	//delete all physical paths of the device
-	if !isFC && !isGst && dev.IscsiTarget != nil {
+	if (!isFC && dev.IscsiTarget != nil )&& (!isGst || dev.StorageVendor == "3PARdata") {
 		log.Debugf("volume scoped target %+v, initiating iscsi logout and delete", dev.IscsiTarget)
 		err = logoutAndDeleteIscsiTarget(dev)
 		if err != nil {
@@ -287,16 +287,18 @@ func logoutAndDeleteIscsiTarget(dev *model.Device) error {
 	defer log.Tracef("<<<<< logoutAndDeleteIscsiTarget")
 
 	if dev.IscsiTarget != nil {
-		log.Tracef("initiating the iscsi target logout for %s of type %s", dev.IscsiTarget.Name, dev.IscsiTarget.Scope)
-		//logout of iscsi target
-		err := iscsiLogoutOfTarget(dev.IscsiTarget)
-		if err != nil {
-			return fmt.Errorf("unable to logout iscsi target %s. Error: %s", dev.IscsiTarget, err.Error())
-		}
-		//delete iscsi node
-		err = iscsiDeleteNode(dev.IscsiTarget)
-		if err != nil {
-			return fmt.Errorf("unable to delete iscsi target: %s. Error: %s", dev.IscsiTarget, err.Error())
+		for _, iscsiTarget := range dev.IscsiTarget {
+			log.Tracef("initiating the iscsi target logout for %s of type %s", iscsiTarget.Name, iscsiTarget.Scope)
+			//logout of iscsi target
+			err := iscsiLogoutOfTarget(iscsiTarget)
+			if err != nil {
+				return fmt.Errorf("unable to logout iscsi target %s. Error: %s", iscsiTarget, err.Error())
+			}
+			//delete iscsi node
+			err = iscsiDeleteNode(iscsiTarget)
+			if err != nil {
+				return fmt.Errorf("unable to delete iscsi target: %s. Error: %s", iscsiTarget, err.Error())
+			}
 		}
 	}
 	return nil
