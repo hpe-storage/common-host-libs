@@ -239,8 +239,8 @@ func cleanupDeviceAndSlaves(dev *model.Device) (err error) {
 	}
 
 	//delete all physical paths of the device
-	if (!isFC && dev.IscsiTarget != nil )&& (!isGst || dev.StorageVendor == "3PARdata") {
-		log.Debugf("volume scoped target %+v, initiating iscsi logout and delete", dev.IscsiTarget)
+	if (!isFC && dev.IscsiTargets != nil )&& (!isGst || dev.StorageVendor == "3PARdata") {
+		log.Debugf("volume scoped target %+v, initiating iscsi logout and delete", dev.IscsiTargets)
 		err = logoutAndDeleteIscsiTarget(dev)
 		if err != nil {
 			log.Error(err.Error())
@@ -286,8 +286,8 @@ func logoutAndDeleteIscsiTarget(dev *model.Device) error {
 	log.Tracef(">>>>> logoutAndDeleteIscsiTarget for device %s", dev.AltFullPathName)
 	defer log.Tracef("<<<<< logoutAndDeleteIscsiTarget")
 
-	if dev.IscsiTarget != nil {
-		for _, iscsiTarget := range dev.IscsiTarget {
+	if dev.IscsiTargets != nil {
+		for _, iscsiTarget := range dev.IscsiTargets {
 			log.Tracef("initiating the iscsi target logout for %s of type %s", iscsiTarget.Name, iscsiTarget.Scope)
 			//logout of iscsi target
 			err := iscsiLogoutOfTarget(iscsiTarget)

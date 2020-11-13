@@ -818,10 +818,10 @@ func removeDuplicateTargets(targets model.IscsiTargets) model.IscsiTargets {
 	return result
 }
 
-// iscsiGetTargetOfDevice : get the iscsi target information of a device from sysfs
-func iscsiGetTargetOfDevice(dev *model.Device) (target []*model.IscsiTarget, err error) {
-	log.Trace(">>>>> iscsiGetTargetOfDevice  with", dev)
-	defer log.Trace("<<<<< iscsiGetTargetOfDevice")
+// iscsiGetTargetsOfDevice : get the iscsi target information of a device from sysfs
+func iscsiGetTargetsOfDevice(dev *model.Device) (target []*model.IscsiTarget, err error) {
+	log.Trace(">>>>> iscsiGetTargetsOfDevice  with", dev)
+	defer log.Trace("<<<<< iscsiGetTargetsOfDevice")
 
 	r := regexp.MustCompile(sessionIDPattern)
 	iscsiTargets := make([]*model.IscsiTarget, 0)
@@ -853,12 +853,8 @@ func iscsiGetTargetOfDevice(dev *model.Device) (target []*model.IscsiTarget, err
 			iscsiTargets = append(iscsiTargets, iscsiTarget)
 		}
 	}
-	if iscsiTargets != nil {
-		return iscsiTargets, nil
+	return iscsiTargets, nil
 	
-	} else {
-		return nil, nil
-	}
 	
 }
 
