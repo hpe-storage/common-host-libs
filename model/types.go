@@ -150,11 +150,12 @@ type Device struct {
 	MpathName       string       `json:"mpath_device_name,omitempty"`
 	Size            int64        `json:"size,omitempty"` // size in MiB
 	Slaves          []string     `json:"slaves,omitempty"`
-	IscsiTarget     *IscsiTarget `json:"iscsi_target,omitempty"`
+	IscsiTargets     []*IscsiTarget `json:"iscsi_target,omitempty"`
 	Hcils           []string     `json:"-"`                      // export it if needed
 	TargetScope     string       `json:"target_scope,omitempty"` //GST="group", VST="volume" or empty(older array fiji etc), and no-op for FC
 	State           string       `json:"state,omitempty"`        // state of the device needed to verify the device is active
 	Filesystem      string       `json:"filesystem,omitempty"`
+	StorageVendor   string       `json:"storage_vendor,omitempty"`  //3PARdata
 }
 
 // DevicePartition Partition Info for a Device
