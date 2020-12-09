@@ -244,13 +244,13 @@ func GetLinuxDmDevices(needActivePath bool, vol *model.Volume) (a []*model.Devic
 				return nil, err
 			}
 			device.Size = sizeInMiB
-			var multipathdShowPaths [] *model.PathInfo
+			var multipathdShowPaths []*model.PathInfo
 			if vol.SecondaryArrayDetails != "" {
 				multipathdShowPaths, err = retryGetPathOfDevice(device, false)
 			} else {
 				multipathdShowPaths, err = retryGetPathOfDevice(device, needActivePath)
 			}
-			
+
 			if err != nil {
 				err = fmt.Errorf("unable to get scsi slaves for device:%s. Error: %s", device.SerialNumber, err.Error())
 				log.Debugf(err.Error())
@@ -311,14 +311,10 @@ func GetLinuxDmDevices(needActivePath bool, vol *model.Volume) (a []*model.Devic
 					continue
 					// continue with other devices, might be in offline state and IscsiTarget will be nil for this device
 				}
-				if iscsiTargets[0] != nil {
-					if len(iscsiTargets) > 1 {
-						device.IscsiTargets = iscsiTargets  //for 3pardata
-					} else {
-						device.IscsiTargets[0] = iscsiTargets[0]  //non 3pardata
-					}
-				
+				if iscsiTargets != nil {
+					device.IscsiTargets = iscsiTargets
 				}
+
 			}
 			if len(device.Slaves) > 0 {
 				log.Tracef("adding device to list %+v", device)
