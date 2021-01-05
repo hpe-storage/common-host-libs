@@ -1,4 +1,4 @@
-// (c) Copyright 2019 Hewlett Packard Enterprise Development LP
+// (c) Copyright 2021 Hewlett Packard Enterprise Development LP
 
 // In this package, we provide new functions to replace the equivalent ones located in the following
 // base package:
@@ -25,6 +25,7 @@ var (
 	advapi32                  = windows.NewLazySystemDLL("advapi32.dll")
 	procSetEntriesInAclW      = advapi32.NewProc("SetEntriesInAclW")
 	procSetNamedSecurityInfoW = advapi32.NewProc("SetNamedSecurityInfoW")
+	procSetSecurityInfo       = advapi32.NewProc("SetSecurityInfo")
 )
 
 // SetEntriesInAcl -- Creates a new access control list (ACL) by merging new access control or audit
@@ -49,6 +50,25 @@ func SetEntriesInAcl(ea []api.ExplicitAccess, OldAcl windows.Handle, NewAcl *win
 func SetNamedSecurityInfo(objectName string, objectType int32, secInfo uint32, owner, group *windows.SID, dacl, sacl windows.Handle) error {
 	ret, _, _ := procSetNamedSecurityInfoW.Call(
 		uintptr(unsafe.Pointer(windows.StringToUTF16Ptr(objectName))),
+		uintptr(objectType),
+		uintptr(secInfo),
+		uintptr(unsafe.Pointer(owner)),
+		uintptr(unsafe.Pointer(group)),
+		uintptr(dacl),
+		uintptr(sacl),
+	)
+	if ret != 0 {
+		return syscall.Errno(ret)
+	}
+	return nil
+}
+
+// SetSecurityInfo -- The SetSecurityInfo function sets specified security information in the
+// security descriptor of a specified object. The caller identifies the object by a handle.
+// https://docs.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-setsecurityinfo
+func SetSecurityInfo(handle syscall.Handle, objectType int32, secInfo uint32, owner, group *windows.SID, dacl, sacl windows.Handle) error {
+	ret, _, _ := procSetSecurityInfo.Call(
+		uintptr(handle),
 		uintptr(objectType),
 		uintptr(secInfo),
 		uintptr(unsafe.Pointer(owner)),
