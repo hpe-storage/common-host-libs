@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -467,6 +468,18 @@ func rescanLoginVolumeForBackend(volObj *model.Volume) error {
 	return nil
 }
 
+func isLuksDevice(devPath string) (bool, error) {
+	out, _, err := util.ExecCommandOutput("cryptsetup", []string{"isLuks", "-v", devPath})
+	if err != nil {
+		if strings.Contains(out, "isLuks command failed with error exit status 1") {
+			return false, nil
+		} else {
+			return false, fmt.Errorf("isLuks command failed to find out if the device %s is encrypted", devPath)
+		}
+	}
+	return strings.EqualFold(out, "Command successful."), nil
+}
+
 // CreateLinuxDevice : attaches and creates a new linux device
 // nolint: gocyclo
 func createLinuxDevice(volume *model.Volume) (dev *model.Device, err error) {
@@ -495,6 +508,49 @@ func createLinuxDevice(volume *model.Volume) (dev *model.Device, err error) {
 			// Match SerialNumber
 			if d.SerialNumber == volume.SerialNumber {
 				log.Debugf("Found device with matching SerialNumber:%s map %s and slaves %+v", d.SerialNumber, d.AltFullPathName, d.Slaves)
+
+				// if volume has encrypt true format that dm device using luksformat command
+				if volume.Encrypted {
+					log.Info("#####################")
+
+					//out, _, err := util.ExecCommandOutput(cryptsetup, "luksFormat", "--batch-mode", d.Pathname)
+					originalDevPath := "/dev/" + d.Pathname
+
+					isLuksDev, err := isLuksDevice(originalDevPath)
+					if err != nil {
+						return nil, err
+					}
+
+					// LUKS format device if this is the first time it is being used
+					if !isLuksDev {
+						formatCmd := exec.Command("cryptsetup", "luksFormat", "--batch-mode", originalDevPath)
+						log.Debugf("luksFormat command:%s", formatCmd)
+						formatCmd.Stdin = strings.NewReader(volume.EncryptionKey)
+						if err := formatCmd.Run(); err != nil {
+							log.Errorf("Format command failed with error %v", err)
+						}
+					}
+					//path := "/dev/" + dmPrefix + string(result["minor"])
+					encryptedPath:= "encrypted-" + d.Pathname   //"encrypted-dm-4"
+					openCmd := exec.Command("cryptsetup","luksOpen","/dev/"+d.Pathname, encryptedPath)
+					log.Infof("luksOpen command:%s",openCmd)
+					openCmd.Stdin = strings.NewReader(volume.EncryptionKey)
+					if err := openCmd.Run(); err != nil {
+						log.Errorf("Open command failed with error %v", err)
+					}
+					// Replacing the device path,AltFullPathName
+					d.LuksPathname = encryptedPath
+					d.AltFullLuksPathName = "/dev/mapper/" + encryptedPath
+
+					//finding major minor for the encrypted path
+					//args := []string{"ls", "--target", "crypt" "|",encryptedPath}
+					//out, _, err := util.ExecCommandOutput(dmsetupcommand, args)
+					//if err != nil {
+					//      return nil, fmt.Errorf("failed to retrieve crypt device with encryptedPath %s : %s", //encryptedPath, err.Error())
+					//}
+					//return d, nil
+				}
+				log.Debugf("after encryption device with matching SerialNumber:%s map %s and slaves %+v", d.SerialNumber, d.AltFullPathName, d.Slaves)
 				return d, nil
 			}
 			// Match TargetName/IQN only for VST type
