@@ -469,15 +469,22 @@ func rescanLoginVolumeForBackend(volObj *model.Volume) error {
 }
 
 func isLuksDevice(devPath string) (bool, error) {
-	out, _, err := util.ExecCommandOutput("cryptsetup", []string{"isLuks", "-v", devPath})
-	if err != nil {
-		if strings.Contains(out, "isLuks command failed with error exit status 1") {
-			return false, nil
-		} else {
-			return false, fmt.Errorf("isLuks command failed to find out if the device %s is encrypted", devPath)
-		}
+	log.Debugf(">>>> isLuksDevice - %s", devPath)
+	defer log.Debugf("<<<< isLuksDevice - %s", devPath)
+
+	_, exitStatus, _ := util.ExecCommandOutput("cryptsetup", []string{"isLuks", "-v", devPath})
+	log.Debugf("Exit status of isLuks: %d", exitStatus)
+	if exitStatus == 0 {
+		return true, nil
 	}
-	return strings.EqualFold(out, "Command successful."), nil
+	if exitStatus == -1 {
+		log.Debugf("Not a LUKS device - %s", devPath)
+		return false, nil
+	} else {
+		log.Debugf("Unknown device - %s", devPath)
+		return false, fmt.Errorf("isLuks command failed to find out if the device %s is encrypted", devPath)
+	}
+	//return strings.EqualFold(out, "Command successful."), nil
 }
 
 // CreateLinuxDevice : attaches and creates a new linux device
@@ -521,6 +528,9 @@ func createLinuxDevice(volume *model.Volume) (dev *model.Device, err error) {
 						return nil, err
 					}
 
+					// For clone of an encrypted volume, file-system will already be present
+					d.FilesystemPresent = true
+
 					// LUKS format device if this is the first time it is being used
 					if !isLuksDev {
 						formatCmd := exec.Command("cryptsetup", "luksFormat", "--batch-mode", originalDevPath)
@@ -529,9 +539,11 @@ func createLinuxDevice(volume *model.Volume) (dev *model.Device, err error) {
 						if err := formatCmd.Run(); err != nil {
 							log.Errorf("Format command failed with error %v", err)
 						}
+						// This is a new device which would require mkfs
+						d.FilesystemPresent = false
 					}
 					//path := "/dev/" + dmPrefix + string(result["minor"])
-					encryptedPath:= "encrypted-" + d.Pathname   //"encrypted-dm-4"
+					encryptedPath := "encrypted-" + d.Pathname   //"encrypted-dm-4"
 					openCmd := exec.Command("cryptsetup","luksOpen","/dev/"+d.Pathname, encryptedPath)
 					log.Infof("luksOpen command:%s",openCmd)
 					openCmd.Stdin = strings.NewReader(volume.EncryptionKey)

@@ -158,6 +158,7 @@ type Device struct {
 	State           string       `json:"state,omitempty"`        // state of the device needed to verify the device is active
 	Filesystem      string       `json:"filesystem,omitempty"`
 	StorageVendor   string       `json:"storage_vendor,omitempty"`  //3PARdata
+	FilesystemPresent bool       `json:"file_system_present,omitempty"` // Clone of encrypted volume doesn't require mkfs
 }
 
 // DevicePartition Partition Info for a Device

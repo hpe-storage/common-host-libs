@@ -108,7 +108,12 @@ func GetMountPointsForDevices(devices []*model.Device) ([]*model.Mount, error) {
 
 	for _, dev := range devices {
 		log.Tracef("Checking mount for device %+v ", dev)
-		if mountPoints, ok := devToMounts[dev.AltFullPathName]; ok {
+		devPath := dev.AltFullPathName
+		if dev.AltFullLuksPathName != "" {
+			devPath = dev.AltFullLuksPathName
+		}
+		//if mountPoints, ok := devToMounts[dev.AltFullPathName]; ok {
+		if mountPoints, ok := devToMounts[devPath]; ok {
 			for _, mountPoint := range mountPoints {
 				mount := &model.Mount{
 					Mountpoint: mountPoint,
@@ -923,10 +928,13 @@ func SetupFilesystem(device *model.Device, filesystemType string) error {
 		return nil
 	}
 
-	log.Tracef("Creating filesystem %s on device path %s", filesystemType, devPath)
-	if err := RetryCreateFileSystem(devPath, filesystemType); err != nil {
-		log.Errorf("Failed to create filesystem %s on device with path %s", filesystemType, devPath)
-		return err
+	// For clone case, filesystem will be present
+	if !device.FilesystemPresent {
+		log.Tracef("Creating filesystem %s on device path %s", filesystemType, devPath)
+		if err := RetryCreateFileSystem(devPath, filesystemType); err != nil {
+			log.Errorf("Failed to create filesystem %s on device with path %s", filesystemType, devPath)
+			return err
+		}
 	}
 	return nil
 }
