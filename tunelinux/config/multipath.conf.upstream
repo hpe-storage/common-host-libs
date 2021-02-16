@@ -25,6 +25,10 @@ blacklist_exceptions {
         vendor  "TrueNAS"
         product "iSCSI Disk"
     }
+    device {
+        vendor  "FreeNAS"
+        product "iSCSI Disk"
+    }
 }
 devices {
     device {
@@ -46,6 +50,15 @@ devices {
         rr_weight            priorities
         uid_attribute        ID_SERIAL
         vendor               "TrueNAS"
+        product              "iSCSI Disk"
+        path_grouping_policy group_by_prio
+        path_selector        "queue-length 0"
+        hardware_handler     "1 alua"
+    }
+    device {
+        rr_weight            priorities
+        uid_attribute        ID_SERIAL
+        vendor               "FreeNAS"
         product              "iSCSI Disk"
         path_grouping_policy group_by_prio
         path_selector        "queue-length 0"
