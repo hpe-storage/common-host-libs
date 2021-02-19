@@ -477,7 +477,7 @@ func isLuksDevice(devPath string) (bool, error) {
 	if exitStatus == 0 {
 		return true, nil
 	}
-	if exitStatus == -1 {
+	if exitStatus == 1 {
 		log.Debugf("Not a LUKS device - %s", devPath)
 		return false, nil
 	} else {
@@ -543,7 +543,7 @@ func createLinuxDevice(volume *model.Volume) (dev *model.Device, err error) {
 						d.FilesystemPresent = false
 					}
 					//path := "/dev/" + dmPrefix + string(result["minor"])
-					encryptedPath := "encrypted-" + d.Pathname   //"encrypted-dm-4"
+					encryptedPath := "enc-" + d.MpathName   //"enc-mpathx"
 					openCmd := exec.Command("cryptsetup","luksOpen","/dev/"+d.Pathname, encryptedPath)
 					log.Infof("luksOpen command:%s",openCmd)
 					openCmd.Stdin = strings.NewReader(volume.EncryptionKey)
