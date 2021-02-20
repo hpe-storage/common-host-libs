@@ -200,7 +200,6 @@ type Volume struct {
 	SecondaryArrayDetails string                 `json:"secondary_array_details,omitempty"`
 	UsedBytes             int64                  `json:"used_bytes,omitempty"`
 	FreeBytes             int64                  `json:"free_bytes,omitempty"`
-	Encrypted             bool                   `json:"encrypted,omitempty"`
 	EncryptionKey         string                 `json:"encryption_key,omitempty"`
 }
 
