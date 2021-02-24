@@ -924,17 +924,14 @@ func SetupFilesystem(device *model.Device, filesystemType string) error {
 		return err
 	}
 	if fsType != "" {
-		log.Tracef("Filesystem %s already exists on the device %s", fsType, device.AltFullPathName)
+		log.Tracef("Filesystem %s already exists on the device %s", fsType, devPath)
 		return nil
 	}
 
-	// For clone case, filesystem will be present
-	if !device.FilesystemPresent {
-		log.Tracef("Creating filesystem %s on device path %s", filesystemType, devPath)
-		if err := RetryCreateFileSystem(devPath, filesystemType); err != nil {
-			log.Errorf("Failed to create filesystem %s on device with path %s", filesystemType, devPath)
-			return err
-		}
+	log.Tracef("Creating filesystem %s on device path %s", filesystemType, devPath)
+	if err := RetryCreateFileSystem(devPath, filesystemType); err != nil {
+		log.Errorf("Failed to create filesystem %s on device with path %s", filesystemType, devPath)
+		return err
 	}
 	return nil
 }
