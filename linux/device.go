@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -527,11 +526,11 @@ func createLinuxDevice(volume *model.Volume) (dev *model.Device, err error) {
 					// LUKS format device if this is the first time it is being used
 					if !isLuksDev {
 						log.Infof("Device %s is a new device. LUKS formatting it...", originalDevPath)
-						formatCmd := exec.Command("cryptsetup", "luksFormat", "--batch-mode", originalDevPath)
-						log.Debugf("luksFormat command:%s", formatCmd)
-						formatCmd.Stdin = strings.NewReader(volume.EncryptionKey)
-						if err := formatCmd.Run(); err != nil {
-							err = fmt.Errorf("LUKS format command failed with error %v", err)
+						_, _, err := util.ExecCommandOutputWithStdinArgs("cryptsetup",
+							[]string{"luksFormat", "--batch-mode", originalDevPath},
+							[]string{volume.EncryptionKey})
+						if err != nil {
+							err = fmt.Errorf("LUKS format command failed with error: %v", err)
 							log.Error(err.Error())
 							return nil, err
 						}
@@ -540,14 +539,14 @@ func createLinuxDevice(volume *model.Volume) (dev *model.Device, err error) {
 					srcMpath := "/dev/" + d.Pathname
 					mappedMPath := "enc-" + d.MpathName   // "enc-mpathx"
 					log.Infof("Opening LUKS device %s with mapped device %s...", srcMpath, mappedMPath)
-					openCmd := exec.Command("cryptsetup","luksOpen", srcMpath, mappedMPath)
-					log.Infof("luksOpen command:%s",openCmd)
-					openCmd.Stdin = strings.NewReader(volume.EncryptionKey)
-					if err := openCmd.Run(); err != nil {
-						log.Errorf("LUKS open command failed with error %v", err)
+					_, _, err = util.ExecCommandOutputWithStdinArgs("cryptsetup",
+						[]string{"luksOpen", srcMpath, mappedMPath},
+						[]string{volume.EncryptionKey})
+					if err != nil {
+						err = fmt.Errorf("LUKS open command failed with error: %v", err)
+						log.Error(err.Error())
 						return nil, err
 					}
-
 					log.Infof("Opened LUKS device %s with mapped device %s successfully", srcMpath, mappedMPath)
 
 					// Replacing the device path,AltFullPathName
