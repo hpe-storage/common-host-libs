@@ -454,7 +454,7 @@ func IsSensitive(key string) bool {
 		"secret",
 		"token",
 		"accesskey",
-		"passPhrase",
+		"passphrase",
 
 	}
 	key = strings.ToLower(key)
