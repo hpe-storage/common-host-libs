@@ -4,10 +4,9 @@ package storageprovider
 
 import (
 	"fmt"
-	"strconv"
-
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/model"
+	"strconv"
 )
 
 const (
@@ -50,12 +49,13 @@ type StorageProvider interface {
 
 // Credentials defines how a StorageProvider is accessed
 type Credentials struct {
-	Username    string
-	Password    string
-	Backend     string
-	ServicePort int
-	ContextPath string
-	ServiceName string
+	Username         string
+	Password         string
+	Backend          string
+	ServicePort      int
+	ContextPath      string
+	ServiceName      string
+	CspClientTimeout int64
 }
 
 // CreateCredentials creates the credentail object from the given secrets
