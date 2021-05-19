@@ -936,6 +936,9 @@ func getCspClient(credentials *storageprovider.Credentials) (*connectivity.Clien
 	// Off-Array CSP
 	cspURI := fmt.Sprintf("http://%s:%d", credentials.ServiceName, credentials.ServicePort)
 
+	if credentials.CspClientTimeout == 0 {
+		credentials.CspClientTimeout = 60
+	}
 	log.Tracef(">>>>> getCspClient (service) using URI %s and username %s with timeout set to %d seconds", cspURI, credentials.Username, credentials.CspClientTimeout)
 	defer log.Trace("<<<<< getCspClient")
 
