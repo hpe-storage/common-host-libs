@@ -105,8 +105,8 @@ func TestCreateCredentials(t *testing.T) {
 		want    *Credentials
 		wantErr bool
 	}{
-		{"Test valid on-array args", args{map1}, cred1, false},
-		{"Test valid off-array args", args{map2}, cred2, false},
+		{"Test valid off-array args", args{map1}, cred1, false},
+		{"Test valid on-array args", args{map2}, cred2, false},
 		{"Test missing/invalid port", args{map3}, nil, true},
 		{"Test missing backend", args{map4}, nil, true},
 		{"Test missing username", args{map5}, nil, true},
