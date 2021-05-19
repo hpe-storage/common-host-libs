@@ -27,6 +27,7 @@ func TestCreateCredentials(t *testing.T) {
 		Backend:     "1.1.1.1",
 		ServiceName: "csp-service",
 		ServicePort: 8080,
+		CspClientTimeout: DefaultCSPClientTimeout,
 	}
 
 	// Valid On-Array params
@@ -81,19 +82,38 @@ func TestCreateCredentials(t *testing.T) {
 	// Empty params map
 	map7 := map[string]string{}
 
+	// Valid Off-Array params with csp client timeout
+	map8 := map[string]string{
+		usernameKey:    "admin",
+		passwordKey:    "admin",
+		backendKey:     "1.1.1.1",
+		serviceNameKey: "csp-service",
+		servicePortKey: "8080",
+	}
+	// Valid Off-Array credential with csp client timeout
+	cred8 := &Credentials{
+		Username:    "admin",
+		Password:    "admin",
+		Backend:     "1.1.1.1",
+		ServiceName: "csp-service",
+		ServicePort: 8080,
+		CspClientTimeout: DefaultCSPClientTimeout,
+	}
+
 	tests := []struct {
 		name    string
 		args    args
 		want    *Credentials
 		wantErr bool
 	}{
-		{"Test valid on-array args", args{map1}, cred1, false},
-		{"Test valid off-array args", args{map2}, cred2, false},
+		{"Test valid off-array args", args{map1}, cred1, false},
+		{"Test valid on-array args", args{map2}, cred2, false},
 		{"Test missing/invalid port", args{map3}, nil, true},
 		{"Test missing backend", args{map4}, nil, true},
 		{"Test missing username", args{map5}, nil, true},
 		{"Test missing password", args{map6}, nil, true},
 		{"Test empty credentials", args{map7}, nil, true},
+		{"Test valid off-array credentials with csp client timeout", args{map8}, cred8, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
