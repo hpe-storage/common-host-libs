@@ -27,6 +27,7 @@ func TestCreateCredentials(t *testing.T) {
 		Backend:     "1.1.1.1",
 		ServiceName: "csp-service",
 		ServicePort: 8080,
+		CspClientTimeout: DefaultCSPClientTimeout,
 	}
 
 	// Valid On-Array params
