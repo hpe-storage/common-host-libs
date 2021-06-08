@@ -589,7 +589,7 @@ func MountNFSShare(source string, targetPath string, options []string, nfsType s
 		nfsType = defaultNFSType
 	}
 
-	mountedSource := GetDeviceFromMountPoint(targetPath)
+	mountedSource, _ := GetDeviceFromMountPoint(targetPath)
 	if mountedSource != "" {
 		// the source exists for the target path but differs from the expected mount, return error
 		if mountedSource != source {
