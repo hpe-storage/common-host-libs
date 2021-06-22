@@ -1118,8 +1118,6 @@ func offlineScsiDevice(path string) (err error) {
 // DeleteDevice : delete the multipath device
 func DeleteDevice(dev *model.Device) (err error) {
 	log.Tracef("DeleteDevice called with %s", dev.SerialNumber)
-
-	isFC := isFibreChannelDevice(dev.Slaves)
 	// perform cleanup of the multipath device
 	if dev.SerialNumber == "" {
 		return fmt.Errorf("no serialNumber of device %v present, failing delete", dev)
@@ -1140,12 +1138,6 @@ func DeleteDevice(dev *model.Device) (err error) {
 	err = retryTearDownMultipathDevice(dev)
 	if err != nil {
 		return err
-	}
-	if(!isFC){
-		err = logoutAndDeleteIscsiTarget(dev)
-		if err != nil {
-			log.Error(err.Error())
-		}
 	}
 	return nil
 }
