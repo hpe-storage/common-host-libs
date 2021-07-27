@@ -2,12 +2,15 @@
 package logger
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"testing"
 
+	"github.com/opentracing/opentracing-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -68,7 +71,8 @@ func TestInitLogging(t *testing.T) {
 	os.RemoveAll(logFile)
 
 	// Test1: test overrides with params to log to only stdout
-	InitLogging("", nil, true)
+	_, sp := InitLogging("", nil, true)
+	sp.Log("Event")
 
 	// verify logging with override to stdout only
 	testName := "test_param_override_stdout_only"
@@ -147,4 +151,26 @@ func TestInitLogging(t *testing.T) {
 
 	// cleanup log file after test
 	os.RemoveAll(logFile)
+}
+
+func TestInitJaeger(t *testing.T) {
+	tracer, closer := InitJaeger("CSI-Driver")
+	defer closer.Close()
+	opentracing.SetGlobalTracer(tracer)
+
+	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		span := StartSpanFromRequest(tracer, r)
+		defer span.Finish()
+
+		outboundHostPort, _ := os.LookupEnv("OUTBOUND_HOST_PORT")
+		ctx := opentracing.ContextWithSpan(context.Background(), span)
+		response, err := Ping(ctx, outboundHostPort)
+		if err != nil {
+			log.Fatalf("Error occurred: %s", err)
+		}
+		w.Write([]byte(fmt.Sprintf("%s -> %s", "CSI-Driver", response)))
+	})
+	log.Printf("Listening on localhost:8081")
+	//log.Infof(http.ListenAndServe(":8081", nil))
+
 }

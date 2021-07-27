@@ -16,7 +16,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	otLog "github.com/opentracing/opentracing-go/log"
 	log "github.com/sirupsen/logrus"
+	"github.com/uber/jaeger-client-go/config"
 	"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -39,6 +43,10 @@ type LogParams struct {
 	MaxFiles   int
 	MaxSizeMiB int
 	Format     string
+}
+
+type Logr struct {
+	ctx context.Context
 }
 
 var (
@@ -163,8 +171,62 @@ func updateLogParamsFromEnv() {
 	}
 }
 
+//Initalizes Jaeger and opentracing tracing
+func InitJaeger(service string) (opentracing.Tracer, io.Closer) {
+	cfg := &config.Configuration{
+		ServiceName: service,
+		Sampler: &config.SamplerConfig{
+			Type:  "const",
+			Param: 1,
+		},
+		Reporter: &config.ReporterConfig{
+			LogSpans: true,
+		},
+	}
+	//add tracer as a input of NewTracer so that the logspans declared true above will work
+	tracer, closer, err := cfg.NewTracer()
+	if err != nil {
+		panic(fmt.Sprintf("ERROR: cannot init Jaeger: %v\n", err))
+	}
+	return tracer, closer
+}
+
+func StartSpanFromRequest(tracer opentracing.Tracer, r *http.Request) opentracing.Span {
+	spanCtx, _ := Extract(tracer, r)
+	return tracer.StartSpan("ping-receive", ext.RPCServerOption(spanCtx))
+}
+
+func Extract(tracer opentracing.Tracer, r *http.Request) (opentracing.SpanContext, error) {
+	return tracer.Extract(
+		opentracing.HTTPHeaders,
+		opentracing.HTTPHeadersCarrier(r.Header))
+}
+
+func Inject(span opentracing.Span, request *http.Request) error {
+	return span.Tracer().Inject(
+		span.Context(),
+		opentracing.HTTPHeaders,
+		opentracing.HTTPHeadersCarrier(request.Header))
+}
+
+func Ping(ctx context.Context, hostPort string) (string, error) {
+	span, _ := opentracing.StartSpanFromContext(ctx, "ping-send")
+	defer span.Finish()
+
+	url := fmt.Sprintf("http://%s/ping", hostPort)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", err
+	}
+
+	if err := Inject(span, req); err != nil {
+		return "", err
+	}
+	return "nil", nil
+}
+
 // Initialize logging with given params
-func InitLogging(logName string, params *LogParams, alsoLogToStderr bool) (err error) {
+func InitLogging(logName string, params *LogParams, alsoLogToStderr bool, initTracing bool) (err error) {
 	initMutex.Lock()
 	defer initMutex.Unlock()
 
@@ -217,7 +279,50 @@ func InitLogging(logName string, params *LogParams, alsoLogToStderr bool) (err e
 		"alsoLogToStderr": alsoLogToStderr,
 	}).Info("Initialized logging.")
 
+	//initializes tracing capabilites if true
+	if initTracing {
+		//Initializing the Jaeger tracer
+		tracer, closer := InitJaeger("CSI-Driver")
+		defer closer.Close()
+		opentracing.SetGlobalTracer(tracer)
+
+		//Span Initialized with default context
+		span := tracer.StartSpan("CSI-Driver")
+		log.Printf("Span Context: %v", span.Context())
+		ctx := opentracing.ContextWithSpan(context.Background(), span)
+		l := Logr{ctx}
+
+		l.LogToTrace("Info", "Tracing Initialized")
+		defer span.Finish()
+		log.Printf("Listening on localhost:8081")
+	}
+
 	return nil
+}
+
+//Logs given string to tracer
+func (l *Logr) LogToTrace(level, msg string) {
+	span := opentracing.SpanFromContext(l.ctx)
+	if span != nil {
+		span.LogFields(otLog.String("event", msg))
+	}
+	span.Finish()
+}
+
+//Sets context of called Logr to given context
+func (l *Logr) SetContext(context context.Context) {
+	l.ctx = context
+}
+
+//Starts and returns a span for the inputted Logr
+func StartContext(l *Logr) (span opentracing.Span) {
+	s := opentracing.SpanFromContext(l.ctx)
+	return s
+}
+
+//Ends the inputted span
+func EndContext(span opentracing.Span) {
+	span.Finish()
 }
 
 func AddConsoleHook() error {
@@ -455,7 +560,6 @@ func IsSensitive(key string) bool {
 		"token",
 		"accesskey",
 		"passphrase",
-
 	}
 	key = strings.ToLower(key)
 	for _, bad := range badWords {

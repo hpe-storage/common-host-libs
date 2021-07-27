@@ -68,3 +68,9 @@ import:
   version: 4e5b6552494c8005c60de6c60b50ebaefc69e592
 - package: github.com/fsnotify/fsnotify
   version: ^v1.4.9
+- package: github.com/opentracing/opentracing-go
+  version: ^v1.2.0
+- package: github.com/uber/jaeger-client-go
+  version: ^v2.29
+- package: "github.com/opentracing/opentracing-go/ext"
+  version: ^v1.2.0
