@@ -5,10 +5,10 @@ import (
 )
 
 func main() {
-	logger.InitLogging("test.log", nil, true, true)
-	logger.Info("**********************************************")
-	logger.Info("*************** HPE CSI DRIVER ***************")
-	logger.Info("**********************************************")
+	_, lg := logger.InitLogging("test.log", nil, true, true)
+	lg.Info("**********************************************")
+	lg.Info("*************** HPE CSI DRIVER ***************")
+	lg.Info("**********************************************")
 
 	/*logger.InitLogging("test.log", nil, true, true)
 	logger.Info("**********************************************")
