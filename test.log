@@ -119,3 +119,56 @@ time="2021-07-28T13:58:39-07:00" level=info msg="Span Context --- Traceid:Spanid
 time="2021-07-28T13:58:39-07:00" level=info msg="**********************************************" file="main.go:8"
 time="2021-07-28T13:58:39-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
 time="2021-07-28T13:58:39-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T12:24:03-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T12:24:03-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 5f93a46e56efe033:5f93a46e56efe033:0000000000000000:1"
+time="2021-07-29T12:24:03-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T12:24:03-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
+time="2021-07-29T12:24:03-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T12:25:12-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T12:25:12-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 236d1c5ea9729c73:236d1c5ea9729c73:0000000000000000:1"
+time="2021-07-29T12:25:12-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T12:25:12-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
+time="2021-07-29T12:25:12-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T12:50:53-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T12:50:53-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 0d83482337dec886:0d83482337dec886:0000000000000000:1"
+time="2021-07-29T12:50:53-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T12:50:53-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
+time="2021-07-29T12:50:53-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T12:52:44-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T12:52:44-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 2ace7fe3ae665217:2ace7fe3ae665217:0000000000000000:1"
+time="2021-07-29T12:52:44-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T12:52:44-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
+time="2021-07-29T12:52:44-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T12:53:53-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T12:53:53-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 3adb2b549c26e609:3adb2b549c26e609:0000000000000000:1"
+time="2021-07-29T12:53:53-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T12:53:53-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
+time="2021-07-29T12:53:53-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:00:20-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T14:00:20-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 76784402a8082867:76784402a8082867:0000000000000000:1"
+time="2021-07-29T14:00:20-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:00:20-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
+time="2021-07-29T14:00:20-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:12:39-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T14:12:39-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:14:12-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T14:14:12-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:17:47-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T14:17:47-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:23:51-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T14:23:51-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:27:59-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T14:27:59-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 0dec8d71681b849c:0dec8d71681b849c:0000000000000000:1"
+time="2021-07-29T14:27:59-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:27:59-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
+time="2021-07-29T14:27:59-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:29:12-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T14:29:12-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 78e7f3331eae00ad:78e7f3331eae00ad:0000000000000000:1"
+time="2021-07-29T14:29:12-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:29:12-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
+time="2021-07-29T14:29:12-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:29:47-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T14:29:47-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 029efb09abc2ed53:029efb09abc2ed53:0000000000000000:1"
+time="2021-07-29T14:29:47-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:29:47-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
+time="2021-07-29T14:29:47-07:00" level=info msg="**********************************************" file="main.go:8"

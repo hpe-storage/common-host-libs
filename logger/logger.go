@@ -48,6 +48,7 @@ type LogParams struct {
 type Logr struct {
 	ctx      context.Context
 	logEntry *log.Entry
+	cl       io.Closer
 }
 
 var (
@@ -253,23 +254,27 @@ func InitLogging(logName string, params *LogParams, alsoLogToStderr bool, initTr
 	// No output except for the hooks
 	log.SetOutput(ioutil.Discard)
 
+	//Default Logr
+	logEntry := sourced()
+	lg := Logr{nil, logEntry, nil}
+
 	if logParams.GetFile() != "" {
 		err = AddFileHook()
 		if err != nil {
-			return err, nil
+			return err, &lg
 		}
 	}
 	if alsoLogToStderr {
 		err = AddConsoleHook()
 		if err != nil {
-			return err, nil
+			return err, &lg
 		}
 	}
 
 	// Set log level
 	level, err := log.ParseLevel(logParams.GetLevel())
 	if err != nil {
-		return err, nil
+		return err, &lg
 	}
 	log.SetLevel(level)
 
@@ -284,7 +289,7 @@ func InitLogging(logName string, params *LogParams, alsoLogToStderr bool, initTr
 	if initTracing {
 		//Initializing the Jaeger tracer
 		tracer, closer := InitOpentracing("CSI-Driver")
-		defer closer.Close()
+		//defer closer.Close()
 		opentracing.SetGlobalTracer(tracer)
 
 		//Span Initialized with default context
@@ -292,7 +297,7 @@ func InitLogging(logName string, params *LogParams, alsoLogToStderr bool, initTr
 		log.Printf("Span Context --- Traceid:Spanid:ParentSpanid:Flags  : %v", span.Context())
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		logEntry := sourced()
-		l := Logr{ctx, logEntry}
+		l := Logr{ctx, logEntry, closer}
 
 		l.LogToTrace("Info", "Tracing Initialized")
 		defer span.Finish()
@@ -300,14 +305,22 @@ func InitLogging(logName string, params *LogParams, alsoLogToStderr bool, initTr
 		return nil, &l
 	}
 
-	return nil, nil
+	return nil, &lg
+}
+
+func (l *Logr) CloseTracer() {
+	l.cl.Close()
 }
 
 //Logs given string to tracer
 func (l *Logr) LogToTrace(level, msg string) {
 	span := opentracing.SpanFromContext(l.ctx)
+	//fmt.Print("In LogToTrace")
 	if span != nil {
 		span.LogFields(otLog.String("event", msg))
+	}
+	if span == nil {
+		fmt.Print("Span is nil")
 	}
 	span.Finish()
 }
@@ -318,8 +331,15 @@ func (l *Logr) SetContext(context context.Context) {
 }
 
 //Starts and returns a span for the inputted Logr
-func StartContext(l *Logr) (span opentracing.Span) {
+func (l *Logr) StartContext() (span opentracing.Span) {
 	s := opentracing.SpanFromContext(l.ctx)
+	/*if s == nil {
+
+		ctx := opentracing.ContextWithSpan(context.Background(), s)
+		l.SetContext(ctx)
+		sp := opentracing.SpanFromContext(ctx)
+		return sp
+	} */
 	return s
 }
 
@@ -616,11 +636,15 @@ func sourced() *log.Entry {
 // Trace logs a message at level Trace on the standard logger.
 func (lg *Logr) Trace(args ...interface{}) {
 	lg.logEntry.Trace(args...)
+	str := fmt.Sprintf("%v", args)
+	lg.LogToTrace("Trace", str)
 }
 
 // Debug logs a message at level Debug on the standard logger.
-func Debug(args ...interface{}) {
-	sourced().Debug(args...)
+func (lg *Logr) Debug(args ...interface{}) {
+	lg.logEntry.Debug(args...)
+	str := fmt.Sprintf("%v", args)
+	lg.LogToTrace("Debug", str)
 }
 
 // Print logs a message at level Info on the standard logger.
@@ -631,7 +655,8 @@ func Print(args ...interface{}) {
 // Info logs a message at level Info on the standard logger.
 func (lg *Logr) Info(args ...interface{}) {
 	lg.logEntry.Info(args...)
-	lg.LogToTrace("Info", "Trying")
+	str := fmt.Sprintf("%v", args)
+	lg.LogToTrace("Info", str)
 }
 
 // Warn logs a message at level Warn on the standard logger.

@@ -6,9 +6,12 @@ import (
 
 func main() {
 	_, lg := logger.InitLogging("test.log", nil, true, true)
+	//sp := lg.StartContext()
 	lg.Info("**********************************************")
 	lg.Info("*************** HPE CSI DRIVER ***************")
 	lg.Info("**********************************************")
+	lg.CloseTracer()
+	//logger.EndContext(sp)
 
 	/*logger.InitLogging("test.log", nil, true, true)
 	logger.Info("**********************************************")
