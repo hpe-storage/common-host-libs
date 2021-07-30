@@ -6,12 +6,14 @@ import (
 
 func main() {
 	_, lg := logger.InitLogging("test.log", nil, true, true)
-	//sp := lg.StartContext()
-	lg.Info("**********************************************")
-	lg.Info("*************** HPE CSI DRIVER ***************")
-	lg.Info("**********************************************")
+
+	lg.Info("************** Start Workflow 1 **************")
+	lg.Info("********** Workflow 1 Line 1 **********")
+	s := lg.StartContext()
+	lg.Info("**************** Start Workflow 2 *****************")
+	lg.Info("********** Workflow 2 Line 1 ******************")
+	logger.EndContext(s)
 	lg.CloseTracer()
-	//logger.EndContext(sp)
 
 	/*logger.InitLogging("test.log", nil, true, true)
 	logger.Info("**********************************************")

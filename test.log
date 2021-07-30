@@ -172,3 +172,24 @@ time="2021-07-29T14:29:47-07:00" level=info msg="Span Context --- Traceid:Spanid
 time="2021-07-29T14:29:47-07:00" level=info msg="**********************************************" file="main.go:8"
 time="2021-07-29T14:29:47-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
 time="2021-07-29T14:29:47-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:40:43-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T14:40:43-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T14:41:51-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T14:41:51-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T15:35:04-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T15:35:04-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 2de46a288c88a6ce:2de46a288c88a6ce:0000000000000000:1"
+time="2021-07-29T15:35:04-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T15:35:04-07:00" level=info msg="*************** HPE CSI DRIVER ***************" file="main.go:8"
+time="2021-07-29T15:35:04-07:00" level=info msg="**********************************************" file="main.go:8"
+time="2021-07-29T15:48:37-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-29T15:48:37-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 2f87c7ad308fd767:2f87c7ad308fd767:0000000000000000:1"
+time="2021-07-29T15:48:37-07:00" level=info msg="************** Start Workflow 1 **************" file="main.go:8"
+time="2021-07-29T15:48:37-07:00" level=info msg="********** Workflow 1 Line 1 **********" file="main.go:8"
+time="2021-07-29T15:48:37-07:00" level=info msg="**************** Start Workflow 2 *****************" file="main.go:8"
+time="2021-07-29T15:48:37-07:00" level=info msg="********** Workflow 2 Line 1 ******************" file="main.go:8"
+time="2021-07-30T14:41:51-07:00" level=info msg="Initialized logging." alsoLogToStderr=true logFileLocation=test.log logLevel=info
+time="2021-07-30T14:41:51-07:00" level=info msg="Span Context --- Traceid:Spanid:ParentSpanid:Flags  : 0c7943eee9662efd:0c7943eee9662efd:0000000000000000:1"
+time="2021-07-30T14:41:51-07:00" level=info msg="************** Start Workflow 1 **************" file="main.go:8"
+time="2021-07-30T14:41:51-07:00" level=info msg="********** Workflow 1 Line 1 **********" file="main.go:8"
+time="2021-07-30T14:41:51-07:00" level=info msg="**************** Start Workflow 2 *****************" file="main.go:8"
+time="2021-07-30T14:41:51-07:00" level=info msg="********** Workflow 2 Line 1 ******************" file="main.go:8"

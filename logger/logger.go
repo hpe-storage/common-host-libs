@@ -332,14 +332,9 @@ func (l *Logr) SetContext(context context.Context) {
 
 //Starts and returns a span for the inputted Logr
 func (l *Logr) StartContext() (span opentracing.Span) {
-	s := opentracing.SpanFromContext(l.ctx)
-	/*if s == nil {
-
-		ctx := opentracing.ContextWithSpan(context.Background(), s)
-		l.SetContext(ctx)
-		sp := opentracing.SpanFromContext(ctx)
-		return sp
-	} */
+	//s := opentracing.SpanFromContext(l.ctx)
+	s := opentracing.StartSpan("New Span")
+	l.ctx = opentracing.ContextWithSpan(context.Background(), s)
 	return s
 }
 
