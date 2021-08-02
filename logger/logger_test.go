@@ -2,15 +2,13 @@
 package logger
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/opentracing/opentracing-go"
+	"github.com/hpe-storage/common-host-libs/logger"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -71,8 +69,7 @@ func TestInitLogging(t *testing.T) {
 	os.RemoveAll(logFile)
 
 	// Test1: test overrides with params to log to only stdout
-	_, sp := InitLogging("", nil, true)
-	sp.Log("Event")
+	InitLogging("", nil, true, false)
 
 	// verify logging with override to stdout only
 	testName := "test_param_override_stdout_only"
@@ -82,7 +79,7 @@ func TestInitLogging(t *testing.T) {
 	assert.Equal(t, true, os.IsNotExist(err))
 
 	// Test 2: initialize logger with nil params to verify default levels
-	InitLogging(logFile, nil, false)
+	InitLogging(logFile, nil, false, false)
 
 	// verify default info level setting with no params
 	assert.Equal(t, DefaultLogLevel, log.GetLevel().String())
@@ -97,7 +94,7 @@ func TestInitLogging(t *testing.T) {
 	testContains(t, logFile, testName, "debug", false)
 
 	// Test3: initialize logger with override of trace level
-	InitLogging(logFile, &LogParams{Level: "trace"}, false)
+	InitLogging(logFile, &LogParams{Level: "trace"}, false, false)
 
 	// verify trace level setting with param override
 	assert.Equal(t, log.TraceLevel.String(), log.GetLevel().String())
@@ -113,7 +110,7 @@ func TestInitLogging(t *testing.T) {
 
 	// Test4: initialize logger with env vars for info level
 	os.Setenv("LOG_LEVEL", "debug")
-	InitLogging(logFile, nil, false)
+	InitLogging(logFile, nil, false, false)
 	// verify logging with debug level and below
 	testName = "test_env_debug_level"
 	logAllLevels(testName)
@@ -125,20 +122,20 @@ func TestInitLogging(t *testing.T) {
 
 	// Test5: initialize logger with invalid log format through env
 	os.Setenv("LOG_FORMAT", "yaml")
-	InitLogging(logFile, nil, false)
+	InitLogging(logFile, nil, false, false)
 
 	// verify log format is set to default value of text
 	assert.Equal(t, logParams.GetLogFormat(), DefaultLogFormat)
 
 	// Test6: initialize logger with invalid log files limit through config
-	InitLogging(logFile, &LogParams{MaxFiles: 1000}, false)
+	InitLogging(logFile, &LogParams{MaxFiles: 1000}, false, false)
 
 	// verify log files is set to default value of 10
 	assert.Equal(t, logParams.GetMaxFiles(), DefaultMaxLogFiles)
 
 	// Test7: test overrides with env variables even when params is not nil
 	os.Setenv("LOG_LEVEL", "info")
-	InitLogging(logFile, &LogParams{Level: "trace"}, false)
+	InitLogging(logFile, &LogParams{Level: "trace"}, false, false)
 
 	// verify logging with only info level and below with override from env
 	testName = "test_env_override_info_level"
@@ -154,23 +151,14 @@ func TestInitLogging(t *testing.T) {
 }
 
 func TestInitJaeger(t *testing.T) {
-	tracer, closer := InitJaeger("CSI-Driver")
-	defer closer.Close()
-	opentracing.SetGlobalTracer(tracer)
+	_, lg := logger.InitLogging("test.log", nil, true, true)
 
-	http.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
-		span := StartSpanFromRequest(tracer, r)
-		defer span.Finish()
-
-		outboundHostPort, _ := os.LookupEnv("OUTBOUND_HOST_PORT")
-		ctx := opentracing.ContextWithSpan(context.Background(), span)
-		response, err := Ping(ctx, outboundHostPort)
-		if err != nil {
-			log.Fatalf("Error occurred: %s", err)
-		}
-		w.Write([]byte(fmt.Sprintf("%s -> %s", "CSI-Driver", response)))
-	})
-	log.Printf("Listening on localhost:8081")
-	//log.Infof(http.ListenAndServe(":8081", nil))
+	lg.Info("************** Start Workflow 1 **************")
+	lg.Info("********** Workflow 1 Line 1 **********")
+	s := lg.StartContext("Workflow 2")
+	lg.Info("**************** Start Workflow 2 *****************")
+	lg.Info("********** Workflow 2 Line 1 ******************")
+	logger.EndContext(s)
+	lg.CloseTracer()
 
 }
