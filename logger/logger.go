@@ -16,7 +16,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/opentracing/opentracing-go"
+	otLog "github.com/opentracing/opentracing-go/log"
 	log "github.com/sirupsen/logrus"
+	"github.com/uber/jaeger-client-go/config"
 	"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -39,6 +42,12 @@ type LogParams struct {
 	MaxFiles   int
 	MaxSizeMiB int
 	Format     string
+}
+
+type Logr struct {
+	ctx      context.Context
+	logEntry *log.Entry
+	cl       io.Closer
 }
 
 var (
@@ -163,8 +172,28 @@ func updateLogParamsFromEnv() {
 	}
 }
 
+//Initalizes opentracing tracing
+func InitOpentracing(service string) (opentracing.Tracer, io.Closer) {
+	cfg := &config.Configuration{
+		ServiceName: service,
+		Sampler: &config.SamplerConfig{
+			Type:  "const",
+			Param: 1,
+		},
+		Reporter: &config.ReporterConfig{
+			LogSpans: true,
+		},
+	}
+	//add tracer as a input of NewTracer so that the logspans declared true above will work
+	tracer, closer, err := cfg.NewTracer()
+	if err != nil {
+		panic(fmt.Sprintf("ERROR: cannot init tracing: %v\n", err))
+	}
+	return tracer, closer
+}
+
 // Initialize logging with given params
-func InitLogging(logName string, params *LogParams, alsoLogToStderr bool) (err error) {
+func InitLogging(logName string, params *LogParams, alsoLogToStderr bool, initTracing bool) (err error, l *Logr) {
 	initMutex.Lock()
 	defer initMutex.Unlock()
 
@@ -190,23 +219,27 @@ func InitLogging(logName string, params *LogParams, alsoLogToStderr bool) (err e
 	// No output except for the hooks
 	log.SetOutput(ioutil.Discard)
 
+	//Default Logr
+	logEntry := sourced()
+	lg := Logr{nil, logEntry, nil}
+
 	if logParams.GetFile() != "" {
 		err = AddFileHook()
 		if err != nil {
-			return err
+			return err, &lg
 		}
 	}
 	if alsoLogToStderr {
 		err = AddConsoleHook()
 		if err != nil {
-			return err
+			return err, &lg
 		}
 	}
 
 	// Set log level
 	level, err := log.ParseLevel(logParams.GetLevel())
 	if err != nil {
-		return err
+		return err, &lg
 	}
 	log.SetLevel(level)
 
@@ -217,7 +250,64 @@ func InitLogging(logName string, params *LogParams, alsoLogToStderr bool) (err e
 		"alsoLogToStderr": alsoLogToStderr,
 	}).Info("Initialized logging.")
 
-	return nil
+	//initializes tracing capabilites if true
+	if initTracing {
+		//Initializing the tracer
+		tracer, closer := InitOpentracing("CSI-Driver")
+		opentracing.SetGlobalTracer(tracer)
+
+		//Span Initialized with default context
+		span := tracer.StartSpan("CSI-Driver")
+		log.Printf("Span Context --- Traceid:Spanid:ParentSpanid:Flags  : %v", span.Context())
+		ctx := opentracing.ContextWithSpan(context.Background(), span)
+		logEntry := sourced()
+		l := Logr{ctx, logEntry, closer}
+
+		l.LogToTrace("Info", "Tracing Initialized")
+		defer span.Finish()
+
+		return nil, &l
+	}
+
+	return nil, &lg
+}
+
+func (l *Logr) CloseTracer() {
+	l.cl.Close()
+}
+
+//Logs given string to tracer
+func (l *Logr) LogToTrace(level, msg string) {
+	span := opentracing.SpanFromContext(l.ctx)
+	//fmt.Print("In LogToTrace")
+	if span != nil {
+		span.LogFields(otLog.String("event", msg))
+	}
+	if span == nil {
+		fmt.Print("Span is nil")
+	}
+	span.Finish()
+}
+
+//Sets context of called Logr to given context
+func (l *Logr) SetContext(context context.Context) {
+	l.ctx = context
+}
+
+//Starts and returns a span for the inputted Logr
+func (l *Logr) StartContext(spanName string) (s opentracing.Span) {
+	s = opentracing.SpanFromContext(l.ctx)
+	if s == nil || s.BaggageItem(spanName) == "" {
+		s = opentracing.StartSpan(spanName)
+		s.SetBaggageItem(spanName, "true")
+		l.ctx = opentracing.ContextWithSpan(context.Background(), s)
+	}
+	return s
+}
+
+//Ends the inputted span
+func EndContext(span opentracing.Span) {
+	span.Finish()
 }
 
 func AddConsoleHook() error {
@@ -455,7 +545,6 @@ func IsSensitive(key string) bool {
 		"token",
 		"accesskey",
 		"passphrase",
-
 	}
 	key = strings.ToLower(key)
 	for _, bad := range badWords {
@@ -506,14 +595,26 @@ func sourced() *log.Entry {
 	return log.WithField("file", fmt.Sprintf("%s:%d", file, line))
 }
 
-// Trace logs a message at level Trace on the standard logger.
 func Trace(args ...interface{}) {
 	sourced().Trace(args...)
 }
 
-// Debug logs a message at level Debug on the standard logger.
+// Trace logs a message at level Trace on the standard logger.
+func (lg *Logr) Trace(args ...interface{}) {
+	lg.logEntry.Trace(args...)
+	str := fmt.Sprintf("%v", args)
+	lg.LogToTrace("Trace", str)
+}
+
 func Debug(args ...interface{}) {
-	sourced().Debug(args...)
+	sourced().Trace(args...)
+}
+
+// Debug logs a message at level Debug on the standard logger.
+func (lg *Logr) Debug(args ...interface{}) {
+	lg.logEntry.Debug(args...)
+	str := fmt.Sprintf("%v", args)
+	lg.LogToTrace("Debug", str)
 }
 
 // Print logs a message at level Info on the standard logger.
@@ -521,9 +622,15 @@ func Print(args ...interface{}) {
 	sourced().Print(args...)
 }
 
-// Info logs a message at level Info on the standard logger.
 func Info(args ...interface{}) {
-	sourced().Info(args...)
+	sourced().Trace(args...)
+}
+
+// Info logs a message at level Info on the standard logger.
+func (lg *Logr) Info(args ...interface{}) {
+	lg.logEntry.Info(args...)
+	str := fmt.Sprintf("%v", args)
+	lg.LogToTrace("Info", str)
 }
 
 // Warn logs a message at level Warn on the standard logger.
