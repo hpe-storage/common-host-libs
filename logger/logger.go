@@ -302,7 +302,6 @@ func (l *Logr) StartContext(spanName string) (s opentracing.Span) {
 		s.SetBaggageItem(spanName, "true")
 		l.ctx = opentracing.ContextWithSpan(context.Background(), s)
 	}
-	log.Infof("Span Context --- Traceid:Spanid:ParentSpanid:Flags  : %v", s.Context())
 	return s
 }
 
