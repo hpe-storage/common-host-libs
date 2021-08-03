@@ -159,6 +159,14 @@ func TestInitJaeger(t *testing.T) {
 	lg.Info("**************** Start Workflow 2 *****************")
 	lg.Info("********** Workflow 2 Line 1 ******************")
 	logger.EndContext(s)
+	sp := lg.StartContext("Workflow 2")
+	lg.Info("**************** Start Workflow 2 *****************")
+	lg.Info("********** Workflow 2 Line 1 ******************")
+	logger.EndContext(sp)
+	sp2 := lg.StartContext("Workflow 3")
+	lg.Info("**************** Start Workflow 3 *****************")
+	lg.Info("********** Workflow 3 Line 1 ******************")
+	logger.EndContext(sp2)
 	lg.CloseTracer()
 
 }

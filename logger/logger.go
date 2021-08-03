@@ -295,9 +295,14 @@ func (l *Logr) SetContext(context context.Context) {
 }
 
 //Starts and returns a span for the inputted Logr
-func (l *Logr) StartContext(spanName string) (span opentracing.Span) {
-	s := opentracing.StartSpan(spanName)
-	l.ctx = opentracing.ContextWithSpan(context.Background(), s)
+func (l *Logr) StartContext(spanName string) (s opentracing.Span) {
+	s = opentracing.SpanFromContext(l.ctx)
+	if s == nil || s.BaggageItem(spanName) == "" {
+		s = opentracing.StartSpan(spanName)
+		s.SetBaggageItem(spanName, "true")
+		l.ctx = opentracing.ContextWithSpan(context.Background(), s)
+	}
+	log.Infof("Span Context --- Traceid:Spanid:ParentSpanid:Flags  : %v", s.Context())
 	return s
 }
 
@@ -591,11 +596,19 @@ func sourced() *log.Entry {
 	return log.WithField("file", fmt.Sprintf("%s:%d", file, line))
 }
 
+func Trace(args ...interface{}) {
+	sourced().Trace(args...)
+}
+
 // Trace logs a message at level Trace on the standard logger.
 func (lg *Logr) Trace(args ...interface{}) {
 	lg.logEntry.Trace(args...)
 	str := fmt.Sprintf("%v", args)
 	lg.LogToTrace("Trace", str)
+}
+
+func Debug(args ...interface{}) {
+	sourced().Trace(args...)
 }
 
 // Debug logs a message at level Debug on the standard logger.
@@ -608,6 +621,10 @@ func (lg *Logr) Debug(args ...interface{}) {
 // Print logs a message at level Info on the standard logger.
 func Print(args ...interface{}) {
 	sourced().Print(args...)
+}
+
+func Info(args ...interface{}) {
+	sourced().Trace(args...)
 }
 
 // Info logs a message at level Info on the standard logger.
