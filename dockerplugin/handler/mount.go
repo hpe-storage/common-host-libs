@@ -6,18 +6,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/hpe-storage/common-host-libs/chapi"
-	"github.com/hpe-storage/common-host-libs/connectivity"
-	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
-	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
-	log "github.com/hpe-storage/common-host-libs/logger"
-	"github.com/hpe-storage/common-host-libs/model"
 	"net/http"
 	"os"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/hpe-storage/common-host-libs/chapi"
+	"github.com/hpe-storage/common-host-libs/connectivity"
+	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
+	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
+	log "github.com/hpe-storage/common-host-libs/logger"
+	"github.com/hpe-storage/common-host-libs/model"
 )
 
 const (
@@ -130,7 +131,7 @@ func VolumeDriverMount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	volume := volResp.Volume
-	log.Trace("retrieved volume response from container provider for volume: %+v", volume)
+	log.Tracef("retrieved volume response from container provider for volume: %+v", volume)
 
 	//4.  Get mounts from host
 	err = chapiClient.GetMounts(&respMount, volume.SerialNumber)
@@ -480,7 +481,7 @@ func cleanupStaleMounts(containerProviderClient *connectivity.Client, chapiClien
 	// 1. the volume is not in use
 	// 2. the volume is not connected to this iscsi/fc host
 	if !volumeInfo.InUse || (!isCurrentHostAttachedIscsi(volumeInfo, pluginReq) && !isCurrentHostAttachedFC(volumeInfo, pluginReq)) {
-		log.Tracef("device state is %s, execute unmount on existing mounts for device %s", device.State, volumeInfo.InUse, device.MpathName)
+		log.Tracef("device state is %s, execute unmount on existing mounts for device %v %s", device.State, volumeInfo.InUse, device.MpathName)
 		// check if volume is not in use or in use by a different host
 		// iterate through all the mounts and unmount
 		for _, mount := range respMount {

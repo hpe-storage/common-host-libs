@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hpe-storage/common-host-libs/logger"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
@@ -151,22 +150,22 @@ func TestInitLogging(t *testing.T) {
 }
 
 func TestInitJaeger(t *testing.T) {
-	_, lg := logger.InitLogging("test.log", nil, true, true)
+	_, lg := InitLogging("test.log", nil, true, true)
 
 	lg.Info("************** Start Workflow 1 **************")
 	lg.Info("********** Workflow 1 Line 1 **********")
 	s := lg.StartContext("Workflow 2")
 	lg.Info("**************** Start Workflow 2 *****************")
 	lg.Info("********** Workflow 2 Line 1 ******************")
-	logger.EndContext(s)
+	EndContext(s)
 	sp := lg.StartContext("Workflow 2")
 	lg.Info("**************** Start Workflow 2 *****************")
 	lg.Info("********** Workflow 2 Line 1 ******************")
-	logger.EndContext(sp)
+	EndContext(sp)
 	sp2 := lg.StartContext("Workflow 3")
 	lg.Info("**************** Start Workflow 3 *****************")
 	lg.Info("********** Workflow 3 Line 1 ******************")
-	logger.EndContext(sp2)
+	EndContext(sp2)
 	lg.CloseTracer()
 
 }
