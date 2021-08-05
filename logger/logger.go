@@ -16,7 +16,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jaegertracing/jaeger-client-go/config"
 	"github.com/opentracing/opentracing-go"
 	otLog "github.com/opentracing/opentracing-go/log"
 	log "github.com/sirupsen/logrus"
