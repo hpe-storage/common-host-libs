@@ -259,7 +259,7 @@ func InitLogging(logName string, params *LogParams, alsoLogToStderr bool, initTr
 
 		//Span Initialized with default context
 		span := tracer.StartSpan("CSI-Driver")
-		log.Trace("Span Context --- Traceid:Spanid:ParentSpanid:Flags  : %v", span.Context())
+		log.Tracef("Span Context --- Traceid:Spanid:ParentSpanid:Flags  : %v", span.Context())
 		ctx := opentracing.ContextWithSpan(context.Background(), span)
 		logEntry := sourced()
 		l := Logr{ctx, logEntry, closer}
