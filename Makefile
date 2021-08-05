@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-GO_VERSION = 1.10
+GO_VERSION = 1.13
 VERSION = $(shell git tag|tail -n1)
 ifeq ($(VERSION),)
 VERSION = v0.0.0

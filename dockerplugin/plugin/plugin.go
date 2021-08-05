@@ -268,7 +268,7 @@ func CreateConfDirectory(confDir string) error {
 	log.Trace("createConfDirectory called with ", confDir)
 	_, isDir, err := util.FileExists(confDir)
 	if err != nil {
-		log.Error("CreateConfDirectory failed for %s, err %s", confDir, err.Error())
+		log.Errorf("CreateConfDirectory failed for %s, err %s", confDir, err.Error())
 		return err
 	}
 	if isDir == false {

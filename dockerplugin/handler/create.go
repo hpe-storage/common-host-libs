@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	log "github.com/hpe-storage/common-host-libs/logger"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	log "github.com/hpe-storage/common-host-libs/logger"
 
 	"github.com/hpe-storage/common-host-libs/chapi"
 	"github.com/hpe-storage/common-host-libs/connectivity"
@@ -219,7 +220,7 @@ func VolumeDriverCreate(w http.ResponseWriter, r *http.Request) {
 // Attach the device, Create filesystem on the device
 // nolint : gocyclo
 func createFileSystemOnVolume(vols []*model.Volume, pluginReq *PluginRequest, fsOpts *model.FilesystemOpts) (*model.Device, error) {
-	log.Trace("createFileSystemOnVolume called for %+v", vols)
+	log.Tracef("createFileSystemOnVolume called for %+v", vols)
 	log.Traceln("Vol :", vols, "Host :", pluginReq.Host)
 
 	// obtain chapi client with large timeout of 5 minutes max for creation

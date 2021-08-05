@@ -21,7 +21,7 @@ const (
 
 // nolint: gocyclo
 func TestPluginSuite(t *testing.T) {
-	log.InitLogging("fake-storage-provider-test.log", nil, false)
+	log.InitLogging("fake-storage-provider-test.log", nil, false, false)
 
 	provider := fakeCsp()
 
