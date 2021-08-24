@@ -30,7 +30,7 @@ BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 
 # The version of make for OSX doesn't allow us to export, so
 # we add these variables to the env in each invocation.
-GOENV = PATH=$$PATH:$(GOPATH)/bin GLIDE_HOME=$(GOPATH)/.glide
+GOENV = PATH=$$PATH:$(GOPATH)/bin
 
 # Our target binary is for Linux.  To build an exec for your local (non-linux)
 # machine, use go build directly.
@@ -45,7 +45,8 @@ LD_FLAGS = '-X main.Version=$(VERSION) -X main.Commit=$(COMMIT)'
 
 # gometalinter allows us to have a single target that runs multiple linters in
 # the same fashion.  This variable controls which linters are used.
-LINTER_FLAGS = --vendor --disable-all --enable=vet --enable=vetshadow --enable=golint --enable=ineffassign --enable=goconst --enable=deadcode --enable=dupl --enable=varcheck --enable=gocyclo --enable=misspell -i "simplivity" --deadline=240s
+# LINTER_FLAGS = --vendor --disable-all --enable=vet --enable=vetshadow --enable=golint --enable=ineffassign --enable=goconst --enable=deadcode --enable=dupl --enable=varcheck --enable=gocyclo --enable=misspell -i "simplivity" --deadline=240s
+LINTER_FLAGS = --disable-all --enable=vet --enable=vetshadow --enable=golint --enable=ineffassign --enable=goconst --enable=deadcode --enable=dupl --enable=varcheck --enable=gocyclo --enable=misspell --deadline=240s
 
 # list of packages
 PACKAGE_LIST =   $(shell export $(GOENV) && go list ./$(PKG_PATH)...| grep -v vendor)
@@ -122,11 +123,17 @@ build: ; $(info $(A1) mkdir build)
 	@mkdir build
 	@echo "$(S0)"
 
+# .PHONY: lint
+# lint: vendor; $(info $(A1) lint)
+# 	@echo "$(A2) lint $(PKG_PATH)"
+# 	export $(GOENV) $(BUILD_ENV) && gometalinter $(LINTER_FLAGS) $(PKG_PATH)... --exclude $(VEN_PATH)...
+# 	@echo "$(S0)"
+
 .PHONY: lint
-lint: vendor; $(info $(A1) lint)
-	@echo "$(A2) lint $(PKG_PATH)"
-	export $(GOENV) $(BUILD_ENV) && gometalinter $(LINTER_FLAGS) $(PKG_PATH)... --exclude $(VEN_PATH)...
-	@echo "$(S0)"
+lint:
+	@echo "Running lint"
+	@go version
+	export $(GOENV) && golangci-lint run $(LINTER_FLAGS) --exclude vendor
 
 .PHONY: clean
 clean: ; $(info $(A1) clean)
