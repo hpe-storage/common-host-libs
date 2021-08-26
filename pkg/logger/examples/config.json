@@ -1,0 +1,7 @@
+{
+    "level": "info",
+    "file": "/var/log/hpe-storage.log",
+    "max_files": "10",
+    "max_size_mib": "100",
+    "format": "json"
+}
