@@ -63,7 +63,6 @@ help:
 	@echo "Targets:"
 	@echo "    tools          - Download and install go tooling required to build."
 	@echo "    vendor         - Download dependencies."
-	@echo "    vendup         - Download updated dependencies. (glide up)"
 	@echo "    lint           - Static analysis of source code.  Note that this must pass in order to build."
 	@echo "    test           - Run unit tests."
 	@echo "    int            - Run integration tests.  (Not implemented yet)."
@@ -101,33 +100,17 @@ container_all: debug packages test
 
 .PHONY: tools
 tools: ; $(info $(A1) gettools)
-	@echo "$(A2) get gometalinter"
-	go get -u github.com/alecthomas/gometalinter
-	@echo "$(A2) install gometalinter"
-	export $(GOENV) && gometalinter --install
-	@echo "$(A2) get glide"
-	go get -u github.com/Masterminds/glide
-	@echo "$(S0)"
-
-vendup: tools; $(info $(A1) vendup)
-	@echo "$(A2) glide up -v"
-	export $(GOENV) && glide up -v
-	@echo "$(S0)"
+	@echo "$(A2) get golangci-lint"
+	go get -u github.com/golangci/golangci-lint/cmd/golangci-lint
 
 vendor: tools; $(info $(A1) vendor)
-	@echo "$(A2) glide install -v"
-	export $(GOENV) && glide install -v
+	@echo "$(A2) go mod vendor"
+	go mod vendor
 	@echo "$(S0)"
 
 build: ; $(info $(A1) mkdir build)
 	@mkdir build
 	@echo "$(S0)"
-
-# .PHONY: lint
-# lint: vendor; $(info $(A1) lint)
-# 	@echo "$(A2) lint $(PKG_PATH)"
-# 	export $(GOENV) $(BUILD_ENV) && gometalinter $(LINTER_FLAGS) $(PKG_PATH)... --exclude $(VEN_PATH)...
-# 	@echo "$(S0)"
 
 .PHONY: lint
 lint:
