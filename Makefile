@@ -45,7 +45,6 @@ LD_FLAGS = '-X main.Version=$(VERSION) -X main.Commit=$(COMMIT)'
 
 # gometalinter allows us to have a single target that runs multiple linters in
 # the same fashion.  This variable controls which linters are used.
-# LINTER_FLAGS = --vendor --disable-all --enable=vet --enable=vetshadow --enable=golint --enable=ineffassign --enable=goconst --enable=deadcode --enable=dupl --enable=varcheck --enable=gocyclo --enable=misspell -i "simplivity" --deadline=240s
 LINTER_FLAGS = --disable-all --enable=vet --enable=vetshadow --enable=golint --enable=ineffassign --enable=goconst --enable=dupl --enable=gocyclo --deadline=240s
 
 # list of packages
