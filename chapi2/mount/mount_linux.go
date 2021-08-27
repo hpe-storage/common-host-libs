@@ -9,7 +9,7 @@ import (
 // getMounts enumerates the mountpoints for the given device / mount point.  The following input
 // variables determine which mount points will get enumerated:
 //
-// #  serialNumber  mountId  Description
+// #  serialNumber  mountID  Description
 // 1.     No          No     Enumerate all Nimble Storage mount point objects
 // 2.     No          Yes    Enumerate just the specified mount point
 // 3.     Yes         No     Enumerate all mount point objects just for the specified serial number
@@ -26,7 +26,7 @@ import (
 // dismounted objects are returned.  Being able to enumerate Mount objects that are not mounted is
 // important because it provides details about the potential mount point.  For example, under
 // Windows, this includes disk and partition details that are needed in order to mount a volume.
-func (mounter *Mounter) getMounts(serialNumber string, mountId string, allDetails bool, onlyMounted bool) ([]*model.Mount, error) {
+func (mounter *Mounter) getMounts(serialNumber string, mountID string, allDetails bool, onlyMounted bool) ([]*model.Mount, error) {
 	// TODO
 	return nil, nil
 }

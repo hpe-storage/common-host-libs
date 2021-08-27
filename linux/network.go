@@ -148,16 +148,16 @@ func getNetworkInterfaces() ([]*model.NetworkInterface, error) {
 			continue
 		}
 		for _, addr := range addrs {
-			networkIp, ok := addr.(*net.IPNet)
-			if ok && !networkIp.IP.IsLoopback() && networkIp.IP.To4() != nil && networkIp.Mask != nil {
-				mask := networkIp.Mask
+			networkIP, ok := addr.(*net.IPNet)
+			if ok && !networkIP.IP.IsLoopback() && networkIP.IP.To4() != nil && networkIP.Mask != nil {
+				mask := networkIP.Mask
 				if len(mask) != 4 {
 					// continue with other addresses
 					continue
 				}
 				nic := &model.NetworkInterface{
 					Name:        i.Name,
-					AddressV4:   networkIp.IP.To4().String(),
+					AddressV4:   networkIP.IP.To4().String(),
 					MaskV4:      fmt.Sprintf("%d.%d.%d.%d", mask[0], mask[1], mask[2], mask[3]),
 					Mtu:         int64(i.MTU),
 					Mac:         i.HardwareAddr.String(),

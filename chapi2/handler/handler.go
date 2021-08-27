@@ -358,7 +358,7 @@ func GetAllMountDetails(w http.ResponseWriter, r *http.Request) {
 	}
 	var chapiResp Response
 	serialNumber := ""
-	mountId := ""
+	mountID := ""
 	keys, ok := r.URL.Query()["serial"]
 
 	if ok && len(keys[0]) > 0 {
@@ -367,9 +367,9 @@ func GetAllMountDetails(w http.ResponseWriter, r *http.Request) {
 
 	keys, ok = r.URL.Query()["mountId"]
 	if ok && len(keys[0]) > 0 {
-		mountId = keys[0]
+		mountID = keys[0]
 	}
-	mounts, err := driver.GetAllMountDetails(serialNumber, mountId)
+	mounts, err := driver.GetAllMountDetails(serialNumber, mountID)
 	if err != nil {
 		handleError(w, chapiResp, err, http.StatusInternalServerError)
 		return
@@ -429,8 +429,8 @@ func DeleteMount(w http.ResponseWriter, r *http.Request) {
 	var chapiResp Response
 	var serialNumber string
 	vars := mux.Vars(r)
-	mountId := vars["mountId"]
-	if mountId == "" {
+	mountID := vars["mountId"]
+	if mountID == "" {
 		handleError(w, chapiResp, errors.New(errorMessageEmptyMountID), http.StatusBadRequest)
 		return
 	}
@@ -443,7 +443,7 @@ func DeleteMount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = driver.DeleteMount(serialNumber, mountId)
+	err = driver.DeleteMount(serialNumber, mountID)
 	if err != nil {
 		handleError(w, chapiResp, err, http.StatusInternalServerError)
 		return

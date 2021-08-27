@@ -468,20 +468,20 @@ func (driver *ChapiServer) CreateMount(serialNumber string, mountPoint string, f
 }
 
 // DeleteMount unmounts the given mount point, serialNumber can be optional in the body
-func (driver *ChapiServer) DeleteMount(serialNumber string, mountPointId string) error {
-	log.Tracef(">>>>> DeleteMount called, serialNumber=%v, mountPointID=%v", serialNumber, mountPointId)
+func (driver *ChapiServer) DeleteMount(serialNumber string, mountPointID string) error {
+	log.Tracef(">>>>> DeleteMount called, serialNumber=%v, mountPointID=%v", serialNumber, mountPointID)
 	defer log.Trace("<<<<< DeleteMount")
 
-	log.Infof("Delete Mount, serialNumber=%v, mountPointId=%v", serialNumber, mountPointId)
+	log.Infof("Delete Mount, serialNumber=%v, mountPointId=%v", serialNumber, mountPointID)
 
 	// Route request to the mount package to delete the mount point
 	mountPlugin := mount.NewMounter()
-	if err := mountPlugin.DeleteMount(serialNumber, mountPointId); err != nil {
+	if err := mountPlugin.DeleteMount(serialNumber, mountPointID); err != nil {
 		return err
 	}
 
 	// Success!!!
-	log.Infof("Mount Point ID %v successfully deleted", mountPointId)
+	log.Infof("Mount Point ID %v successfully deleted", mountPointID)
 	return nil
 }
 

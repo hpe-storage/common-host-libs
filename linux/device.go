@@ -273,7 +273,7 @@ func GetLinuxDmDevices(needActivePath bool, vol *model.Volume) (a []*model.Devic
 						// handle lunID conflict when lunID is passed
 						if vol.LunID != "" && hcils[3] != vol.LunID &&
 							// lun id passed is not part of peer lun ids in case of peer persistence
-							!isLunIdPresentIn(hcils[3], util.GetSecondaryArrayLUNIds(vol.SecondaryArrayDetails)) {
+							!isLunIDPresentIn(hcils[3], util.GetSecondaryArrayLUNIds(vol.SecondaryArrayDetails)) {
 							device.State = model.LunIDConflict.String()
 							// delete the path which have a mismatch and continue with other paths
 							log.Warnf("device with serial %s has path with lunId %s instead of %s. Deleting path %s.", vol.SerialNumber, strings.Split(path.Hcil, ":")[3], vol.LunID, path.Hcil)
@@ -335,9 +335,9 @@ func GetLinuxDmDevices(needActivePath bool, vol *model.Volume) (a []*model.Devic
 	}
 	return devices, nil
 }
-func isLunIdPresentIn(searchLun string, luns []int32) bool {
-	for _, lun_id := range luns {
-		if searchLun == strconv.Itoa(int(lun_id)) {
+func isLunIDPresentIn(searchLun string, luns []int32) bool {
+	for _, lunID := range luns {
+		if searchLun == strconv.Itoa(int(lunID)) {
 			return true
 		}
 	}
@@ -481,10 +481,9 @@ func isLuksDevice(devPath string) (bool, error) {
 	if exitStatus == 1 {
 		log.Infof("Not a LUKS device - %s", devPath)
 		return false, nil
-	} else {
-		log.Errorf("Unknown device - %s", devPath)
-		return false, fmt.Errorf("isLuks command failed to find out if the device %s is encrypted", devPath)
 	}
+	log.Errorf("Unknown device - %s", devPath)
+	return false, fmt.Errorf("isLuks command failed to find out if the device %s is encrypted", devPath)
 }
 
 // CreateLinuxDevice : attaches and creates a new linux device
@@ -666,14 +665,14 @@ func canHandleRemap(volume *model.Volume) (err error) {
 func handleOrphanPaths(volume *model.Volume) error {
 	log.Tracef(">>> handleOrphanPaths called with volume %s serial %s lun %s", volume.Name, volume.SerialNumber, volume.LunID)
 	defer log.Tracef("<<< handleOrphanPaths")
-	err := handleOrphanPathsForSpecificLunId(volume.LunID)
+	err := handleOrphanPathsForSpecificLunID(volume.LunID)
 	if err != nil {
 		return err
 	}
-	lunIdArray := util.GetSecondaryArrayLUNIds(volume.SecondaryArrayDetails)
-	if len(lunIdArray) > 0 {
-		for _, lunID := range lunIdArray {
-			err := handleOrphanPathsForSpecificLunId(strconv.Itoa(int(lunID)))
+	lunIDArray := util.GetSecondaryArrayLUNIds(volume.SecondaryArrayDetails)
+	if len(lunIDArray) > 0 {
+		for _, lunID := range lunIDArray {
+			err := handleOrphanPathsForSpecificLunID(strconv.Itoa(int(lunID)))
 			if err != nil {
 				return err
 			}
@@ -683,7 +682,7 @@ func handleOrphanPaths(volume *model.Volume) error {
 
 }
 
-func handleOrphanPathsForSpecificLunId(lunID string) error {
+func handleOrphanPathsForSpecificLunID(lunID string) error {
 
 	orphanHctls := multipathGetOrphanPathsByLunID(lunID)
 	for _, pathHctl := range orphanHctls {
@@ -1362,9 +1361,8 @@ func isMappedLuksDevice(devPath string) (bool, error) {
 	if exitStatus == 1 {
 		log.Infof("not a mapped LUKS device - %s", devPath)
 		return false, nil
-	} else {
-		err := fmt.Errorf("LUKS status is unsure of the device: %s. Returned code: %v with error: %v", devPath, exitStatus, err)
-		log.Error(err.Error())
-		return false, err
 	}
+	err = fmt.Errorf("LUKS status is unsure of the device: %s. Returned code: %v with error: %v", devPath, exitStatus, err)
+	log.Error(err.Error())
+	return false, err
 }

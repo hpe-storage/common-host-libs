@@ -70,8 +70,8 @@ func GetSecondaryArrayDiscoveryIps(details string) []string {
 	numberOfSecondaryBackends := len(secondaryArrayDetails.PeerArrayDetails)
 	var secondaryDiscoverIps []string
 	for i := 0; i < numberOfSecondaryBackends; i++ {
-		for _, discoveryIpRetrieved := range secondaryArrayDetails.PeerArrayDetails[i].DiscoveryIPs {
-			secondaryDiscoverIps = append(secondaryDiscoverIps, discoveryIpRetrieved)
+		for _, discoveryIPRetrieved := range secondaryArrayDetails.PeerArrayDetails[i].DiscoveryIPs {
+			secondaryDiscoverIps = append(secondaryDiscoverIps, discoveryIPRetrieved)
 		}
 	}
 	return secondaryDiscoverIps

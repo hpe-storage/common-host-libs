@@ -279,11 +279,11 @@ func ParseConfig(filePath string) (config *Configuration, err error) {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if !(strings.HasPrefix(line, "#")) && len(line) > 0 {
-			section_present, err := isSection(line)
+			sectionPresent, err := isSection(line)
 			if err != nil {
 				return nil, err
 			}
-			if section_present {
+			if sectionPresent {
 				name := strings.Trim(line, " {")
 				// add new section with parent updated
 				log.Trace("adding section ", name)

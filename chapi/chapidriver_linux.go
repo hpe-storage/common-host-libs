@@ -41,7 +41,7 @@ func getOrCreateHostFile() (string, error) {
 	if _, err := os.Stat(hostFile); os.IsNotExist(err) {
 		os.MkdirAll(configDir, 0640)
 		// hostFile does not exist... create one with unique id
-		id, err := generateUniqueNodeId()
+		id, err := generateUniqueNodeID()
 		if err != nil {
 			return "", err
 		}
@@ -58,7 +58,7 @@ func getOrCreateHostFile() (string, error) {
 	return hostFile, nil
 }
 
-func generateUniqueNodeId() (string, error) {
+func generateUniqueNodeID() (string, error) {
 	// get host name
 	hostName, err := os.Hostname()
 	if err != nil {

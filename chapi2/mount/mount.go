@@ -45,8 +45,8 @@ func (mounter *Mounter) GetMounts(serialNumber string) ([]*model.Mount, error) {
 }
 
 // GetAllMountDetails enumerates the specified mount point ID
-func (mounter *Mounter) GetAllMountDetails(serialNumber string, mountId string) ([]*model.Mount, error) {
-	return mounter.getMounts(serialNumber, mountId, true, true)
+func (mounter *Mounter) GetAllMountDetails(serialNumber string, mountID string) ([]*model.Mount, error) {
+	return mounter.getMounts(serialNumber, mountID, true, true)
 }
 
 // CreateMount is called to mount the given device to the given mount point
@@ -79,12 +79,12 @@ func (mounter *Mounter) CreateMount(serialNumber string, mountPoint string, fsOp
 }
 
 // DeleteMount is called to unmount the given mount point ID
-func (mounter *Mounter) DeleteMount(serialNumber string, mountId string) error {
-	log.Tracef(">>>>> DeleteMount, serialNumber=%v, mountId=%v", serialNumber, mountId)
+func (mounter *Mounter) DeleteMount(serialNumber string, mountID string) error {
+	log.Tracef(">>>>> DeleteMount, serialNumber=%v, mountId=%v", serialNumber, mountID)
 	defer log.Trace("<<<<< DeleteMount")
 
 	// Validate and enumerate the mount object for the given serial number and mount point ID
-	mount, err := mounter.getMountForDelete(serialNumber, mountId)
+	mount, err := mounter.getMountForDelete(serialNumber, mountID)
 
 	// Fail request if unable to validate and enumerate the mount object
 	if err != nil {
@@ -196,8 +196,8 @@ func (mounter *Mounter) getMountForCreate(serialNumber string, mountPoint string
 // data, and enumerates the Mount object.  The following properties are returned:
 //      mount             - Enumerated model.Mount object for the provided serialNumber/mountPointId
 //      err               - If volume cannot be dismounted, an error object is returned
-func (mounter *Mounter) getMountForDelete(serialNumber string, mountId string) (mount *model.Mount, err error) {
-	log.Tracef(">>>>> getMountForDelete, serialNumber=%v, mountId=%v", serialNumber, mountId)
+func (mounter *Mounter) getMountForDelete(serialNumber string, mountID string) (mount *model.Mount, err error) {
+	log.Tracef(">>>>> getMountForDelete, serialNumber=%v, mountId=%v", serialNumber, mountID)
 	defer log.Trace("<<<<< getMountForDelete")
 
 	// If the serialNumber is not provided, fail the request
@@ -208,7 +208,7 @@ func (mounter *Mounter) getMountForDelete(serialNumber string, mountId string) (
 	}
 
 	// If the mountId is not provided, fail the request
-	if mountId == "" {
+	if mountID == "" {
 		err = cerrors.NewChapiError(cerrors.InvalidArgument, errorMessageMissingMountPointID)
 		log.Error(err)
 		return nil, err
@@ -216,7 +216,7 @@ func (mounter *Mounter) getMountForDelete(serialNumber string, mountId string) (
 
 	// Find the specified mount point ID with all details
 	var mounts []*model.Mount
-	mounts, err = mounter.getMounts(serialNumber, mountId, true, true)
+	mounts, err = mounter.getMounts(serialNumber, mountID, true, true)
 	if err != nil {
 		return nil, err
 	}

@@ -37,14 +37,14 @@ func ToCamelCase(str string) string {
 }
 
 // ConvertArrayOfIntToString converts a given list of integer to comma separated string value
-func ConvertArrayOfIntToString(lun_ids []int32) string {
+func ConvertArrayOfIntToString(lunIds []int32) string {
 	var buffer bytes.Buffer
 
-	for i := 0; i < len(lun_ids); i++ {
-		if i == (len(lun_ids) - 1) {
-			buffer.WriteString(fmt.Sprintf("%d", lun_ids[i]))
+	for i := 0; i < len(lunIds); i++ {
+		if i == (len(lunIds) - 1) {
+			buffer.WriteString(fmt.Sprintf("%d", lunIds[i]))
 		} else {
-			buffer.WriteString(fmt.Sprintf("%d,", lun_ids[i]))
+			buffer.WriteString(fmt.Sprintf("%d,", lunIds[i]))
 		}
 	}
 	return buffer.String()

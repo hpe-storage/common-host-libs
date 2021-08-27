@@ -30,7 +30,7 @@ const (
 	arrayIPHeader  = "x-array-ip"
 
 	descriptionKey   = "description"
-	volumeGroupIdKey = "volumeGroupId"
+	volumeGroupIDKey = "volumeGroupId"
 )
 
 var (
@@ -273,7 +273,7 @@ func (provider *ContainerStorageProvider) CreateSnapshotGroup(name, sourceVolume
 	var errorResponse *ErrorsPayload
 
 	// TODO: convert opts to any parameters needed for snapshotGroup
-	snapshot_group := &model.SnapshotGroup{
+	snapshotGroup := &model.SnapshotGroup{
 		Name:                name,
 		SourceVolumeGroupID: sourceVolumeGroupID,
 	}
@@ -283,7 +283,7 @@ func (provider *ContainerStorageProvider) CreateSnapshotGroup(name, sourceVolume
 		&connectivity.Request{
 			Action:        "POST",
 			Path:          "/containers/v1/snapshot_groups",
-			Payload:       &snapshot_group,
+			Payload:       &snapshotGroup,
 			Response:      &response,
 			ResponseError: &errorResponse,
 		},
@@ -330,7 +330,7 @@ func (provider *ContainerStorageProvider) CreateVolumeGroup(name, description st
 	response := &model.VolumeGroup{}
 	var errorResponse *ErrorsPayload
 
-	volume_group := &model.VolumeGroup{
+	volumeGroup := &model.VolumeGroup{
 		Name:        name,
 		Description: description,
 		Config:      opts,
@@ -341,7 +341,7 @@ func (provider *ContainerStorageProvider) CreateVolumeGroup(name, description st
 		&connectivity.Request{
 			Action:        "POST",
 			Path:          "/containers/v1/volume_groups",
-			Payload:       &volume_group,
+			Payload:       &volumeGroup,
 			Response:      &response,
 			ResponseError: &errorResponse,
 		},
@@ -598,8 +598,8 @@ func (provider *ContainerStorageProvider) EditVolume(id string, opts map[string]
 	}
 
 	// volumeGroupId is part of volume object and should be removed from opts
-	if val, ok := opts[volumeGroupIdKey]; ok {
-		delete(opts, volumeGroupIdKey)
+	if val, ok := opts[volumeGroupIDKey]; ok {
+		delete(opts, volumeGroupIDKey)
 		volume.VolumeGroupId = val.(string)
 	}
 	volume.Config = opts

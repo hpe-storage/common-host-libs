@@ -14,7 +14,7 @@ func NewFcPlugin() *FcPlugin {
 	return &FcPlugin{}
 }
 
-func (plugin *FcPlugin) DiscoverDevice(serial string, lunId string) error {
+func (plugin *FcPlugin) DiscoverDevice(serial string, lunID string) error {
 	return nil
 }
 

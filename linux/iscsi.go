@@ -748,16 +748,16 @@ func PerformDiscovery(discoveryIPs []string) (a model.IscsiTargets, err error) {
 	iscsiMutex.Lock()
 	defer iscsiMutex.Unlock()
 
-	var isDiscoveryIpReachable bool
+	var isDiscoveryIPReachable bool
 	var out string
 	var outList []string
 	for _, discoveryIP := range discoveryIPs {
 		// find the first discovery ip which is reachable
-		isDiscoveryIpReachable, err = isReachable("", discoveryIP)
+		isDiscoveryIPReachable, err = isReachable("", discoveryIP)
 		if err != nil {
 			continue
 		}
-		if isDiscoveryIpReachable {
+		if isDiscoveryIPReachable {
 			args := []string{"-m", "discovery", "-t", "st", "-p", discoveryIP, "-o", "new"}
 			out, _, err = util.ExecCommandOutput(iscsicmd, args)
 			if err != nil {
@@ -768,7 +768,7 @@ func PerformDiscovery(discoveryIPs []string) (a model.IscsiTargets, err error) {
 		}
 	}
 
-	if !isDiscoveryIpReachable {
+	if !isDiscoveryIPReachable {
 		return nil, fmt.Errorf("no reachable discovery ip found. Please sanity check host OS and array IP configuration, network, netmask and gateway.")
 	}
 
@@ -854,8 +854,8 @@ func iscsiGetTargetsOfDevice(dev *model.Device) (target []*model.IscsiTarget, er
 		}
 	}
 	return iscsiTargets, nil
-	
-	
+
+
 }
 
 func getIscsiTargetFromSessionID(dev *model.Device, host string, sessionID string) (*model.IscsiTarget, error) {

@@ -129,9 +129,8 @@ func VolumeDriverUnmount(w http.ResponseWriter, r *http.Request) {
 				dr = DriverResponse{Err: err.Error()}
 				json.NewEncoder(w).Encode(dr)
 				return
-			} else {
-				log.Errorln("Delete device called failed, chapi returned ", err.Error())
 			}
+			log.Errorln("Delete device called failed, chapi returned ", err.Error())
 
 		}
 	}

@@ -61,7 +61,7 @@ func (plugin *IscsiPlugin) GetTargetPortals(targetName string, ipv4Only bool) ([
 	return plugin.getTargetPortals(targetName, ipv4Only)
 }
 
-func (plugin *IscsiPlugin) GetSessionProperties(targetName string, sessionId string) (map[string]string, error) {
+func (plugin *IscsiPlugin) GetSessionProperties(targetName string, sessionID string) (map[string]string, error) {
 	// TODO
 	return nil, nil
 }

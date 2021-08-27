@@ -27,11 +27,11 @@ var (
 	ethtool                = "ethtool"
 	maskFmt                = "%d.%d.%d.%d"
 	linkStatusPattern      = "\\s+Link detected:\\s+yes"
-	machineIdFile          = "/etc/machine-id"
+	machineIDFile          = "/etc/machine-id"
 )
 
 func getHostId() (string, error) {
-	lines, err := util.FileGetStrings(machineIdFile)
+	lines, err := util.FileGetStrings(machineIDFile)
 	if err != nil {
 		return "", err
 	}

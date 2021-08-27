@@ -17,6 +17,7 @@ const (
 	cloneSize         = 2 * 1024 * 1024 * 1024
 	volumeGroupName   = "testCspVolumeGroup"
 	snapshotGroupName = "testCspSnapshotGroup"
+	test			  = "test"
 )
 
 // nolint: gocyclo
@@ -27,7 +28,7 @@ func TestPluginSuite(t *testing.T) {
 
 	// create a parent volume
 	config := make(map[string]interface{})
-	config["test"] = "test"
+	config["test"] = test
 	volume, err := provider.CreateVolume(volumeName, volumeName, volumeSize, config)
 	if err != nil {
 		t.Fatal("Failed to create volume " + volumeName)
@@ -83,7 +84,7 @@ func TestPluginSuite(t *testing.T) {
 
 	// Create a new snapshot manually
 	snapshotConfig := make(map[string]interface{})
-	snapshotConfig["test"] = "test"
+	snapshotConfig["test"] = test
 
 	snapshot, err = provider.CreateSnapshot(snapshotName, snapshotName, volume.ID, snapshotConfig)
 	if err != nil {
@@ -104,7 +105,7 @@ func TestPluginSuite(t *testing.T) {
 	deleteVolume(t, provider, volume)
 
 	// Create Volume Group
-	config["test"] = "test"
+	config["test"] = test
 
 	volumeGroup, err := provider.CreateVolumeGroup(volumeGroupName, volumeGroupName, config)
 	if err != nil {
@@ -112,7 +113,7 @@ func TestPluginSuite(t *testing.T) {
 	}
 
 	// Create Snapshot Group
-	config["test"] = "test"
+	config["test"] = test
 
 	snapshotGroup, err := provider.CreateSnapshotGroup(snapshotGroupName, volumeGroup.ID, config)
 	if err != nil {
@@ -134,7 +135,7 @@ func fakeCsp() *StorageProvider {
 
 func createClone(t *testing.T, provider *StorageProvider, sourceVolumeID, snapshotID string, size int64) *model.Volume {
 	config := make(map[string]interface{})
-	config["test"] = "test"
+	config["test"] = test
 	clone, err := provider.CloneVolume(cloneName, cloneName, sourceVolumeID, snapshotID, size, config)
 	if err != nil {
 		t.Fatal("Failed to clone volume")

@@ -21,7 +21,6 @@ func getIscsiInitiators() (init *model.Initiator, err error) {
 	exists, _, err := util.FileExists(initiatorPath)
 	if !exists {
 		return nil, cerrors.NewChapiErrorf(cerrors.NotFound, errorMessageIscsiPathNotFound, initiatorPath)
-		return nil, nil
 	}
 	initiators, err := util.FileGetStringsWithPattern(initiatorPath, initiatorNamePattern)
 	if err != nil {
