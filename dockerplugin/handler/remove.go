@@ -5,14 +5,13 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"net/http"
-	"time"
-
 	"github.com/hpe-storage/common-host-libs/chapi"
 	"github.com/hpe-storage/common-host-libs/connectivity"
 	"github.com/hpe-storage/common-host-libs/dockerplugin/plugin"
 	"github.com/hpe-storage/common-host-libs/dockerplugin/provider"
 	log "github.com/hpe-storage/common-host-libs/logger"
+	"net/http"
+	"time"
 )
 
 //@APIVersion 1.0.0
@@ -71,7 +70,7 @@ func VolumeDriverRemove(w http.ResponseWriter, r *http.Request) {
 	}
 
 	volume := volResp.Volume
-	log.Tracef("Volume found :%+v", volume)
+	log.Trace("Volume found :%+v", volume)
 
 	// Check if the volume has ACR before we attempt to delete the volume
 	log.Tracef("volume status is %+v ", volResp.Volume.Status)
