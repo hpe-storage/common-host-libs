@@ -41,7 +41,7 @@ func getBackend(t *testing.T) string {
 
 // nolint: gocyclo
 func _TestPluginSuite(t *testing.T) {
-	log.InitLogging("container-storage-provider-test.log", nil, false, false)
+	log.InitLogging("container-storage-provider-test.log", nil, false)
 
 	provider := realCsp(t)
 
