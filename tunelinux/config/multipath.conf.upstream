@@ -53,7 +53,6 @@ devices {
         product              "iSCSI Disk"
         path_grouping_policy group_by_prio
         path_selector        "queue-length 0"
-        hardware_handler     "1 alua"
     }
     device {
         rr_weight            priorities
