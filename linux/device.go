@@ -621,7 +621,17 @@ func cleanupStaleScsiPaths(volume *model.Volume) (err error) {
 
 		// obtain current path serial using sysfs vpd80 page
 		var serialNumber string
-		serialNumber, err = getVpd80FromSysfs(h, c, t, l)
+		vendorName, err := getVendorFromSysfs(h, c, t, l)
+		if err != nil {
+			return  err
+		}
+		if strings.Contains(vendorName, "3PARdata"){
+			serialNumber, err = getWwidFromSysfs(h, c, t, l)
+		}else {
+		// obtain current path serial using sysfs vpd80 page
+			serialNumber, err = getVpd80FromSysfs(h, c, t, l)
+		}
+		//serialNumber, err = getVpd80FromSysfs(h, c, t, l)
 		if err != nil {
 			log.Debugf("unable to read vpd_pg80 from sysfs for %s:%s:%s:%s err=%s. Continue with other paths", h, c, t, l, err.Error())
 			continue
@@ -853,7 +863,18 @@ func cleanupUnmappedDevice(oldSerial string, volumelunID string) error {
 							continue
 						}
 						var currentSerial string
-						currentSerial, err = getVpd80FromSysfs(h, c, t, l)
+						vendorName, err := getVendorFromSysfs(h, c, t, l)
+						if err != nil {
+							return err
+						}
+						if strings.Contains(vendorName, "3PARdata"){
+							currentSerial, err = getWwidFromSysfs(h, c, t, l)
+						}else {
+						// obtain current path serial using sysfs vpd80 page
+							currentSerial, err = getVpd80FromSysfs(h, c, t, l)
+						}						
+						
+						//currentSerial, err = getVpd80FromSysfs(h, c, t, l)
 						if err != nil {
 							log.Debugf("unable to get serial for h:c:t:l %s:%s:%s:%s err=%s, continue with other paths", h, c, t, l, err.Error())
 							continue
