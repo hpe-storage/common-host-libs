@@ -621,10 +621,7 @@ func cleanupStaleScsiPaths(volume *model.Volume) (err error) {
 
 		// obtain current path serial using sysfs vpd80 page
 		var serialNumber string
-		vendorName, err := getVendorFromSysfs(h, c, t, l)
-		if err != nil {
-			return  err
-		}
+		vendorName, _ := getVendorFromSysfs(h, c, t, l)
 		if strings.Contains(vendorName, "3PARdata"){
 			serialNumber, err = getWwidFromSysfs(h, c, t, l)
 		}else {
@@ -863,10 +860,7 @@ func cleanupUnmappedDevice(oldSerial string, volumelunID string) error {
 							continue
 						}
 						var currentSerial string
-						vendorName, err := getVendorFromSysfs(h, c, t, l)
-						if err != nil {
-							return err
-						}
+						vendorName, _ := getVendorFromSysfs(h, c, t, l)
 						if strings.Contains(vendorName, "3PARdata"){
 							currentSerial, err = getWwidFromSysfs(h, c, t, l)
 						}else {
@@ -916,19 +910,13 @@ func cleanupUnmappedDevice(oldSerial string, volumelunID string) error {
 // check if a lun path has been remapped and update paths with new lun
 // serial in this case is volume serial (i.e without prefix 2) as we are directly getting from vpd page 80
 func checkRemappedLunPath(h string, c string, t string, l string, serial string, lunID string) (remappedLunFound bool, oldSerial string, err error) {
+	log.Tracef(">>>>> checkRemappedLunPath")
 	// check if the path is in offline state and assume its a stale path with same lunID so we rescan the path again.
 	state, err := getDeviceState(h, c, t, l)
 	if err != nil {
 		return false, "", err
 	}
-	log.Info("inside checkRemappedLunPath")
-	log.Info("====================================================")
-
-
-	vendorName, err := getVendorFromSysfs(h, c, t, l)
-	if err != nil {
-		return false, "", err
-	}
+	vendorName, _ := getVendorFromSysfs(h, c, t, l)
 	if strings.Contains(vendorName, "3PARdata"){
 		oldSerial, err = getWwidFromSysfs(h, c, t, l)
 	}else {
@@ -1029,10 +1017,8 @@ func getDeviceState(h string, c string, t string, l string) (state string, err e
 }
 
 func getVendorFromSysfs(h string, c string, t string, l string) (vendorName string, err error){
-	log.Info("inside getVendorFromSysfs")
-	log.Info("====================================================")
+	log.Tracef(">>>>> getVendorFromSysfs")
 	vendorPath := fmt.Sprintf("/sys/class/scsi_device/%s:%s:%s:%s/device/vendor", h, c, t, l)
-	log.Info("vendorPath: ", vendorPath)
 	out, err := util.FileReadFirstLine(vendorPath)
 	log.Info("vendor: ", out)
 	if err != nil {
@@ -1042,8 +1028,9 @@ func getVendorFromSysfs(h string, c string, t string, l string) (vendorName stri
 }
 
 func getWwidFromSysfs(h string, c string, t string, l string) (serial string, err error){
-	log.Info("inside getWwidFromSysfs")
-	log.Info("====================================================")
+
+	log.Tracef(">>>>> getWwidFromSysfs")
+
 	wwidPath := fmt.Sprintf("/sys/class/scsi_device/%s:%s:%s:%s/device/wwid", h, c, t, l)
 	wwidOut, wwidErr := util.FileReadFirstLine(wwidPath)
 	if wwidErr != nil {
