@@ -14,7 +14,7 @@ func TestParseDeviceSection(t *testing.T) {
 		)
 	} else {
 		// config found
-		section, err := config.GetNimbleSection()
+		section, err := config.GetDeviceSection()
 		if err != nil {
 			t.Error(
 				"Parsing nimble device section failed ", err,
