@@ -2,34 +2,40 @@ package mpathconfig
 
 // Copyright 2019 Hewlett Packard Enterprise Development LP
 import (
+	"fmt"
 	"testing"
 )
 
 func TestParseDeviceSection(t *testing.T) {
 	config, err := ParseConfig("./multipath_test.conf")
+	DeviceType := [2]string{"Nimble", "3PARdata"}
 
-	if err != nil {
-		t.Error(
-			"Parsing multipath.conf failed ", err,
-		)
-	} else {
-		// config found
-		section, err := config.GetDeviceSection()
+	for _, deviceType := range DeviceType {
+
 		if err != nil {
 			t.Error(
-				"Parsing nimble device section failed ", err,
+				"Parsing multipath.conf failed ", err,
 			)
 		} else {
-			// section found
-			if (section.GetProperties())["vendor"] != "\"Nimble\"" {
-				t.Error(
-					"Parsing options from nimble device section failed ", err,
+			// config found
+			section, err := config.GetDeviceSection(deviceType)
+			if err != nil {
+				t.Errorf(
+					"Parsing %s device section failed: %v ", deviceType, err,
 				)
-			}
-			if section.GetParent().GetName() != "devices" {
-				t.Error(
-					"Parent section is not set correctly for nimble device section ", err,
-				)
+			} else {
+				currentDevice := fmt.Sprintf("\"%s\"", deviceType)
+				// section found
+				if (section.GetProperties())["vendor"] != currentDevice {
+					t.Errorf(
+						"Parsing options from %s device section failed: %v ", deviceType, err,
+					)
+				}
+				if section.GetParent().GetName() != "devices" {
+					t.Errorf(
+						"Parent section is not set correctly for %s device section: %v ", deviceType, err,
+					)
+				}
 			}
 		}
 	}
