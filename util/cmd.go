@@ -82,7 +82,10 @@ func execCommandOutputWithTimeout(cmd string, args []string, stdinArgs []string,
 
 // ExecCommandOutputWithTimeout  executes ExecCommandOutput with the specified timeout
 func ExecCommandOutputWithTimeout(cmd string, args []string, timeout int) (string, int, error) {
-	return execCommandOutputWithTimeout(cmd, args, []string{}, defaultTimeout)
+	if timeout == 0 {
+		timeout = defaultTimeout
+	}
+	return execCommandOutputWithTimeout(cmd, args, []string{}, timeout)
 }
 // ExecCommandOutput returns stdout and stderr in a single string, the return code, and error.
 // If the return code is not zero, error will not be nil.

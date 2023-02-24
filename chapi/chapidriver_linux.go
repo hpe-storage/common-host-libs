@@ -267,6 +267,9 @@ func (driver *LinuxDriver) MountDevice(device *model.Device, mountPoint string, 
 		log.Tracef("Filesystem %+v setup successful,", fsOpts)
 	}
 
+	// Check filesystem consistency
+	err := linux.CheckFileSystem(device.AltFullPathName)
+
 	// Setup mountpoint (Create mountpoint and apply mount options)
 	mount, err := linux.SetupMount(device, mountPoint, mountOptions)
 	if err != nil {

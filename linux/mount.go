@@ -23,6 +23,7 @@ var (
 	updateDbConf           = "/etc/updatedb.conf"
 	prunePathsPattern      = "^PRUNEPATHS\\s*=\\s*\"(?P<paths>.*)\""
 	defaultFSCreateTimeout = 300 /* 5 minutes */
+	defaultFSCheckTimeout  = 600 /* 10 minutes */
 	lsof                   = "lsof"
 	blkid                  = "blkid"
 	errCurrentlyMounted    = "is currently mounted"
@@ -76,6 +77,8 @@ const (
 	fsext4command  = "mkfs.ext4"
 	fsbtrfscommand = "mkfs.btrfs"
 	defaultNFSType = "nfs4"
+	fsckcommand    = "fsck"
+	fsckoptions    = "-a"
 )
 
 // HashMountID : get hash of the string
@@ -323,6 +326,25 @@ func RetryCreateFileSystemWithOptions(devPath string, fsType string, options []s
 		}
 		return nil
 	}
+}
+
+// CheckFileSystem: checks file system on the device for errors
+func CheckFileSystem(devPath string) (err error) {
+	log.Tracef("checkFileSystem called with %s", devPath)
+	return checkFileSystem(devPath)
+}
+
+func checkFileSystem(devPath string) (err error) {
+	var output string
+	options := []string{fsckoptions, devPath}
+	output, _, err = util.ExecCommandOutputWithTimeout(fsckcommand, options, defaultFSCheckTimeout)
+	if err != nil {
+		return fmt.Errorf("unable to check filesystem using %s %s. Error: %s", fsckcommand, options, err.Error())
+	}
+	if output == "" {
+		return fmt.Errorf("filesystem not checked using %s %s", fsckcommand, options)
+	}
+	return nil
 }
 
 // CreateFileSystem : creates file system on the device
