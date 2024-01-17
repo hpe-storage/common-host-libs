@@ -65,45 +65,6 @@ github.com/gorilla/mux
 # github.com/hectane/go-acl v0.0.0-20190523051433-dfeb47f3e2ef
 ## explicit
 github.com/hectane/go-acl/api
-# github.com/hpe-storage/common-host-libs v4.7.1+incompatible
-## explicit
-github.com/hpe-storage/common-host-libs/cert
-github.com/hpe-storage/common-host-libs/chapi
-github.com/hpe-storage/common-host-libs/chapi2
-github.com/hpe-storage/common-host-libs/chapi2/cerrors
-github.com/hpe-storage/common-host-libs/chapi2/driver
-github.com/hpe-storage/common-host-libs/chapi2/fc
-github.com/hpe-storage/common-host-libs/chapi2/handler
-github.com/hpe-storage/common-host-libs/chapi2/host
-github.com/hpe-storage/common-host-libs/chapi2/iscsi
-github.com/hpe-storage/common-host-libs/chapi2/model
-github.com/hpe-storage/common-host-libs/chapi2/mount
-github.com/hpe-storage/common-host-libs/chapi2/multipath
-github.com/hpe-storage/common-host-libs/chapi2/virtualdevice
-github.com/hpe-storage/common-host-libs/concurrent
-github.com/hpe-storage/common-host-libs/connectivity
-github.com/hpe-storage/common-host-libs/docker/dockerlt
-github.com/hpe-storage/common-host-libs/dockerplugin/handler
-github.com/hpe-storage/common-host-libs/dockerplugin/plugin
-github.com/hpe-storage/common-host-libs/dockerplugin/provider
-github.com/hpe-storage/common-host-libs/jconfig
-github.com/hpe-storage/common-host-libs/jsonutil
-github.com/hpe-storage/common-host-libs/linux
-github.com/hpe-storage/common-host-libs/logger
-github.com/hpe-storage/common-host-libs/model
-github.com/hpe-storage/common-host-libs/mpathconfig
-github.com/hpe-storage/common-host-libs/sgio
-github.com/hpe-storage/common-host-libs/storageprovider
-github.com/hpe-storage/common-host-libs/stringformat
-github.com/hpe-storage/common-host-libs/tunelinux
-github.com/hpe-storage/common-host-libs/util
-github.com/hpe-storage/common-host-libs/windows
-github.com/hpe-storage/common-host-libs/windows/advapi32
-github.com/hpe-storage/common-host-libs/windows/ioctl
-github.com/hpe-storage/common-host-libs/windows/iscsidsc
-github.com/hpe-storage/common-host-libs/windows/powershell
-github.com/hpe-storage/common-host-libs/windows/shlwapi
-github.com/hpe-storage/common-host-libs/windows/wmi
 # github.com/jonboulle/clockwork v0.4.0
 ## explicit; go 1.15
 # github.com/kr/text v0.2.0
@@ -140,8 +101,8 @@ github.com/stretchr/testify/assert
 ## explicit
 # go.uber.org/zap v1.26.0
 ## explicit; go 1.19
-# golang.org/x/crypto v0.14.0
-## explicit; go 1.17
+# golang.org/x/crypto v0.17.0
+## explicit; go 1.18
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/net v0.17.0
 ## explicit; go 1.17
@@ -168,11 +129,11 @@ golang.org/x/sys/windows/svc
 golang.org/x/sys/windows/svc/debug
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/mgr
-# golang.org/x/term v0.13.0
-## explicit; go 1.17
+# golang.org/x/term v0.15.0
+## explicit; go 1.18
 golang.org/x/term
-# golang.org/x/text v0.13.0
-## explicit; go 1.17
+# golang.org/x/text v0.14.0
+## explicit; go 1.18
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi

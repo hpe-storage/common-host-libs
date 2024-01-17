@@ -1,4 +1,4 @@
-module common-host-libs
+module github.com/hpe-storage/common-host-libs
 
 go 1.19
 
@@ -9,7 +9,6 @@ require (
 	github.com/go-ole/go-ole v1.2.4
 	github.com/gorilla/mux v1.6.2
 	github.com/hectane/go-acl v0.0.0-20190523051433-dfeb47f3e2ef
-	github.com/hpe-storage/common-host-libs v4.7.1+incompatible
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/satori/go.uuid v1.2.0
 	github.com/sirupsen/logrus v1.8.1

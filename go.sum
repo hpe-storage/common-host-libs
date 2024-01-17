@@ -69,8 +69,6 @@ github.com/grpc-ecosystem/grpc-gateway v1.16.0 h1:gmcG1KaJ57LophUzW0Hy8NmPhnMZb4
 github.com/grpc-ecosystem/grpc-gateway v1.16.0/go.mod h1:BDjrQk3hbvj6Nolgz8mAMFbcEtjT1g+wF4CSlocrBnw=
 github.com/hectane/go-acl v0.0.0-20190523051433-dfeb47f3e2ef h1:kKfJP3gHIuNfCZdSAbtKjDpkBwVnXh/SVMtxHourrDE=
 github.com/hectane/go-acl v0.0.0-20190523051433-dfeb47f3e2ef/go.mod h1:xk/21OELzVCkl0NZCoB+eLISXe1p+YDiha8WaQDD1d8=
-github.com/hpe-storage/common-host-libs v4.7.1+incompatible h1:ndkULLQW8eul2xQZTKDAP3iGEBRhXkxj9Sc8/alXzVI=
-github.com/hpe-storage/common-host-libs v4.7.1+incompatible/go.mod h1:qQxvwt4l9C79p2V8bY1P13As1+ylyznKJVp3K2P5bz8=
 github.com/jonboulle/clockwork v0.4.0 h1:p4Cf1aMWXnXAUh8lVfewRBx1zaTSYKrKMF2g3ST4RZ4=
 github.com/jonboulle/clockwork v0.4.0/go.mod h1:xgRqUGwRcjKCO1vbZUEtSLrqKoPSsUpK7fnezOII0kc=
 github.com/json-iterator/go v1.1.12 h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=
