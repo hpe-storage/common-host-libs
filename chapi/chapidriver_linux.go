@@ -3,10 +3,13 @@
 package chapi
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
+	"syscall"
 
 	"sort"
 	"sync"
@@ -287,6 +290,219 @@ func (driver *LinuxDriver) MountDevice(device *model.Device, mountPoint string, 
 	}
 
 	return mount, nil
+}
+
+func (driver *LinuxDriver) IsFileSystemCorrupted(volumeID string, device *model.Device, fsOpts *model.FilesystemOpts) bool {
+	log.Tracef(">>>>> IsFileSystemCorrupted, volumeID: %s, device: %+v, fsOpts: %+v", volumeID, device, fsOpts)
+	defer log.Trace("<<<<< IsFileSystemCorrupted")
+	if fsOpts != nil {
+		log.Debug("Determining the file system of the volume %s", volumeID)
+		fileSystemType := fsOpts.Type
+		var cmd string
+		var args []string
+		if fileSystemType == "ext2" || fileSystemType == "ext3" || fileSystemType == "ext4" {
+			cmd = "fsck"
+			args = append(args, "-n")
+		} else if fileSystemType == "xfs" {
+			cmd = "xfs_repair"
+			args = append(args, "-n")
+		} else if fileSystemType == "btrfs" {
+			cmd = "btrfs"
+			args = append(args, "check")
+		} else {
+			log.Errorf("File system type is either not specified or invalid for the volume %s", volumeID)
+			return false
+		}
+		log.Debugf("File system of the volume %s is %s", volumeID, fileSystemType)
+		args = append(args, device.AltFullPathName)
+		err := checkFileSystemCorruption(volumeID, cmd, args)
+		if err != nil {
+			log.Info("File system corruption detected for the volume %s and device %s", volumeID, &device.AltFullPathName)
+			return true
+		}
+	} else {
+		log.Errorf("No file system options specified for the volume %s", volumeID)
+		return false
+	}
+	return false
+}
+func checkFileSystemCorruption(volumeID string, cmd string, args []string) error {
+	fmt.Println(">>>>> checkFileSystemCorruption, volumeID:", volumeID, ", cmd: ", cmd, ", args:", args)
+	defer fmt.Println("<<<<< checkFileSystemCorruption")
+	var err error
+	c := exec.Command(cmd, args...)
+	var b bytes.Buffer
+	c.Stdout = &b
+	c.Stderr = &b
+
+	if err = c.Start(); err != nil {
+		return err
+	}
+
+	// Wait for the process to finish or kill it after a timeout:
+	done := make(chan error, 1)
+	go func() {
+		done <- c.Wait()
+	}()
+
+	err = <-done
+	if err != nil {
+		fmt.Printf("process with pid : %v finished with error = %v\n", c.Process.Pid, err)
+	} else {
+		fmt.Printf("process with pid: %v finished successfully\n", c.Process.Pid)
+	}
+
+	out := string(b.Bytes())
+	//fmt.Println(out)
+	if err != nil {
+		//check the rc of the exec
+		if badnews, ok := err.(*exec.ExitError); ok {
+			if status, ok := badnews.Sys().(syscall.WaitStatus); ok {
+				// send the error code and stderr content to the caller
+				return fmt.Errorf("command %s failed with rc=%d err=%s\n", cmd, status.ExitStatus(), out)
+			}
+		} else {
+			return fmt.Errorf("error %s\n", err.Error())
+		}
+	}
+	return nil
+}
+func (driver *LinuxDriver) RepairFileSystem(volumeID string, device *model.Device, fsOpts *model.FilesystemOpts) error {
+	log.Tracef(">>>>> RepairFileSystem, volumeID: %s, device: %+v, fsOpts: %+v", volumeID, device, fsOpts)
+	defer log.Trace("<<<<< RepairFileSystem")
+
+	if fsOpts != nil {
+		log.Debug("Determining the file system of the volume %s", volumeID)
+		fileSystemType := fsOpts.Type
+		if fileSystemType == "ext2" || fileSystemType == "ext3" || fileSystemType == "ext4" {
+			err := repairFsckFileSystem(volumeID, device)
+			if err != nil {
+				log.Errorf("Failed to repair the %s file system for the volume %s due to the error %v", fileSystemType, volumeID, err)
+				return err
+			}
+			log.Info("Succesfully repaired the file system for the volume %s", volumeID)
+		} else if fileSystemType == "xfs" {
+			err := executeFileSystemRepairCommand(volumeID, device, "xfs", "xfs_repair", []string{device.AltFullPathName})
+			if err != nil {
+				return fmt.Errorf("Failed to repair the xfs file system of the device %s for the volume %s due to the error %v", device.AltFullPathName, volumeID, err)
+			}
+			log.Infof("XFS Filesystem of the device %s is repaied successfully for the volume %s", device.AltFullPathName, volumeID)
+		} else if fileSystemType == "btrfs" {
+			err := executeFileSystemRepairCommand(volumeID, device, "btrfts", "btrfts", []string{"check", "--repair", device.AltFullPathName})
+			if err != nil {
+				return fmt.Errorf("Failed to repair the btrfs file system of the device %s for the volume %s due to the error %v", device.AltFullPathName, volumeID, err)
+			}
+
+			log.Infof("Btrfs Filesystem of the device %s is repaied successfully for the volume %s", device.AltFullPathName, volumeID)
+		} else {
+			return fmt.Errorf("File system type is either not specified or invalid for the volume %s", volumeID)
+		}
+	} else {
+		return fmt.Errorf("No file system options specified for the volume %s", volumeID)
+	}
+	return nil
+}
+
+func repairFsckFileSystem(volumeID string, device *model.Device) error {
+	log.Tracef(">>>>> RepairFsckFileSystem, volumeID: %s, device: %+v", volumeID, device)
+	var err error
+	c := exec.Command("fsck", "-y", device.AltFullPathName)
+	var b bytes.Buffer
+	c.Stdout = &b
+	c.Stderr = &b
+	if err = c.Start(); err != nil {
+		return err
+	}
+	// Wait for the process to finish or kill it after a timeout:
+	done := make(chan error, 1)
+	go func() {
+		done <- c.Wait()
+	}()
+	err = <-done
+	if err != nil {
+		log.Errorf("process with pid : %v finished with error = %v", c.Process.Pid, err)
+	} else {
+		log.Tracef("process with pid: %v finished successfully", c.Process.Pid)
+	}
+
+	out := string(b.Bytes())
+	log.Trace(out)
+	if err != nil {
+		//check the rc of the exec
+		if exitStatus, ok := err.(*exec.ExitError); ok {
+			if status, ok := exitStatus.Sys().(syscall.WaitStatus); ok {
+				switch status.ExitStatus() {
+				case 0:
+					log.Infof("No errors found in the filesystem of the device %s.", device.AltFullPathName)
+					return nil
+				case 1:
+					log.Infof("Filesystem errors were corrected for the device %s.", device.AltFullPathName)
+					return nil
+				case 2:
+					return fmt.Errorf("Filesystem errors were corrected for the device %s, but the system should be rebooted.", device.AltFullPathName)
+				case 4:
+					return fmt.Errorf("Filesystem errors left uncorrected for the device %s.", device.AltFullPathName)
+				case 8:
+					return fmt.Errorf("Operational error for the device %s.", device.AltFullPathName)
+				case 16:
+					return fmt.Errorf("Usage or syntax error for the device %s.", device.AltFullPathName)
+				case 32:
+					return fmt.Errorf("Filesystem check cancelled by user request for the device %s.", device.AltFullPathName)
+				case 128:
+					return fmt.Errorf("Shared library error for the device %s.", device.AltFullPathName)
+				default:
+					return fmt.Errorf("Unknown exit code: %d\n", status.ExitStatus)
+				}
+			} else {
+				// send the error code and stderr content to the caller
+				return fmt.Errorf("command fsck failed with exit status=%s err=%s", exitStatus, out)
+			}
+		} else {
+			return fmt.Errorf("error %s", err.Error())
+		}
+	}
+	return nil
+}
+
+func executeFileSystemRepairCommand(volumeID string, device *model.Device, fsType string, cmd string, args []string) error {
+	log.Tracef(">>>>> executeFileSystemRepairCommand for file system %s, volumeID: %s, device: %+v", fsType, volumeID, device)
+	var err error
+	c := exec.Command(cmd, args...)
+	var b bytes.Buffer
+	c.Stdout = &b
+	c.Stderr = &b
+
+	if err = c.Start(); err != nil {
+		return err
+	}
+
+	// Wait for the process to finish or kill it after a timeout:
+	done := make(chan error, 1)
+	go func() {
+		done <- c.Wait()
+	}()
+
+	err = <-done
+	if err != nil {
+		fmt.Printf("process with pid : %v finished with error = %v", c.Process.Pid, err)
+	} else {
+		fmt.Printf("process with pid: %v finished successfully", c.Process.Pid)
+	}
+
+	out := string(b.Bytes())
+	fmt.Println(out)
+	if err != nil {
+		//check the rc of the exec
+		if badnews, ok := err.(*exec.ExitError); ok {
+			if status, ok := badnews.Sys().(syscall.WaitStatus); ok {
+				// send the error code and stderr content to the caller
+				return fmt.Errorf("command %s failed with rc=%d err=%s", cmd, status.ExitStatus(), out)
+			}
+		} else {
+			return fmt.Errorf("error %s", err.Error())
+		}
+	}
+	return nil
 }
 
 // BindMount bind mounts the existing mountpoint to the given mount point
