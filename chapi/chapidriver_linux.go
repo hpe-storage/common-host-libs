@@ -317,7 +317,7 @@ func (driver *LinuxDriver) IsFileSystemCorrupted(volumeID string, device *model.
 		args = append(args, device.AltFullPathName)
 		err := checkFileSystemCorruption(volumeID, cmd, args)
 		if err != nil {
-			log.Info("File system corruption detected for the volume %s and device %s", volumeID, &device.AltFullPathName)
+			log.Infof("File system corruption detected for the volume %s and device %s", volumeID, &device.AltFullPathName)
 			return true
 		}
 	} else {
