@@ -306,7 +306,7 @@ func (driver *LinuxDriver) IsFileSystemCorrupted(volumeID string, device *model.
 			args = append(args, "-l")
 			args = append(args, device.AltFullPathName)
 			output, _, err := ExecCommandOutput(cmd, args)
-			if err !=nil or (output != nil and getInfoFromTune2fsOutput(output, "Filesystem state") != "clean"){
+			if err != nil || (output != "" && getInfoFromTune2fsOutput(output, "Filesystem state") != "clean") {
 				log.debugf("File system state is not clean, checking the file system corruption using fsck command for the volume %s", volumeID)
 				cmd = "fsck"
 				args = append(args, "-n")
@@ -426,10 +426,9 @@ func (driver *LinuxDriver) RepairFileSystem(volumeID string, device *model.Devic
 			if err != nil {
 				return fmt.Errorf("Failed to repair the btrfs file system of the device %s for the volume %s due to the error %v", device.AltFullPathName, volumeID, err)
 			}
-			
+
 			log.Infof("Btrfs Filesystem of the device %s is repaied successfully for the volume %s", device.AltFullPathName, volumeID)*/
 			return fmt.Errorf("Currently, repairing of btrfs file corruption is not handled by the HPE CSI driver.")
-
 		} else {
 			return fmt.Errorf("File system type is either not specified or invalid for the volume %s", volumeID)
 		}
