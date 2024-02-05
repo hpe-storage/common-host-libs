@@ -300,22 +300,35 @@ func (driver *LinuxDriver) IsFileSystemCorrupted(volumeID string, device *model.
 		fileSystemType := fsOpts.Type
 		var cmd string
 		var args []string
+		log.Debugf("File system of the volume %s is %s", volumeID, fileSystemType)
 		if fileSystemType == "ext2" || fileSystemType == "ext3" || fileSystemType == "ext4" {
-			cmd = "fsck"
-			args = append(args, "-n")
+			cmd = "tune2fs"
+			args = append(args, "-l")
+			args = append(args, device.AltFullPathName)
+			output, _, err := ExecCommandOutput(cmd, args)
+			if err !=nil or (output != nil and getInfoFromTune2fsOutput(output, "Filesystem state") != "clean"){
+				log.debugf("File system state is not clean, checking the file system corruption using fsck command for the volume %s", volumeID)
+				cmd = "fsck"
+				args = append(args, "-n")
+				args = append(args, device.AltFullPathName)
+				err = checkFileSystemCorruption(volumeID, cmd, args)
+			}
 		} else if fileSystemType == "xfs" {
 			cmd = "xfs_repair"
 			args = append(args, "-n")
+			args = append(args, device.AltFullPathName)
+			err := checkFileSystemCorruption(volumeID, cmd, args)
 		} else if fileSystemType == "btrfs" {
-			cmd = "btrfs"
+			/*cmd = "btrfs"
 			args = append(args, "check")
+			args = append(args, device.AltFullPathName)
+			err := checkFileSystemCorruption(volumeID, cmd, args)*/
+			log.Errorf("Currently, checking the file corruption of brtfs is not handled by the HPE CSI driver")
+			return false
 		} else {
 			log.Errorf("File system type is either not specified or invalid for the volume %s", volumeID)
 			return false
 		}
-		log.Debugf("File system of the volume %s is %s", volumeID, fileSystemType)
-		args = append(args, device.AltFullPathName)
-		err := checkFileSystemCorruption(volumeID, cmd, args)
 		if err != nil {
 			log.Infof("File system corruption detected for the volume %s and device %s", volumeID, &device.AltFullPathName)
 			return true
@@ -326,9 +339,30 @@ func (driver *LinuxDriver) IsFileSystemCorrupted(volumeID string, device *model.
 	}
 	return false
 }
+
+func getInfoFromTune2fsOutput(output string, pattern string) string {
+	log.Tracef(">>>>> getInfoFromTune2fsOutput, Pattern:", pattern)
+	defer log.Trace("<<<<< getInfoFromTune2fsOutput")
+	lines := strings.Split(output, "\n")
+	var relevantInfo string
+	for _, line := range lines {
+		if strings.Contains(line, pattern) {
+			relevantInfo = line
+			break
+		}
+	}
+	if len(relevantInfo) > 0 {
+		lines = strings.Fields(relevantInfo)
+		if len(lines) == 3 {
+			relevantInfo = lines[2]
+		}
+	}
+	return relevantInfo
+}
+
 func checkFileSystemCorruption(volumeID string, cmd string, args []string) error {
-	fmt.Println(">>>>> checkFileSystemCorruption, volumeID:", volumeID, ", cmd: ", cmd, ", args:", args)
-	defer fmt.Println("<<<<< checkFileSystemCorruption")
+	log.Tracef(">>>>> checkFileSystemCorruption, volumeID:", volumeID, ", cmd: ", cmd, ", args:", args)
+	defer log.Trace("<<<<< checkFileSystemCorruption")
 	var err error
 	c := exec.Command(cmd, args...)
 	var b bytes.Buffer
@@ -347,9 +381,9 @@ func checkFileSystemCorruption(volumeID string, cmd string, args []string) error
 
 	err = <-done
 	if err != nil {
-		fmt.Printf("process with pid : %v finished with error = %v\n", c.Process.Pid, err)
+		log.Errorf("process with pid : %v finished with error = %v\n", c.Process.Pid, err)
 	} else {
-		fmt.Printf("process with pid: %v finished successfully\n", c.Process.Pid)
+		log.Tracef("process with pid: %v finished successfully\n", c.Process.Pid)
 	}
 
 	out := string(b.Bytes())
@@ -388,12 +422,14 @@ func (driver *LinuxDriver) RepairFileSystem(volumeID string, device *model.Devic
 			}
 			log.Infof("XFS Filesystem of the device %s is repaied successfully for the volume %s", device.AltFullPathName, volumeID)
 		} else if fileSystemType == "btrfs" {
-			err := executeFileSystemRepairCommand(volumeID, device, "btrfts", "btrfts", []string{"check", "--repair", device.AltFullPathName})
+			/*err := executeFileSystemRepairCommand(volumeID, device, "btrfts", "btrfts", []string{"check", "--repair", device.AltFullPathName})
 			if err != nil {
 				return fmt.Errorf("Failed to repair the btrfs file system of the device %s for the volume %s due to the error %v", device.AltFullPathName, volumeID, err)
 			}
+			
+			log.Infof("Btrfs Filesystem of the device %s is repaied successfully for the volume %s", device.AltFullPathName, volumeID)*/
+			return fmt.Errorf("Currently, repairing of btrfs file corruption is not handled by the HPE CSI driver.")
 
-			log.Infof("Btrfs Filesystem of the device %s is repaied successfully for the volume %s", device.AltFullPathName, volumeID)
 		} else {
 			return fmt.Errorf("File system type is either not specified or invalid for the volume %s", volumeID)
 		}
