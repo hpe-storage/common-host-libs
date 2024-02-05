@@ -305,19 +305,27 @@ func (driver *LinuxDriver) IsFileSystemCorrupted(volumeID string, device *model.
 			cmd = "tune2fs"
 			args = append(args, "-l")
 			args = append(args, device.AltFullPathName)
-			output, _, err := ExecCommandOutput(cmd, args)
+			output, _, err := util.ExecCommandOutput(cmd, args)
 			if err != nil || (output != "" && getInfoFromTune2fsOutput(output, "Filesystem state") != "clean") {
-				log.debugf("File system state is not clean, checking the file system corruption using fsck command for the volume %s", volumeID)
+				log.Debugf("File system state is not clean, checking the file system corruption using fsck command for the volume %s", volumeID)
 				cmd = "fsck"
 				args = append(args, "-n")
 				args = append(args, device.AltFullPathName)
 				err = checkFileSystemCorruption(volumeID, cmd, args)
+				if err != nil {
+					log.Infof("File system corruption detected for the volume %s and device %s", volumeID, &device.AltFullPathName)
+					return true
+				}
 			}
 		} else if fileSystemType == "xfs" {
 			cmd = "xfs_repair"
 			args = append(args, "-n")
 			args = append(args, device.AltFullPathName)
 			err := checkFileSystemCorruption(volumeID, cmd, args)
+			if err != nil {
+				log.Infof("File system corruption detected for the volume %s and device %s", volumeID, &device.AltFullPathName)
+				return true
+			}
 		} else if fileSystemType == "btrfs" {
 			/*cmd = "btrfs"
 			args = append(args, "check")
@@ -328,10 +336,6 @@ func (driver *LinuxDriver) IsFileSystemCorrupted(volumeID string, device *model.
 		} else {
 			log.Errorf("File system type is either not specified or invalid for the volume %s", volumeID)
 			return false
-		}
-		if err != nil {
-			log.Infof("File system corruption detected for the volume %s and device %s", volumeID, &device.AltFullPathName)
-			return true
 		}
 	} else {
 		log.Errorf("No file system options specified for the volume %s", volumeID)
