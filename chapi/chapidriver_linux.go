@@ -271,7 +271,7 @@ func (driver *LinuxDriver) MountDevice(device *model.Device, mountPoint string, 
 	}
 
 	// Setup mountpoint (Create mountpoint and apply mount options)
-	mount, err := linux.SetupMount(device, mountPoint, mountOptions, fsType, fsRepairKey)
+	mount, err := linux.SetupMount(device, mountPoint, mountOptions, fsOpts.Type, fsRepairKey)
 	if err != nil {
 		log.Errorf("Failed to setup mountpoint %s for device %s, err: %v", mountPoint, device.AltFullPathName, err.Error())
 		return nil, err

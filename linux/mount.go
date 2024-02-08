@@ -750,7 +750,7 @@ func getInfoFromTune2fsOutput(output string, pattern string) string {
 }
 
 func checkFileSystemCorruption(devPath string, cmd string, args []string) error {
-	log.Tracef(">>>>> checkFileSystemCorruption, device path:", devPath, ", cmd: ", cmd, ", args:", args)
+	log.Tracef(">>>>> checkFileSystemCorruption, device path:%s, cmd:%s, args:%s", devPath, cmd, args)
 	defer log.Trace("<<<<< checkFileSystemCorruption")
 	var err error
 	c := exec.Command(cmd, args...)
@@ -806,7 +806,7 @@ func repairFileSystem(devPath string, fsType string) error {
 		if err != nil {
 			return fmt.Errorf("Failed to repair the xfs file system of the device path %s due to the error %v", devPath, err)
 		}
-		log.Infof("XFS Filesystem of the device %s is repaied successfully", devPath)
+		log.Infof("XFS filesystem of the device path %s is repaired successfully", devPath)
 	} else if fsType == "btrfs" {
 		/*err := executeFileSystemRepairCommand(devPath, "btrfts", "btrfts", []string{"check", "--repair", device.AltFullPathName})
 		if err != nil {
@@ -884,7 +884,7 @@ func repairFsckFileSystem(devPath string) error {
 }
 
 func executeFileSystemRepairCommand(devPath string, fsType string, cmd string, args []string) error {
-	log.Tracef(">>>>> executeFileSystemRepairCommand for file system %s, device path: %s", fsType, fsType, devPath)
+	log.Tracef(">>>>> executeFileSystemRepairCommand for file system %s, device path: %s", fsType, devPath)
 	var err error
 	c := exec.Command(cmd, args...)
 	var b bytes.Buffer
