@@ -676,13 +676,13 @@ func isFileSystemCorrupted(devPath string, fsType string) bool {
 		args = append(args, devPath)
 		output, _, err := util.ExecCommandOutput(cmd, args)
 		if err != nil || (output != "" && getInfoFromTune2fsOutput(output, "Filesystem state") != "clean") {
-			log.Debugf("File system state is not clean, checking the file system corruption using fsck command for the device path %s", devPath)
+			log.Debugf("Filesystem state is not clean, checking the filesystem integrity using fsck command for the device path %s", devPath)
 			cmd = "fsck"
 			args = append(args, "-n")
 			args = append(args, devPath)
 			err = checkFileSystemCorruption(devPath, cmd, args)
 			if err != nil {
-				log.Infof("File system corruption detected for the device path %s", devPath)
+				log.Infof("Filesystem issues detected for the device path %s", devPath)
 				return true
 			}
 		}
@@ -692,15 +692,11 @@ func isFileSystemCorrupted(devPath string, fsType string) bool {
 		args = append(args, devPath)
 		err := checkFileSystemCorruption(devPath, cmd, args)
 		if err != nil {
-			log.Infof("File system corruption detected for the device path %s", devPath)
+			log.Infof("Filesystem issues detected for the device path %s", devPath)
 			return true
 		}
 	} else if fsType == "btrfs" {
-		/*cmd = "btrfs"
-		args = append(args, "check")
-		args = append(args, device.AltFullPathName)
-		err := checkFileSystemCorruption(volumeID, cmd, args)*/
-		log.Errorf("Currently, checking the file corruption of brtfs is not handled by the HPE CSI driver")
+		log.Errorf("Currently, checking btrfs filesystems is not handled by the HPE CSI Driver")
 		return false
 	} else {
 		log.Errorf("File system type is either not specified or invalid for the device path %s", devPath)
@@ -756,7 +752,7 @@ func checkFileSystemCorruption(devPath string, cmd string, args []string) error 
 	}
 
 	out := string(b.Bytes())
-	//fmt.Println(out)
+
 	if err != nil {
 		//check the rc of the exec
 		if badnews, ok := err.(*exec.ExitError); ok {
@@ -780,21 +776,15 @@ func repairFileSystem(devPath string, fsType string) error {
 			log.Errorf("Failed to repair the file system of the device path %s due to the error %v", devPath, err)
 			return err
 		}
-		log.Info("Succesfully repaired the file system of the device path %s", devPath)
+		log.Infof("Succesfully repaired the filesystem on the device path %s", devPath)
 	} else if fsType == "xfs" {
 		err := executeFileSystemRepairCommand(devPath, "xfs", "xfs_repair", []string{devPath})
 		if err != nil {
-			return fmt.Errorf("Failed to repair the xfs file system of the device path %s due to the error %v", devPath, err)
+			return fmt.Errorf("Failed to repair the XFS filesystem of the device path %s due to the error %v", devPath, err)
 		}
-		log.Infof("XFS filesystem of the device path %s is repaired successfully", devPath)
+		log.Infof("XFS filesystem on the device path %s was repaired successfully", devPath)
 	} else if fsType == "btrfs" {
-		/*err := executeFileSystemRepairCommand(devPath, "btrfts", "btrfts", []string{"check", "--repair", device.AltFullPathName})
-		if err != nil {
-			return fmt.Errorf("Failed to repair the btrfs file system of the device %s for the volume %s due to the error %v", device.AltFullPathName, volumeID, err)
-		}
-
-		log.Infof("Btrfs Filesystem of the device %s is repaied successfully for the volume %s", device.AltFullPathName, volumeID)*/
-		return fmt.Errorf("Currently, repairing of btrfs file corruption is not handled by the HPE CSI driver.")
+		return fmt.Errorf("Currently, repairing btrfs filesystems is not handled by the HPE CSI Driver.")
 	} else {
 		return fmt.Errorf("File system type is either not specified or invalid for the device path %s", devPath)
 	}

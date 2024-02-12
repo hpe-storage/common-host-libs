@@ -296,7 +296,7 @@ func (driver *LinuxDriver) IsFileSystemCorrupted(volumeID string, device *model.
 	log.Tracef(">>>>> IsFileSystemCorrupted, volumeID: %s, device: %+v, fsOpts: %+v", volumeID, device, fsOpts)
 	defer log.Trace("<<<<< IsFileSystemCorrupted")
 	if fsOpts != nil {
-		log.Debug("Determining the file system of the volume %s", volumeID)
+		log.Debugf("Determining the filesystem of the volume %s", volumeID)
 		fileSystemType := fsOpts.Type
 		var cmd string
 		var args []string
@@ -313,7 +313,7 @@ func (driver *LinuxDriver) IsFileSystemCorrupted(volumeID string, device *model.
 				args = append(args, device.AltFullPathName)
 				err = checkFileSystemCorruption(volumeID, cmd, args)
 				if err != nil {
-					log.Infof("File system corruption detected for the volume %s and device %s", volumeID, device.AltFullPathName)
+					log.Infof("Filesystem issues detected for the volume %s and device %s", volumeID, device.AltFullPathName)
 					return true
 				}
 			}
@@ -323,15 +323,11 @@ func (driver *LinuxDriver) IsFileSystemCorrupted(volumeID string, device *model.
 			args = append(args, device.AltFullPathName)
 			err := checkFileSystemCorruption(volumeID, cmd, args)
 			if err != nil {
-				log.Infof("File system corruption detected for the volume %s and device %s", volumeID, device.AltFullPathName)
+				log.Infof("Filesystem issues detected for the volume %s and device %s", volumeID, device.AltFullPathName)
 				return true
 			}
 		} else if fileSystemType == "btrfs" {
-			/*cmd = "btrfs"
-			args = append(args, "check")
-			args = append(args, device.AltFullPathName)
-			err := checkFileSystemCorruption(volumeID, cmd, args)*/
-			log.Errorf("Currently, checking the file corruption of brtfs is not handled by the HPE CSI driver")
+			log.Errorf("Currently, checking btrfs filesystems is not handled by the HPE CSI Driver")
 			return false
 		} else {
 			log.Errorf("File system type is either not specified or invalid for the volume %s", volumeID)
@@ -410,7 +406,7 @@ func (driver *LinuxDriver) RepairFileSystem(volumeID string, device *model.Devic
 	defer log.Trace("<<<<< RepairFileSystem")
 
 	if fsOpts != nil {
-		log.Debug("Determining the file system of the volume %s", volumeID)
+		log.Debugf("Determining the filesystem of the volume %s", volumeID)
 		fileSystemType := fsOpts.Type
 		if fileSystemType == "ext2" || fileSystemType == "ext3" || fileSystemType == "ext4" {
 			err := repairFsckFileSystem(volumeID, device)
@@ -418,21 +414,15 @@ func (driver *LinuxDriver) RepairFileSystem(volumeID string, device *model.Devic
 				log.Errorf("Failed to repair the %s file system for the volume %s due to the error %v", fileSystemType, volumeID, err)
 				return err
 			}
-			log.Info("Succesfully repaired the file system for the volume %s", volumeID)
+			log.Infof("Succesfully repaired the filesystem for the volume %s", volumeID)
 		} else if fileSystemType == "xfs" {
 			err := executeFileSystemRepairCommand(volumeID, device, "xfs", "xfs_repair", []string{device.AltFullPathName})
 			if err != nil {
 				return fmt.Errorf("Failed to repair the xfs file system of the device %s for the volume %s due to the error %v", device.AltFullPathName, volumeID, err)
 			}
-			log.Infof("XFS Filesystem of the device %s is repaied successfully for the volume %s", device.AltFullPathName, volumeID)
+			log.Infof("XFS filesystem of the device %s was repaired successfully for the volume %s", device.AltFullPathName, volumeID)
 		} else if fileSystemType == "btrfs" {
-			/*err := executeFileSystemRepairCommand(volumeID, device, "btrfts", "btrfts", []string{"check", "--repair", device.AltFullPathName})
-			if err != nil {
-				return fmt.Errorf("Failed to repair the btrfs file system of the device %s for the volume %s due to the error %v", device.AltFullPathName, volumeID, err)
-			}
-
-			log.Infof("Btrfs Filesystem of the device %s is repaied successfully for the volume %s", device.AltFullPathName, volumeID)*/
-			return fmt.Errorf("Currently, repairing of btrfs file corruption is not handled by the HPE CSI driver.")
+			return fmt.Errorf("Currently, repairing of btrfs filesystems is not handled by the HPE CSI Driver.")
 		} else {
 			return fmt.Errorf("File system type is either not specified or invalid for the volume %s", volumeID)
 		}
