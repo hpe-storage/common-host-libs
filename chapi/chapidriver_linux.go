@@ -387,7 +387,6 @@ func checkFileSystemCorruption(volumeID string, cmd string, args []string) error
 	}
 
 	out := string(b.Bytes())
-	//fmt.Println(out)
 	if err != nil {
 		//check the rc of the exec
 		if badnews, ok := err.(*exec.ExitError); ok {
@@ -513,13 +512,12 @@ func executeFileSystemRepairCommand(volumeID string, device *model.Device, fsTyp
 
 	err = <-done
 	if err != nil {
-		fmt.Printf("process with pid : %v finished with error = %v", c.Process.Pid, err)
+		log.Tracef("process with pid : %v finished with error = %v", c.Process.Pid, err)
 	} else {
-		fmt.Printf("process with pid: %v finished successfully", c.Process.Pid)
+		log.Tracef("process with pid: %v finished successfully", c.Process.Pid)
 	}
 
 	out := string(b.Bytes())
-	fmt.Println(out)
 	if err != nil {
 		//check the rc of the exec
 		if badnews, ok := err.(*exec.ExitError); ok {
