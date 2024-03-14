@@ -22,11 +22,11 @@ func TestCreateCredentials(t *testing.T) {
 	}
 	// Valid Off-Array credential
 	cred1 := &Credentials{
-		Username:    "admin",
-		Password:    "admin",
-		Backend:     "1.1.1.1",
-		ServiceName: "csp-service",
-		ServicePort: 8080,
+		Username:         "admin",
+		Password:         "admin",
+		Backend:          "1.1.1.1",
+		ServiceName:      "csp-service",
+		ServicePort:      8080,
 		CspClientTimeout: DefaultCSPClientTimeout,
 	}
 
@@ -92,11 +92,11 @@ func TestCreateCredentials(t *testing.T) {
 	}
 	// Valid Off-Array credential with csp client timeout
 	cred8 := &Credentials{
-		Username:    "admin",
-		Password:    "admin",
-		Backend:     "1.1.1.1",
-		ServiceName: "csp-service",
-		ServicePort: 8080,
+		Username:         "admin",
+		Password:         "admin",
+		Backend:          "1.1.1.1",
+		ServiceName:      "csp-service",
+		ServicePort:      8080,
 		CspClientTimeout: DefaultCSPClientTimeout,
 	}
 
