@@ -2,7 +2,9 @@ package tunelinux
 
 // Copyright 2019 Hewlett Packard Enterprise Development LP.
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/hpe-storage/common-host-libs/linux"
 	log "github.com/hpe-storage/common-host-libs/logger"
+	"github.com/hpe-storage/common-host-libs/model"
 	"github.com/hpe-storage/common-host-libs/mpathconfig"
 	"github.com/hpe-storage/common-host-libs/util"
 )
@@ -374,4 +377,68 @@ func ConfigureMultipath() (err error) {
 		return err
 	}
 	return nil
+}
+
+func GetMultipathDevices() (multipathDevices []*model.MultipathDeviceInfo, err error) {
+	log.Tracef(">>>> getMultipathDevices ")
+	defer log.Trace("<<<<< getMultipathDevices")
+
+	out, _, err := util.ExecCommandOutput("multipathd", []string{"show", "multipaths", "json"})
+
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get the multipath devices due to the error: %s", err.Error())
+	}
+
+	if out != "" {
+		var rawJson map[string]any
+		err = json.Unmarshal([]byte(out), &rawJson)
+		if err != nil {
+			return nil, fmt.Errorf("Invalid JSON output of multipathd command: %s", err.Error())
+		}
+		maps := rawJson["maps"]
+		if x, ok := maps.([]interface{}); ok {
+			for _, mapItem := range x {
+				mapItem, _ := mapItem.(map[string]interface{})
+				multipathDevice := &model.MultipathDeviceInfo{
+					Name:       mapItem["name"].(string),
+					Vendor:     mapItem["vend"].(string),
+					Paths:      mapItem["paths"].(float64),
+					PathFaults: mapItem["path_faults"].(float64),
+					UUID:       mapItem["uuid"].(string),
+				}
+				multipathDevices = append(multipathDevices, multipathDevice)
+			}
+			return multipathDevices, nil
+		}
+	}
+	return nil, fmt.Errorf("Invalid multipathd command output received")
+}
+
+func GetUnhealthyMultipathDevices(multipathDevices []*model.MultipathDeviceInfo) (unhealthyMultipathDevices []*model.MultipathDeviceInfo, err error) {
+	log.Tracef(">>>> GetUnhealthyMultipathDevices from the existing multipathDevices")
+	defer log.Trace("<<<<< GetUnhealthyMultipathDevices")
+
+	if multipathDevices != nil && len(multipathDevices) > 0 {
+		for _, device := range multipathDevices {
+			log.Tracef("Name:%s Vendor:%s Paths:%f Path Faults:%f UUID:%s", device.Name, device.Vendor, device.Paths, device.PathFaults, device.UUID)
+			if device.Paths < 1 && device.PathFaults > 0 && isSupportedDeviceVendor(linux.DeviceVendorPatterns, device.Vendor) {
+				log.Warnf("Defective multipath device found: %s", device.Name)
+				unhealthyMultipathDevices = append(unhealthyMultipathDevices, (*model.MultipathDeviceInfo)(device))
+			}
+		}
+		log.Tracef("Number of unhealthy multipath devices found are %d", len(unhealthyMultipathDevices))
+		return unhealthyMultipathDevices, nil
+	}
+	return nil, fmt.Errorf("Multipath devices are either empty or invalid %+v", multipathDevices)
+}
+
+func isSupportedDeviceVendor(deviceVendors []string, vendor string) bool {
+	for _, value := range deviceVendors {
+		if value == vendor {
+			//Remove later
+			log.Tracef("Found Match: %s:%s", value, vendor)
+			return true
+		}
+	}
+	return false
 }
