@@ -436,7 +436,7 @@ func isSupportedDeviceVendor(deviceVendors []string, vendor string) bool {
 	for _, value := range deviceVendors {
 		if value == vendor {
 			//Remove later
-			log.Tracef("Found Match: %s:%s", value, vendor)
+			//log.Tracef("Found Match: %s:%s", value, vendor)
 			return true
 		}
 	}
