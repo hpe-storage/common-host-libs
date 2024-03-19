@@ -429,7 +429,7 @@ func GetUnhealthyMultipathDevices(multipathDevices []*model.MultipathDeviceInfo)
 		log.Tracef("Number of unhealthy multipath devices found are %d", len(unhealthyMultipathDevices))
 		return unhealthyMultipathDevices, nil
 	}
-	return nil, fmt.Errorf("Multipath devices are either empty or invalid %+v", multipathDevices)
+	return nil, fmt.Errorf("Invalid multipath devices %+v", multipathDevices)
 }
 
 func isSupportedDeviceVendor(deviceVendors []string, vendor string) bool {
