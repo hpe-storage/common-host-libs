@@ -406,30 +406,15 @@ func GetMultipathDevices() (multipathDevices []*model.MultipathDeviceInfo, err e
 					PathFaults: mapItem["path_faults"].(float64),
 					UUID:       mapItem["uuid"].(string),
 				}
+				if multipathDevice.Paths < 1 && multipathDevice.PathFaults > 0 && isSupportedDeviceVendor(linux.DeviceVendorPatterns, multipathDevice.Vendor) {
+					multipathDevice.IsUnhealthy = true
+				}
 				multipathDevices = append(multipathDevices, multipathDevice)
 			}
 			return multipathDevices, nil
 		}
 	}
 	return nil, fmt.Errorf("Invalid multipathd command output received")
-}
-
-func GetUnhealthyMultipathDevices(multipathDevices []*model.MultipathDeviceInfo) (unhealthyMultipathDevices []*model.MultipathDeviceInfo, err error) {
-	log.Tracef(">>>> GetUnhealthyMultipathDevices from the existing multipathDevices")
-	defer log.Trace("<<<<< GetUnhealthyMultipathDevices")
-
-	if multipathDevices != nil && len(multipathDevices) > 0 {
-		for _, device := range multipathDevices {
-			log.Tracef("Name:%s Vendor:%s Paths:%f Path Faults:%f UUID:%s", device.Name, device.Vendor, device.Paths, device.PathFaults, device.UUID)
-			if device.Paths < 1 && device.PathFaults > 0 && isSupportedDeviceVendor(linux.DeviceVendorPatterns, device.Vendor) {
-				log.Warnf("Defective multipath device found: %s", device.Name)
-				unhealthyMultipathDevices = append(unhealthyMultipathDevices, (*model.MultipathDeviceInfo)(device))
-			}
-		}
-		log.Tracef("Number of unhealthy multipath devices found are %d", len(unhealthyMultipathDevices))
-		return unhealthyMultipathDevices, nil
-	}
-	return nil, fmt.Errorf("Invalid multipath devices %+v", multipathDevices)
 }
 
 func isSupportedDeviceVendor(deviceVendors []string, vendor string) bool {

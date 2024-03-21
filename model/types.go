@@ -406,9 +406,10 @@ type KeyValue struct {
 // A few fields are included that can be used to determine whether
 // the device is healthy or not
 type MultipathDeviceInfo struct {
-	Name       string
-	Vendor     string
-	Paths      float64
-	PathFaults float64
-	UUID       string
+	Name        string
+	Vendor      string
+	Paths       float64
+	PathFaults  float64
+	UUID        string
+	IsUnhealthy bool
 }
