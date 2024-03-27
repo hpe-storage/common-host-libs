@@ -399,17 +399,19 @@ func GetMultipathDevices() (multipathDevices []*model.MultipathDeviceInfo, err e
 		if x, ok := maps.([]interface{}); ok {
 			for _, mapItem := range x {
 				mapItem, _ := mapItem.(map[string]interface{})
-				multipathDevice := &model.MultipathDeviceInfo{
-					Name:       mapItem["name"].(string),
-					Vendor:     mapItem["vend"].(string),
-					Paths:      mapItem["paths"].(float64),
-					PathFaults: mapItem["path_faults"].(float64),
-					UUID:       mapItem["uuid"].(string),
+				if len(mapItem["vend"].(string)) > 0 && isSupportedDeviceVendor(linux.DeviceVendorPatterns, mapItem["vend"].(string)) {
+					multipathDevice := &model.MultipathDeviceInfo{
+						Name:       mapItem["name"].(string),
+						Vendor:     mapItem["vend"].(string),
+						Paths:      mapItem["paths"].(float64),
+						PathFaults: mapItem["path_faults"].(float64),
+						UUID:       mapItem["uuid"].(string),
+					}
+					if multipathDevice.Paths < 1 && multipathDevice.PathFaults > 0 {
+						multipathDevice.IsUnhealthy = true
+					}
+					multipathDevices = append(multipathDevices, multipathDevice)
 				}
-				if multipathDevice.Paths < 1 && multipathDevice.PathFaults > 0 && isSupportedDeviceVendor(linux.DeviceVendorPatterns, multipathDevice.Vendor) {
-					multipathDevice.IsUnhealthy = true
-				}
-				multipathDevices = append(multipathDevices, multipathDevice)
 			}
 			return multipathDevices, nil
 		}
