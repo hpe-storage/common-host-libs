@@ -361,7 +361,7 @@ func getInfoFromTune2fsOutput(output string, pattern string) string {
 }
 
 func checkFileSystemCorruption(volumeID string, cmd string, args []string) error {
-	log.Tracef(">>>>> checkFileSystemCorruption, volumeID:%s, cmd: %s, args:%v", args)
+	log.Tracef(">>>>> checkFileSystemCorruption, volumeID:%s, cmd: %s, args:%v", volumeID, cmd, args)
 	defer log.Trace("<<<<< checkFileSystemCorruption")
 	var err error
 	c := exec.Command(cmd, args...)
