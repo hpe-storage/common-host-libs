@@ -30,4 +30,5 @@ type Driver interface {
 	GetBlockSizeBytes(devicePath string) (int64, error)
 	IsFileSystemCorrupted(volumeID string, device *model.Device, fsOpts *model.FilesystemOpts) bool
 	RepairFileSystem(volumeID string, device *model.Device, fsOpts *model.FilesystemOpts) error
+	RepairFsckFileSystem(volumeId string, device *model.Device) error
 }
