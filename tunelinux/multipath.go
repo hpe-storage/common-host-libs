@@ -505,33 +505,61 @@ func UnmountMultipathDevice(multipathDevice string) error {
 }
 
 func unmount(mountPoint string) error {
+	log.Tracef("Unmout the mount point %s", mountPoint)
 	args := []string{mountPoint}
 	_, rc, err := util.ExecCommandOutput("umount", args)
 	if err != nil || rc != 0 {
 		log.Errorf("unable to unmount %s with err=%s and rc=%d", mountPoint, err.Error(), rc)
+		return err
 	}
 	return nil
 }
 
 func killProcessesUisngMountPoints(mountPoint string) error {
-	args := []string{"-m", mountPoint}
+	log.Tracef(">>>> killProcessesUisngMountPoints: %s", mountPoint)
+	defer log.Trace("<<<<< killProcessesUisngMountPoints")
+	args := []string{"-mv", mountPoint}
 	output, _, err := util.ExecCommandOutput("fuser", args)
 	if err != nil {
 		log.Errorf("unable to list the processes using the mount poing %s using fuser command: %s", mountPoint, err.Error())
 		return err
 	}
-	pids := strings.Fields(string(output))
-	for _, pidItem := range pids {
-		pid, err := strconv.Atoi(pidItem)
-		if err != nil {
-			log.Errorf("Error converting PID:%s", err)
-			continue
+
+	lines := strings.Split(output, "\n")
+	if len(lines) > 2 {
+		// Skip the first line which contains the headers
+		for _, line := range lines[1:] {
+			if strings.TrimSpace(line) == "" {
+				continue
+			}
+			// Skip the line if it conatains kernel, as it is not needed
+			if strings.Contains(line, "kernel") {
+				continue
+			}
+			lineItems := strings.Fields(string(line))
+			if len(lineItems) > 1 && lineItems[1] != "" {
+				pid, err := strconv.Atoi(lineItems[1])
+				if err != nil {
+					fmt.Printf("Error converting PID:%s\n", err)
+					continue
+				}
+				log.Tracef("PROCESS ID: %d using the mountpoint: %s", pid, mountPoint)
+				if pid > 0 {
+					if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
+						fmt.Printf("Error killing process %d: %s\n", pid, err)
+						return err
+					} else {
+						fmt.Printf("Process %d killed\n", pid)
+					}
+				}
+			} else {
+				return fmt.Errorf("Improper output received while getting the list of processes accesing the mount point %s", mountPoint)
+			}
 		}
-		if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
-			log.Errorf("Error killing process %d: %s\n", pid, err)
-		} else {
-			log.Debugf("Process %d killed\n", pid)
-		}
+	} else if len(lines) == 2 {
+		log.Debugf("No process is using the mountpoint %s", mountPoint)
+	} else {
+		return fmt.Errorf("Improper output received while getting the list of processes accesing the mount point %s", mountPoint)
 	}
 	return nil
 }
@@ -557,7 +585,7 @@ func findMountPointsOfMultipathDevice(multipathDevice string) (mountPoints []str
 		entry := strings.Fields(line)
 		log.Trace("mounts entry :", entry)
 		if len(entry) > 3 {
-			if entry[0] == multipathDevice {
+			if strings.Contains(entry[0], multipathDevice) {
 				log.Debugf("%s was found with %s", multipathDevice, entry[2])
 				mountPoints = append(mountPoints, entry[2])
 			}
