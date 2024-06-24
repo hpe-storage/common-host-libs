@@ -33,7 +33,8 @@ var (
 		"Nimble": "(?s)devices\\s+{\\s*.*device\\s*{(?P<device_block>.*Nimble.*?)}",
 		"3par":   "(?s)devices\\s+{\\s*.*device\\s*{(?P<device_block>.*3PAR.*?)}",
 	}
-	mountMutex sync.Mutex
+	mountMutex  sync.Mutex
+	umountMutex sync.Mutex
 )
 
 // GetMultipathConfigFile returns path of the template multipath.conf file according to OS distro
@@ -485,6 +486,9 @@ func UnmountMultipathDevice(multipathDevice string) error {
 		return nil
 	}
 
+	umountMutex.Lock()
+	defer umountMutex.Unlock()
+
 	for _, mountPoint := range mountPoints {
 		err = unmount(mountPoint)
 		if err != nil {
@@ -507,6 +511,7 @@ func UnmountMultipathDevice(multipathDevice string) error {
 
 func unmount(mountPoint string) error {
 	log.Tracef("Unmout the mount point %s", mountPoint)
+
 	args := []string{mountPoint}
 	_, rc, err := util.ExecCommandOutput("umount", args)
 	if err != nil || rc != 0 {
