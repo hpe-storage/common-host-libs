@@ -458,9 +458,10 @@ func getBlockDevicesOfMultipathDevice(device model.MultipathDevice) (blockDevice
 }
 
 func removeBlockDevices(blockDevices []string, multipathDevice string) error {
-	log.Trace(">>>> removeBlockDevices")
+	log.Trace(">>>> removeBlockDevices: ", blockDevices)
 	defer log.Trace("<<<<< removeBlockDevices")
 	for _, blockDevice := range blockDevices {
+		("Removing the block device %s of multipath device %s", blockDevice, multipathDevice)
 		cmd := exec.Command("sh", "-c", "echo 1 > /sys/block/"+blockDevice+"/device/delete")
 		err := cmd.Run()
 		if err != nil {
