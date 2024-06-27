@@ -407,8 +407,10 @@ func GetMultipathDevices() (multipathDevices []*model.MultipathDevice, err error
 					mapItem.IsUnhealthy = true
 				}
 				multipathDevices = append(multipathDevices, &mapItem)
+				log.Tracef("Multipath device: %s", mapItem.Name)
 			}
 		}
+		log.Infof("Found %d multipath devices %+v", len(multipathDevices), multipathDevices)
 		return multipathDevices, nil
 	}
 	return nil, fmt.Errorf("Invalid multipathd command output received")
