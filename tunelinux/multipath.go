@@ -384,7 +384,7 @@ func ConfigureMultipath() (err error) {
 	return nil
 }
 
-func GetMultipathDevices() (multipathDevices []*model.MultipathDevice, err error) {
+func GetMultipathDevices() (multipathDevices []model.MultipathDevice, err error) {
 	log.Tracef(">>>> getMultipathDevices ")
 	defer log.Trace("<<<<< getMultipathDevices")
 
@@ -406,7 +406,7 @@ func GetMultipathDevices() (multipathDevices []*model.MultipathDevice, err error
 				if mapItem.Paths < 1 && mapItem.PathFaults > 0 {
 					mapItem.IsUnhealthy = true
 				}
-				multipathDevices = append(multipathDevices, &mapItem)
+				multipathDevices = append(multipathDevices, mapItem)
 				log.Tracef("Multipath device: %s", mapItem.Name)
 			}
 		}
