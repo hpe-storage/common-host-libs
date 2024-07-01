@@ -548,16 +548,16 @@ func killProcessesUisngMountPoints(mountPoint string) error {
 			if len(lineItems) > 1 && lineItems[1] != "" {
 				pid, err := strconv.Atoi(lineItems[1])
 				if err != nil {
-					fmt.Printf("Error converting PID:%s\n", err)
+					log.Errorf("Error converting PID:%s", err)
 					continue
 				}
 				log.Tracef("PROCESS ID: %d using the mountpoint: %s", pid, mountPoint)
 				if pid > 0 {
 					if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
-						fmt.Printf("Error killing process %d: %s\n", pid, err)
+						log.Errorf("Error killing process %d: %s", pid, err)
 						return err
 					} else {
-						fmt.Printf("Process %d killed\n", pid)
+						log.Tracef("Process %d killed", pid)
 					}
 				}
 			} else {
@@ -609,8 +609,27 @@ func FlushMultipathDevice(multipathDevice string) error {
 	_, _, err := util.ExecCommandOutput("multipath", []string{"-f", multipathDevice})
 	if err != nil {
 		log.Errorf("Error occured while removing the multipath device %s: %s", multipathDevice, err.Error())
+		if strings.Contains(err.Error(), "map in use") {
+			log.Infof("Trying to remove the multipath device %s using dmsetup command", multipathDevice)
+			err = forceDeleteMultipathDevice(multipathDevice)
+			if err != nil {
+				return fmt.Errorf("Unable to remove th multipath device %s by force as well: %s", multipathDevice, err.Error())
+			}
+		}
 		return err
 	}
 	log.Debugf("Multipath device %s is removed successfully.", multipathDevice)
+	return nil
+}
+
+func forceDeleteMultipathDevice(multipathDevice string) error {
+	log.Tracef(">>>> forceDeleteMultipathDevice: %s", multipathDevice)
+	defer log.Trace("<<<<< forceDeleteMultipathDevice")
+
+	_, _, err := util.ExecCommandOutput("dmsetup", []string{"remove", "-f", multipathDevice})
+	if err != nil {
+		log.Errorf("Error occured while removing the multipath device %s by force: %s", multipathDevice, err.Error())
+		return err
+	}
 	return nil
 }
