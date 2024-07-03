@@ -643,11 +643,12 @@ func listTheProcessesUsingDevice(multipathDevice string) error {
 	args := []string{"-mv", "dev/mapper/" + multipathDevice}
 	output, _, err := util.ExecCommandOutput("fuser", args)
 	if err != nil {
-		log.Errorf("unable to list the processes using the mount poing %s using fuser command: %s", mountPoint, err.Error())
+		log.Errorf("unable to list the processes using the mount poing %s using fuser command: %s", multipathDevice, err.Error())
 		return err
 	}
 	log.Infof("Processes using the multipath device %s are:", multipathDevice)
 	log.Infof(output)
+	return nil
 }
 func displayDeviceInfo(multipathDevice string) error {
 	log.Tracef(">>>> displayDeviceInfo: %s", multipathDevice)
