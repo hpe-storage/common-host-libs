@@ -33,8 +33,9 @@ var (
 		"Nimble": "(?s)devices\\s+{\\s*.*device\\s*{(?P<device_block>.*Nimble.*?)}",
 		"3par":   "(?s)devices\\s+{\\s*.*device\\s*{(?P<device_block>.*3PAR.*?)}",
 	}
-	mountMutex  sync.Mutex
-	umountMutex sync.Mutex
+	mountMutex              sync.Mutex
+	umountMutex             sync.Mutex
+	staleDeviceRemovalMutex sync.Mutex
 )
 
 // GetMultipathConfigFile returns path of the template multipath.conf file according to OS distro
@@ -526,6 +527,10 @@ func unmount(mountPoint string) error {
 func killProcessesUisngMountPoints(mountPoint string) error {
 	log.Tracef(">>>> killProcessesUisngMountPoints: %s", mountPoint)
 	defer log.Trace("<<<<< killProcessesUisngMountPoints")
+
+	staleDeviceRemovalMutex.Lock()
+	defer staleDeviceRemovalMutex.Unlock()
+
 	args := []string{"-mv", mountPoint}
 	output, _, err := util.ExecCommandOutput("fuser", args)
 	if err != nil {
@@ -606,11 +611,22 @@ func FlushMultipathDevice(multipathDevice string) error {
 	log.Tracef(">>>> FlushMultipathDevice: %s", multipathDevice)
 	defer log.Trace("<<<<< FlushMultipathDevice")
 
+	staleDeviceRemovalMutex.Lock()
+	defer staleDeviceRemovalMutex.Unlock()
+
 	_, _, err := util.ExecCommandOutput("multipath", []string{"-f", multipathDevice})
 	if err != nil {
 		log.Errorf("Error occured while removing the multipath device %s: %s", multipathDevice, err.Error())
 		if strings.Contains(err.Error(), "map in use") {
 			log.Infof("Trying to remove the multipath device %s using dmsetup command", multipathDevice)
+			err = displayDeviceInfo(multipathDevice)
+			if err != nil {
+				log.Errorf("Error while displaying the device info %s", multipathDevice)
+			}
+			err = listTheProcessesUsingDevice(multipathDevice)
+			if err != nil {
+				log.Errorf("Error while displaying the processes using the device info %s", multipathDevice)
+			}
 			err = forceDeleteMultipathDevice(multipathDevice)
 			if err != nil {
 				return fmt.Errorf("Unable to remove th multipath device %s by force as well: %s", multipathDevice, err.Error())
@@ -622,9 +638,33 @@ func FlushMultipathDevice(multipathDevice string) error {
 	return nil
 }
 
+func listTheProcessesUsingDevice(multipathDevice string) error {
+	log.Tracef(">>>> listTheProcessesUsingDevice: %s", multipathDevice)
+	args := []string{"-mv", "dev/mapper/" + multipathDevice}
+	output, _, err := util.ExecCommandOutput("fuser", args)
+	if err != nil {
+		log.Errorf("unable to list the processes using the mount poing %s using fuser command: %s", mountPoint, err.Error())
+		return err
+	}
+	log.Infof("Processes using the multipath device %s are:", multipathDevice)
+	log.Infof(output)
+}
+func displayDeviceInfo(multipathDevice string) error {
+	log.Tracef(">>>> displayDeviceInfo: %s", multipathDevice)
+	out, _, err := util.ExecCommandOutput("dmsetup", []string{"info", multipathDevice})
+	if err != nil {
+		log.Errorf("Error occured while removing the multipath device %s by force: %s", multipathDevice, err.Error())
+		return err
+	}
+	log.Infof("Device info of multipath device %s using dmsetup info command: ", multipathDevice, out)
+	return nil
+}
 func forceDeleteMultipathDevice(multipathDevice string) error {
 	log.Tracef(">>>> forceDeleteMultipathDevice: %s", multipathDevice)
 	defer log.Trace("<<<<< forceDeleteMultipathDevice")
+
+	staleDeviceRemovalMutex.Lock()
+	defer staleDeviceRemovalMutex.Unlock()
 
 	_, _, err := util.ExecCommandOutput("dmsetup", []string{"remove", "-f", multipathDevice})
 	if err != nil {
