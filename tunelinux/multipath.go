@@ -617,21 +617,21 @@ func FlushMultipathDevice(multipathDevice string) error {
 	_, _, err := util.ExecCommandOutput("multipath", []string{"-f", multipathDevice})
 	if err != nil {
 		log.Errorf("Error occured while removing the multipath device %s: %s", multipathDevice, err.Error())
-		if strings.Contains(err.Error(), "map in use") {
-			log.Infof("Trying to remove the multipath device %s using dmsetup command", multipathDevice)
-			err = displayDeviceInfo(multipathDevice)
-			if err != nil {
-				log.Errorf("Error while displaying the device info %s", multipathDevice)
-			}
-			err = listTheProcessesUsingDevice(multipathDevice)
-			if err != nil {
-				log.Errorf("Error while displaying the processes using the device info %s", multipathDevice)
-			}
-			err = forceDeleteMultipathDevice(multipathDevice)
-			if err != nil {
-				return fmt.Errorf("Unable to remove th multipath device %s by force as well: %s", multipathDevice, err.Error())
-			}
+
+		log.Infof("Trying to remove the multipath device %s using dmsetup command", multipathDevice)
+		err = displayDeviceInfo(multipathDevice)
+		if err != nil {
+			log.Errorf("Error while displaying the device info %s", multipathDevice)
 		}
+		err = listTheProcessesUsingDevice(multipathDevice)
+		if err != nil {
+			log.Errorf("Error while displaying the processes using the device info %s", multipathDevice)
+		}
+		err = forceDeleteMultipathDevice(multipathDevice)
+		if err != nil {
+			return fmt.Errorf("Unable to remove th multipath device %s by force as well: %s", multipathDevice, err.Error())
+		}
+
 		return err
 	}
 	log.Debugf("Multipath device %s is removed successfully.", multipathDevice)
