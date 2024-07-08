@@ -404,7 +404,7 @@ func GetMultipathDevices() (multipathDevices []model.MultipathDevice, err error)
 
 		for _, mapItem := range multipathJson.Maps {
 			if len(mapItem.Vend) > 0 && isSupportedDeviceVendor(linux.DeviceVendorPatterns, mapItem.Vend) {
-				if mapItem.Paths < 1 && mapItem.PathFaults > 0 {
+				if mapItem.Paths < 1 || mapItem.PathFaults > 0 {
 					mapItem.IsUnhealthy = true
 				}
 				multipathDevices = append(multipathDevices, mapItem)
@@ -550,8 +550,17 @@ func KillProcessesUisngMountPoints(mountPoint string) error {
 				continue
 			}
 			lineItems := strings.Fields(string(line))
-			if len(lineItems) > 1 && lineItems[1] != "" {
-				pid, err := strconv.Atoi(lineItems[1])
+			if len(lineItems) > 1 {
+				pidStr := ""
+				if len(lineItems) > 4 && lineItems[2] != "" {
+					pidStr = lineItems[2]
+				} else if len(lineItems) == 4 && lineItems[1] != "" {
+					pidStr = lineItems[1]
+				}
+				if len(pidStr) == 0 {
+					continue
+				}
+				pid, err := strconv.Atoi(pidStr)
 				if err != nil {
 					log.Errorf("Error converting PID:%s", err)
 					continue
