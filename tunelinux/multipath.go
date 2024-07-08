@@ -496,7 +496,7 @@ func UnmountMultipathDevice(multipathDevice string) error {
 		err = unmount(mountPoint)
 		if err != nil {
 			log.Warnf("Error occured while unmounting %s. Trying to find processes using this mount point...", mountPoint)
-			err = killProcessesUisngMountPoints(mountPoint)
+			err = KillProcessesUisngMountPoints(mountPoint)
 			if err != nil {
 				return fmt.Errorf("Unable to kill the processes using the mount point %s: %s", mountPoint, err.Error())
 			}
@@ -524,9 +524,9 @@ func unmount(mountPoint string) error {
 	return nil
 }
 
-func killProcessesUisngMountPoints(mountPoint string) error {
-	log.Tracef(">>>> killProcessesUisngMountPoints: %s", mountPoint)
-	defer log.Trace("<<<<< killProcessesUisngMountPoints")
+func KillProcessesUisngMountPoints(mountPoint string) error {
+	log.Tracef(">>>> KillProcessesUisngMountPoints: %s", mountPoint)
+	defer log.Trace("<<<<< KillProcessesUisngMountPoints")
 
 	staleDeviceRemovalMutex.Lock()
 	defer staleDeviceRemovalMutex.Unlock()
@@ -534,7 +534,7 @@ func killProcessesUisngMountPoints(mountPoint string) error {
 	args := []string{"-mv", mountPoint}
 	output, _, err := util.ExecCommandOutput("fuser", args)
 	if err != nil {
-		log.Errorf("unable to list the processes using the mount poing %s using fuser command: %s", mountPoint, err.Error())
+		log.Errorf("Either no processes are using the mountpoint/device %s or unable to list the processes using the mountpoint/device %s using fuser command: %s", mountPoint, err.Error())
 		return err
 	}
 
@@ -556,7 +556,7 @@ func killProcessesUisngMountPoints(mountPoint string) error {
 					log.Errorf("Error converting PID:%s", err)
 					continue
 				}
-				log.Tracef("PROCESS ID: %d using the mountpoint: %s", pid, mountPoint)
+				log.Tracef("PROCESS ID: %d using the mountpoint/device: %s", pid, mountPoint)
 				if pid > 0 {
 					if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
 						log.Errorf("Error killing process %d: %s", pid, err)
@@ -566,13 +566,13 @@ func killProcessesUisngMountPoints(mountPoint string) error {
 					}
 				}
 			} else {
-				return fmt.Errorf("Improper output received while getting the list of processes accesing the mount point %s", mountPoint)
+				return fmt.Errorf("Improper output received while getting the list of processes accesing the mountpoint/device %s", mountPoint)
 			}
 		}
 	} else if len(lines) == 2 {
-		log.Debugf("No process is using the mountpoint %s", mountPoint)
+		log.Debugf("No process is using the mountpoint/device %s", mountPoint)
 	} else {
-		return fmt.Errorf("Improper output received while getting the list of processes accesing the mount point %s", mountPoint)
+		return fmt.Errorf("Improper output received while getting the list of processes accesing the mountpoint/device %s", mountPoint)
 	}
 	return nil
 }
@@ -643,7 +643,7 @@ func listTheProcessesUsingDevice(multipathDevice string) error {
 	args := []string{"-mv", "/dev/mapper/" + multipathDevice}
 	output, _, err := util.ExecCommandOutput("fuser", args)
 	if err != nil {
-		log.Errorf("unable to list the processes using the mount poing %s using fuser command: %s", multipathDevice, err.Error())
+		log.Errorf("Either there are no processes are using the device %s or unable to list the processes using the mount poing %s using fuser command: %s", multipathDevice, multipathDevice, err.Error())
 		return err
 	}
 	log.Infof("Processes using the multipath device %s are:", multipathDevice)
@@ -663,9 +663,6 @@ func displayDeviceInfo(multipathDevice string) error {
 func forceDeleteMultipathDevice(multipathDevice string) error {
 	log.Tracef(">>>> forceDeleteMultipathDevice: %s", multipathDevice)
 	defer log.Trace("<<<<< forceDeleteMultipathDevice")
-
-	staleDeviceRemovalMutex.Lock()
-	defer staleDeviceRemovalMutex.Unlock()
 
 	_, _, err := util.ExecCommandOutput("dmsetup", []string{"remove", "-f", multipathDevice})
 	if err != nil {
