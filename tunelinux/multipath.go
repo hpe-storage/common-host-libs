@@ -432,13 +432,13 @@ func RemoveBlockDevicesOfMultipathDevices(device model.MultipathDevice) error {
 
 	blockDevices := getBlockDevicesOfMultipathDevice(device)
 	if len(blockDevices) == 0 {
-		log.Infof("No block devices found for the multipath device %s", device.Name)
+		log.Infof("No block devices were found for the multipath device %s", device.Name)
 		return nil
 	}
 	log.Infof("%d block devices found for the multipath device %s", len(blockDevices), device.Name)
 	err := removeBlockDevices(blockDevices, device.Name)
 	if err != nil {
-		log.Errorf("Error occured while removing the block devices of multipath device %s", device.Name)
+		log.Errorf("Error occurred while removing the block devices of the  multipath device %s", device.Name)
 		return err
 	}
 	log.Infof("Block devices of the multipath device %s are removed successfully.", device.Name)
@@ -465,11 +465,11 @@ func removeBlockDevices(blockDevices []string, multipathDevice string) error {
 	log.Trace(">>>> removeBlockDevices: ", blockDevices)
 	defer log.Trace("<<<<< removeBlockDevices")
 	for _, blockDevice := range blockDevices {
-		log.Debugf("Removing the block device %s of multipath device %s", blockDevice, multipathDevice)
+		log.Debugf("Removing the block device %s of the multipath device %s", blockDevice, multipathDevice)
 		cmd := exec.Command("sh", "-c", "echo 1 > /sys/block/"+blockDevice+"/device/delete")
 		err := cmd.Run()
 		if err != nil {
-			log.Errorf("Error occured while deleting the block device %s of multipath device %s: %s", blockDevice, multipathDevice, err.Error())
+			log.Errorf("Error occurred while deleting the block device %s of the multipath device %s: %s", blockDevice, multipathDevice, err.Error())
 			return err
 		}
 	}
@@ -482,7 +482,7 @@ func UnmountMultipathDevice(multipathDevice string) error {
 
 	mountPoints, err := findMountPointsOfMultipathDevice(multipathDevice)
 	if err != nil {
-		return fmt.Errorf("Error occured while fetching the mount points of the multipath device %s", multipathDevice)
+		return fmt.Errorf("Error occurred while fetching the mount points of the multipath device %s:%s", multipathDevice, err.Error())
 	}
 	if len(mountPoints) == 0 {
 		log.Infof("No mount points found for the multipath device %s", multipathDevice)
@@ -495,7 +495,7 @@ func UnmountMultipathDevice(multipathDevice string) error {
 	for _, mountPoint := range mountPoints {
 		err = unmount(mountPoint)
 		if err != nil {
-			log.Warnf("Error occured while unmounting %s. Trying to find processes using this mount point...", mountPoint)
+			log.Warnf("Error occurred while unmounting %s. Trying to find processes using this mount point...", mountPoint)
 			err = KillProcessesUisngMountPoints(mountPoint)
 			if err != nil {
 				return fmt.Errorf("Unable to kill the processes using the mount point %s: %s", mountPoint, err.Error())
@@ -513,12 +513,12 @@ func UnmountMultipathDevice(multipathDevice string) error {
 }
 
 func unmount(mountPoint string) error {
-	log.Tracef("Unmout the mount point %s", mountPoint)
+	log.Tracef("Unmount the mount point %s", mountPoint)
 
 	args := []string{mountPoint}
 	_, rc, err := util.ExecCommandOutput("umount", args)
 	if err != nil || rc != 0 {
-		log.Errorf("unable to unmount %s with err=%s and rc=%d", mountPoint, err.Error(), rc)
+		log.Errorf("Error occurred while unmounting the mount point %s: %s", mountPoint, err.Error())
 		return err
 	}
 	return nil
@@ -534,7 +534,7 @@ func KillProcessesUisngMountPoints(mountPoint string) error {
 	args := []string{"-mv", mountPoint}
 	output, _, err := util.ExecCommandOutput("fuser", args)
 	if err != nil {
-		log.Errorf("Either no processes are using the mountpoint/device %s or unable to list the processes using the mountpoint/device %s using fuser command: %s", mountPoint, err.Error())
+		log.Errorf("Either no processes are using the mount point/device %s or unable to list the processes using the mount point/device %s using the fuser command: %s", mountPoint, err.Error())
 		return err
 	}
 
@@ -562,26 +562,26 @@ func KillProcessesUisngMountPoints(mountPoint string) error {
 				}
 				pid, err := strconv.Atoi(pidStr)
 				if err != nil {
-					log.Errorf("Error converting PID:%s", err)
+					log.Errorf("Error converting the PID of the process using the mount point %s:%s", mountPoint, err.Error())
 					continue
 				}
-				log.Tracef("PROCESS ID: %d using the mountpoint/device: %s", pid, mountPoint)
+				log.Tracef("PROCESS ID: %d using the mount point/device: %s", pid, mountPoint)
 				if pid > 0 {
 					if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
-						log.Errorf("Error killing process %d: %s", pid, err)
+						log.Errorf("Error killing process %d: %s", pid, err.Error())
 						return err
 					} else {
 						log.Tracef("Process %d killed", pid)
 					}
 				}
 			} else {
-				return fmt.Errorf("Improper output received while getting the list of processes accesing the mountpoint/device %s", mountPoint)
+				return fmt.Errorf("Improper output received while getting the list of processes accesing the mount point/device %s", mountPoint)
 			}
 		}
 	} else if len(lines) == 2 {
-		log.Debugf("No process is using the mountpoint/device %s", mountPoint)
+		log.Debugf("No process is using the mount point/device %s", mountPoint)
 	} else {
-		return fmt.Errorf("Improper output received while getting the list of processes accesing the mountpoint/device %s", mountPoint)
+		return fmt.Errorf("Improper output received while getting the list of processes accessing the mount point/device %s", mountPoint)
 	}
 	return nil
 }
@@ -601,14 +601,14 @@ func findMountPointsOfMultipathDevice(multipathDevice string) (mountPoints []str
 	}
 
 	mountLines := strings.Split(out, "\n")
-	log.Tracef("number of mounts retrieved %d", len(mountLines))
+	log.Tracef("Number of mounts retrieved %d", len(mountLines))
 
 	for _, line := range mountLines {
 		entry := strings.Fields(line)
 		log.Trace("mounts entry :", entry)
 		if len(entry) > 3 {
 			if strings.Contains(entry[0], multipathDevice) {
-				log.Debugf("%s was found with %s", multipathDevice, entry[2])
+				log.Tracef("%s was found with %s", multipathDevice, entry[2])
 				mountPoints = append(mountPoints, entry[2])
 			}
 		}
@@ -625,9 +625,9 @@ func FlushMultipathDevice(multipathDevice string) error {
 
 	_, _, err := util.ExecCommandOutput("multipath", []string{"-f", multipathDevice})
 	if err != nil {
-		log.Errorf("Error occured while removing the multipath device %s: %s", multipathDevice, err.Error())
+		log.Errorf("Error occurred while removing the multipath device %s: %s", multipathDevice, err.Error())
 
-		log.Infof("Trying to remove the multipath device %s using dmsetup command", multipathDevice)
+		log.Infof("Trying to remove the multipath device %s using the dmsetup command", multipathDevice)
 		err = displayDeviceInfo(multipathDevice)
 		if err != nil {
 			log.Errorf("Error while displaying the device info %s", multipathDevice)
@@ -638,7 +638,7 @@ func FlushMultipathDevice(multipathDevice string) error {
 		}
 		err = forceDeleteMultipathDevice(multipathDevice)
 		if err != nil {
-			return fmt.Errorf("Unable to remove th multipath device %s by force as well: %s", multipathDevice, err.Error())
+			return fmt.Errorf("Unable to remove the multipath device %s by force as well: %s", multipathDevice, err.Error())
 		}
 
 		return err
@@ -652,7 +652,7 @@ func listTheProcessesUsingDevice(multipathDevice string) error {
 	args := []string{"-mv", "/dev/mapper/" + multipathDevice}
 	output, _, err := util.ExecCommandOutput("fuser", args)
 	if err != nil {
-		log.Errorf("Either there are no processes are using the device %s or unable to list the processes using the mount poing %s using fuser command: %s", multipathDevice, multipathDevice, err.Error())
+		log.Errorf("Either no processes are using the device %s or unable to list the processes using the mount point %s using the fuser command: %s", multipathDevice, multipathDevice, err.Error())
 		return err
 	}
 	log.Infof("Processes using the multipath device %s are:", multipathDevice)
@@ -663,10 +663,10 @@ func displayDeviceInfo(multipathDevice string) error {
 	log.Tracef(">>>> displayDeviceInfo: %s", multipathDevice)
 	out, _, err := util.ExecCommandOutput("dmsetup", []string{"info", multipathDevice})
 	if err != nil {
-		log.Errorf("Error occured while removing the multipath device %s by force: %s", multipathDevice, err.Error())
+		log.Errorf("Error occurred while removing the multipath device %s by force: %s", multipathDevice, err.Error())
 		return err
 	}
-	log.Infof("Device info of multipath device %s using dmsetup info command: ", multipathDevice, out)
+	log.Infof("Device info of multipath device %s using the dmsetup info command: %s", multipathDevice, out)
 	return nil
 }
 func forceDeleteMultipathDevice(multipathDevice string) error {
@@ -675,7 +675,7 @@ func forceDeleteMultipathDevice(multipathDevice string) error {
 
 	_, _, err := util.ExecCommandOutput("dmsetup", []string{"remove", "-f", multipathDevice})
 	if err != nil {
-		log.Errorf("Error occured while removing the multipath device %s by force: %s", multipathDevice, err.Error())
+		log.Errorf("Error occurred while removing the multipath device %s by force: %s", multipathDevice, err.Error())
 		return err
 	}
 	return nil
