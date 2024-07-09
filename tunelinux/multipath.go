@@ -404,7 +404,7 @@ func GetMultipathDevices() (multipathDevices []model.MultipathDevice, err error)
 
 		for _, mapItem := range multipathJson.Maps {
 			if len(mapItem.Vend) > 0 && isSupportedDeviceVendor(linux.DeviceVendorPatterns, mapItem.Vend) {
-				if mapItem.Paths < 1 || mapItem.PathFaults > 0 {
+				if mapItem.Paths < 1 && mapItem.PathFaults > 0 {
 					mapItem.IsUnhealthy = true
 				}
 				multipathDevices = append(multipathDevices, mapItem)
@@ -496,7 +496,7 @@ func UnmountMultipathDevice(multipathDevice string) error {
 		err = unmount(mountPoint)
 		if err != nil {
 			log.Warnf("Error occurred while unmounting %s. Trying to find processes using this mount point...", mountPoint)
-			err = KillProcessesUisngMountPoints(mountPoint)
+			err = KillProcessesUsingMountPoints(mountPoint)
 			if err != nil {
 				return fmt.Errorf("Unable to kill the processes using the mount point %s: %s", mountPoint, err.Error())
 			}
@@ -524,9 +524,9 @@ func unmount(mountPoint string) error {
 	return nil
 }
 
-func KillProcessesUisngMountPoints(mountPoint string) error {
-	log.Tracef(">>>> KillProcessesUisngMountPoints: %s", mountPoint)
-	defer log.Trace("<<<<< KillProcessesUisngMountPoints")
+func KillProcessesUsingMountPoints(mountPoint string) error {
+	log.Tracef(">>>> KillProcessesUsingMountPoints: %s", mountPoint)
+	defer log.Trace("<<<<< KillProcessesUsingMountPoints")
 
 	staleDeviceRemovalMutex.Lock()
 	defer staleDeviceRemovalMutex.Unlock()
