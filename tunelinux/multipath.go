@@ -495,17 +495,8 @@ func UnmountMultipathDevice(multipathDevice string) error {
 	for _, mountPoint := range mountPoints {
 		err = unmount(mountPoint)
 		if err != nil {
-			log.Warnf("Error occurred while unmounting %s. Trying to find processes using this mount point...", mountPoint)
-			err = KillProcessesUsingMountPoints(mountPoint)
-			if err != nil {
-				return fmt.Errorf("Unable to kill the processes using the mount point %s: %s", mountPoint, err.Error())
-			}
-			log.Debugf("Retrying to unmount the mount point %s after killing the processes using it", mountPoint)
-			err = unmount(mountPoint)
-			if err != nil {
-				log.Errorf("Failed to unmount the mount point %s even though the processes are killed.", mountPoint)
-				return err
-			}
+			log.Errorf("Error occurred while unmounting the mount point %s: %s", mountPoint, err.Error())
+			return err
 		}
 		log.Debugf("Mount point %s unmounted successfully.", mountPoint)
 	}
@@ -616,59 +607,40 @@ func findMountPointsOfMultipathDevice(multipathDevice string) (mountPoints []str
 	return mountPoints, nil
 }
 
-func FlushMultipathDevice(multipathDevice string) error {
-	log.Tracef(">>>> FlushMultipathDevice: %s", multipathDevice)
-	defer log.Trace("<<<<< FlushMultipathDevice")
+func RemoveMultipathDevice(multipathDevice string) error {
+	log.Tracef(">>>> RemoveMultipathDevice: %s", multipathDevice)
+	defer log.Trace("<<<<< RemoveMultipathDevice")
 
 	staleDeviceRemovalMutex.Lock()
 	defer staleDeviceRemovalMutex.Unlock()
 
-	_, _, err := util.ExecCommandOutput("multipath", []string{"-f", multipathDevice})
-	if err != nil {
-		log.Errorf("Error occurred while removing the multipath device %s: %s", multipathDevice, err.Error())
-
-		log.Infof("Trying to remove the multipath device %s using the dmsetup command", multipathDevice)
-		err = displayDeviceInfo(multipathDevice)
+	//check if the multipath device exists
+	log.Infof("Checking whether the multipath device %s exists or not.", multipathDevice)
+	if multipathDeviceExists(multipathDevice) {
+		_, _, err := util.ExecCommandOutput("dmsetup", []string{"remove", "-f", multipathDevice})
 		if err != nil {
-			log.Errorf("Error while displaying the device info %s", multipathDevice)
+			log.Errorf("Error occurred while removing the multipath device %s: %s", multipathDevice, err.Error())
+			return err
 		}
-		err = listTheProcessesUsingDevice(multipathDevice)
-		if err != nil {
-			log.Errorf("Error while displaying the processes using the device info %s", multipathDevice)
-		}
-		err = forceDeleteMultipathDevice(multipathDevice)
-		if err != nil {
-			return fmt.Errorf("Unable to remove the multipath device %s by force as well: %s", multipathDevice, err.Error())
-		}
-
-		return err
+		log.Debugf("Multipath device %s is removed successfully.", multipathDevice)
 	}
-	log.Debugf("Multipath device %s is removed successfully.", multipathDevice)
+	log.Infof("Multipath device %s is already removed.", multipathDevice)
 	return nil
 }
 
-func listTheProcessesUsingDevice(multipathDevice string) error {
-	log.Tracef(">>>> listTheProcessesUsingDevice: %s", multipathDevice)
-	args := []string{"-mv", "/dev/mapper/" + multipathDevice}
-	output, _, err := util.ExecCommandOutput("fuser", args)
+func multipathDeviceExists(multipathDevice string) bool {
+	log.Tracef(">>>> multipathDeviceExists: %s", multipathDevice)
+	out, _, err := util.ExecCommandOutput("dmsetup", []string{"table"})
 	if err != nil {
-		log.Errorf("Either no processes are using the device %s or unable to list the processes using the mount point %s using the fuser command: %s", multipathDevice, multipathDevice, err.Error())
-		return err
+		log.Errorf("Unable to get the multipath devices information using dmsetup table command: %s", err.Error())
+		return false
 	}
-	log.Infof("Processes using the multipath device %s are:", multipathDevice)
-	log.Infof(output)
-	return nil
-}
-func displayDeviceInfo(multipathDevice string) error {
-	log.Tracef(">>>> displayDeviceInfo: %s", multipathDevice)
-	out, _, err := util.ExecCommandOutput("dmsetup", []string{"info", multipathDevice})
-	if err != nil {
-		log.Errorf("Error occurred while removing the multipath device %s by force: %s", multipathDevice, err.Error())
-		return err
+	if strings.Contains(out, multipathDevice) {
+		return true
 	}
-	log.Infof("Device info of multipath device %s using the dmsetup info command: %s", multipathDevice, out)
-	return nil
+	return false
 }
+
 func forceDeleteMultipathDevice(multipathDevice string) error {
 	log.Tracef(">>>> forceDeleteMultipathDevice: %s", multipathDevice)
 	defer log.Trace("<<<<< forceDeleteMultipathDevice")
