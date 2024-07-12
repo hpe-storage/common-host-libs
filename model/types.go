@@ -450,3 +450,10 @@ type MultipathDevice struct {
 	} `json:"path_groups,omitempty"`
 	IsUnhealthy bool // Custom field added to capture whether the multipath device is healthy or not
 }
+
+type ProcMount struct {
+	Device     string `json:"device,omitempty"`
+	MountPoint string `json:"Mountpoint,omitempty"`
+	FileSystem string `json:"FileSystem,omitempty"`
+	Options    string `json:"Options,omitempty"`
+}
