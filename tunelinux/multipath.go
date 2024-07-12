@@ -2,6 +2,7 @@ package tunelinux
 
 // Copyright 2019 Hewlett Packard Enterprise Development LP.
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,6 +37,7 @@ var (
 	mountMutex              sync.Mutex
 	umountMutex             sync.Mutex
 	staleDeviceRemovalMutex sync.Mutex
+	readProcMountsMutex     sync.Mutex
 )
 
 // GetMultipathConfigFile returns path of the template multipath.conf file according to OS distro
@@ -480,7 +482,7 @@ func UnmountMultipathDevice(multipathDevice string) error {
 	log.Tracef(">>>> UnmountMultipathDevice: %s", multipathDevice)
 	defer log.Trace("<<<<< UnmountMultipathDevice")
 
-	mountPoints, err := findMountPointsOfMultipathDevice(multipathDevice)
+	mountPoints, err := findMountPointsOfMultipathDevice("/dev/mapper/" + multipathDevice)
 	if err != nil {
 		return fmt.Errorf("Error occurred while fetching the mount points of the multipath device %s:%s", multipathDevice, err.Error())
 	}
@@ -488,9 +490,6 @@ func UnmountMultipathDevice(multipathDevice string) error {
 		log.Infof("No mount points found for the multipath device %s", multipathDevice)
 		return nil
 	}
-
-	umountMutex.Lock()
-	defer umountMutex.Unlock()
 
 	for _, mountPoint := range mountPoints {
 		err = unmount(mountPoint)
@@ -505,6 +504,9 @@ func UnmountMultipathDevice(multipathDevice string) error {
 
 func unmount(mountPoint string) error {
 	log.Tracef("Unmount the mount point %s", mountPoint)
+
+	umountMutex.Lock()
+	defer umountMutex.Unlock()
 
 	args := []string{mountPoint}
 	_, rc, err := util.ExecCommandOutput("umount", args)
@@ -525,7 +527,7 @@ func KillProcessesUsingMountPoints(mountPoint string) error {
 	args := []string{"-mv", mountPoint}
 	output, _, err := util.ExecCommandOutput("fuser", args)
 	if err != nil {
-		log.Errorf("Either no processes are using the mount point/device %s or unable to list the processes using the mount point/device %s using the fuser command: %s", mountPoint, err.Error())
+		log.Errorf("Either no processes are using the mount point/device %s or unable to list the processes using the mount point/device %s using the fuser command: %s", mountPoint, mountPoint, err.Error())
 		return err
 	}
 
@@ -577,33 +579,55 @@ func KillProcessesUsingMountPoints(mountPoint string) error {
 	return nil
 }
 
+func parseMounts() (mounts []model.ProcMount, err error) {
+	log.Tracef(">>>> pasreMounts")
+	defer log.Trace("<<<<< pasreMounts")
+	readProcMountsMutex.Lock()
+	defer readProcMountsMutex.Unlock()
+	file, err := os.Open("/proc/mounts")
+	if err != nil {
+		return nil, fmt.Errorf("failed to open /proc/mounts: %w", err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 6 {
+			continue // Ignore invalid lines
+		}
+
+		mounts = append(mounts, model.ProcMount{
+			Device:     fields[0],
+			MountPoint: fields[1],
+			FileSystem: fields[2],
+			Options:    fields[3],
+		})
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("failed to read /proc/mounts: %w", err)
+	}
+
+	return mounts, nil
+}
+
 func findMountPointsOfMultipathDevice(multipathDevice string) (mountPoints []string, err error) {
 	log.Tracef(">>>> findMountPointsOfMultipathDevice: %s", multipathDevice)
 	defer log.Trace("<<<<< findMountPointsOfMultipathDevice")
 
-	// take a lock on access mounts
-	mountMutex.Lock()
-	defer mountMutex.Unlock()
-
-	var args []string
-	out, _, err := util.ExecCommandOutput("mount", args)
+	procMounts, err := parseMounts()
 	if err != nil {
+		log.Errorf("Error while getting the mount points of the device %s", multipathDevice)
 		return mountPoints, err
 	}
-
-	mountLines := strings.Split(out, "\n")
-	log.Tracef("Number of mounts retrieved %d", len(mountLines))
-
-	for _, line := range mountLines {
-		entry := strings.Fields(line)
-		log.Trace("mounts entry :", entry)
-		if len(entry) > 3 {
-			if strings.Contains(entry[0], multipathDevice) {
-				log.Tracef("%s was found with %s", multipathDevice, entry[2])
-				mountPoints = append(mountPoints, entry[2])
-			}
+	for _, mount := range procMounts {
+		if mount.Device == multipathDevice {
+			mountPoints = append(mountPoints, mount.MountPoint)
 		}
 	}
+
 	return mountPoints, nil
 }
 
