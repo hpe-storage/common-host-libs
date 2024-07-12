@@ -410,7 +410,13 @@ func GetMultipathDevices() (multipathDevices []model.MultipathDevice, err error)
 					mapItem.IsUnhealthy = true
 				}
 				multipathDevices = append(multipathDevices, mapItem)
-				log.Tracef("Multipath device: %s", mapItem.Name)
+				log.Tracef("Known multipath device: %s", mapItem.Name)
+				continue
+			}
+			if len(mapItem.PathGroups) == 0 && mapItem.Vend == "##" && mapItem.Prod == "##" {
+				mapItem.IsUnhealthy = true
+				multipathDevices = append(multipathDevices, mapItem)
+				log.Tracef("Unknown orphan multipath device without path_groups: %s", mapItem.Name)
 			}
 		}
 		log.Infof("Found %d multipath devices %+v", len(multipathDevices), multipathDevices)
@@ -517,71 +523,9 @@ func unmount(mountPoint string) error {
 	return nil
 }
 
-func KillProcessesUsingMountPoints(mountPoint string) error {
-	log.Tracef(">>>> KillProcessesUsingMountPoints: %s", mountPoint)
-	defer log.Trace("<<<<< KillProcessesUsingMountPoints")
-
-	staleDeviceRemovalMutex.Lock()
-	defer staleDeviceRemovalMutex.Unlock()
-
-	args := []string{"-mv", mountPoint}
-	output, _, err := util.ExecCommandOutput("fuser", args)
-	if err != nil {
-		log.Errorf("Either no processes are using the mount point/device %s or unable to list the processes using the mount point/device %s using the fuser command: %s", mountPoint, mountPoint, err.Error())
-		return err
-	}
-
-	lines := strings.Split(output, "\n")
-	if len(lines) > 2 {
-		// Skip the first line which contains the headers
-		for _, line := range lines[1:] {
-			if strings.TrimSpace(line) == "" {
-				continue
-			}
-			// Skip the line if it conatains kernel, as it is not needed
-			if strings.Contains(line, "kernel") {
-				continue
-			}
-			lineItems := strings.Fields(string(line))
-			if len(lineItems) > 1 {
-				pidStr := ""
-				if len(lineItems) > 4 && lineItems[2] != "" {
-					pidStr = lineItems[2]
-				} else if len(lineItems) == 4 && lineItems[1] != "" {
-					pidStr = lineItems[1]
-				}
-				if len(pidStr) == 0 {
-					continue
-				}
-				pid, err := strconv.Atoi(pidStr)
-				if err != nil {
-					log.Errorf("Error converting the PID of the process using the mount point %s:%s", mountPoint, err.Error())
-					continue
-				}
-				log.Tracef("PROCESS ID: %d using the mount point/device: %s", pid, mountPoint)
-				if pid > 0 {
-					if err := syscall.Kill(pid, syscall.SIGKILL); err != nil {
-						log.Errorf("Error killing process %d: %s", pid, err.Error())
-						return err
-					} else {
-						log.Tracef("Process %d killed", pid)
-					}
-				}
-			} else {
-				return fmt.Errorf("Improper output received while getting the list of processes accesing the mount point/device %s", mountPoint)
-			}
-		}
-	} else if len(lines) == 2 {
-		log.Debugf("No process is using the mount point/device %s", mountPoint)
-	} else {
-		return fmt.Errorf("Improper output received while getting the list of processes accessing the mount point/device %s", mountPoint)
-	}
-	return nil
-}
-
 func parseMounts() (mounts []model.ProcMount, err error) {
-	log.Tracef(">>>> pasreMounts")
-	defer log.Trace("<<<<< pasreMounts")
+	log.Tracef(">>>> parseMounts")
+	defer log.Trace("<<<<< parseMounts")
 	readProcMountsMutex.Lock()
 	defer readProcMountsMutex.Unlock()
 	file, err := os.Open("/proc/mounts")
@@ -624,7 +568,9 @@ func findMountPointsOfMultipathDevice(multipathDevice string) (mountPoints []str
 	}
 	for _, mount := range procMounts {
 		if mount.Device == multipathDevice {
-			mountPoints = append(mountPoints, mount.MountPoint)
+			if !strings.HasPrefix(mount.MountPoint, "/host/") {
+				mountPoints = append(mountPoints, mount.MountPoint)
+			}
 		}
 	}
 
@@ -641,7 +587,7 @@ func RemoveMultipathDevice(multipathDevice string) error {
 	//check if the multipath device exists
 	log.Infof("Checking whether the multipath device %s exists or not.", multipathDevice)
 	if multipathDeviceExists(multipathDevice) {
-		_, _, err := util.ExecCommandOutput("dmsetup", []string{"remove", "-f", multipathDevice})
+		_, _, err := util.ExecCommandOutput("dmsetup", []string{"remove", multipathDevice})
 		if err != nil {
 			log.Errorf("Error occurred while removing the multipath device %s: %s", multipathDevice, err.Error())
 			return err
