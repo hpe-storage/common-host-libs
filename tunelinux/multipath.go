@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 
 	"github.com/hpe-storage/common-host-libs/linux"
 	log "github.com/hpe-storage/common-host-libs/logger"
@@ -408,15 +407,17 @@ func GetMultipathDevices() (multipathDevices []model.MultipathDevice, err error)
 			if len(mapItem.Vend) > 0 && isSupportedDeviceVendor(linux.DeviceVendorPatterns, mapItem.Vend) {
 				if mapItem.Paths < 1 && mapItem.PathFaults > 0 {
 					mapItem.IsUnhealthy = true
+					log.Tracef("Known unhealthy multipath device: %s", mapItem.Name)
 				}
 				multipathDevices = append(multipathDevices, mapItem)
-				log.Tracef("Known multipath device: %s", mapItem.Name)
 				continue
 			}
-			if len(mapItem.PathGroups) == 0 && mapItem.Vend == "##" && mapItem.Prod == "##" {
+
+			// residual non-functional multipath devices
+			if len(mapItem.PathGroups) == 0 && mapItem.Queueing == "off" && mapItem.Features == "0" {
 				mapItem.IsUnhealthy = true
-				multipathDevices = append(multipathDevices, mapItem)
 				log.Tracef("Unknown orphan multipath device without path_groups: %s", mapItem.Name)
+				multipathDevices = append(multipathDevices, mapItem)
 			}
 		}
 		log.Infof("Found %d multipath devices %+v", len(multipathDevices), multipathDevices)
