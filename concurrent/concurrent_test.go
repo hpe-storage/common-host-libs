@@ -17,6 +17,7 @@ package concurrent
 import (
 	"sync"
 	"testing"
+	"time"
 )
 
 const (
@@ -42,15 +43,48 @@ var (
 func TestManyLocks(t *testing.T) {
 
 	tests := map[string][]int{
-		"foo":    make([]int, testCount),
-		"bar":    make([]int, testCount),
-		"foobar": make([]int, testCount),
-		"fun":    make([]int, testCount),
-		"haha":   make([]int, testCount),
+		"foo":                            make([]int, testCount),
+		"bar":                            make([]int, testCount),
+		"foobar":                         make([]int, testCount),
+		"fun":                            make([]int, testCount),
+		"haha":                           make([]int, testCount),
 		"a Really        Long      Key!": make([]int, testCount),
 	}
 
 	testWithMap(tests, t)
+}
+func TestLockUnlock(t *testing.T) {
+	mm = NewMapMutex()
+	lockName := "testLock"
+
+	// Lock the mutex
+	mm.Lock(lockName)
+
+	// Try to lock the mutex again in a different goroutine
+	locked := make(chan bool)
+	go func() {
+		mm.Lock(lockName)
+		locked <- true
+	}()
+
+	select {
+	case <-locked:
+		t.Error("Lock should not be re-entrant")
+	default:
+	}
+
+	// Unlock the mutex
+	mm.Unlock(lockName)
+
+	// Now the other goroutine should be able to lock the mutex
+	select {
+	case <-locked:
+	case <-time.After(time.Second):
+		t.Error("Lock should be acquired after unlock")
+	}
+
+	// Clean up
+	mm.Unlock(lockName)
 }
 
 func testWithMap(tests map[string][]int, t *testing.T) {
@@ -93,4 +127,25 @@ func verify(lock string, data []int, index int, t *testing.T) {
 			"got", data[index],
 		)
 	}
+}
+
+// TODO: instead of Sleep below, introduce a Map to simulate the actual usage of lock.
+func TestConcurrentLockUnlock(t *testing.T) {
+	mm = NewMapMutex()
+	lockName := "concurrentLock"
+
+	const goroutineCount = 100
+	var wg sync.WaitGroup
+	wg.Add(goroutineCount)
+
+	for i := 0; i < goroutineCount; i++ {
+		go func() {
+			defer wg.Done()
+			mm.Lock(lockName)
+			time.Sleep(10 * time.Millisecond) // Simulate some work
+			mm.Unlock(lockName)
+		}()
+	}
+
+	wg.Wait()
 }
