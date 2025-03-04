@@ -457,3 +457,9 @@ type ProcMount struct {
 	FileSystem string `json:"FileSystem,omitempty"`
 	Options    string `json:"Options,omitempty"`
 }
+
+type MountOption struct {
+        UserSquashing string
+        NfsVersion    string
+        ReadOnly      bool
+}
