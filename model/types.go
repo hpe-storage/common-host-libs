@@ -394,6 +394,8 @@ type Node struct {
 	Wwpns        []*string `json:"wwpns,omitempty"`
 	ChapUser     string    `json:"chap_user,omitempty"`
 	ChapPassword string    `json:"chap_password,omitempty"`
+	//CON 3078
+	AccessProtocol string  `json:"access_protocol,omitempty"`
 }
 
 // KeyValue is a store of key-value pairs
