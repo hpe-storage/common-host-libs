@@ -293,3 +293,17 @@ func (provider *StorageProvider) PublishFileVolume(publishOptions *model.Publish
 		HostIP: "eui.fake",
 	}, nil
 }
+
+// UnPublishFileVolume does nothing for fake implementation
+func (provider *StorageProvider) UnPublishFileVolume(unPublishOptions *model.UnPublishFileOptions) (*model.PublishFileInfo, error) {
+	return &model.PublishFileInfo{
+		HostIP: "eui.fake",
+	}, nil
+}
+
+// GetStorageClusters returns fake NFS server IP range
+func (provider *StorageProvider) GetStorageClusters() (*model.NfsServerIPRange, error) {
+	return &model.NfsServerIPRange{
+		NfsServerIPRange: "192.168.1.0#24",
+	}, nil
+}
