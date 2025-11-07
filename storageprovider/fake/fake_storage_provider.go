@@ -293,3 +293,10 @@ func (provider *StorageProvider) PublishFileVolume(publishOptions *model.Publish
 		HostIP: "eui.fake",
 	}, nil
 }
+
+// UnPublishFileVolume does nothing for fake implementation
+func (provider *StorageProvider) UnPublishFileVolume(unPublishOptions *model.UnPublishFileOptions) (*model.PublishFileInfo, error) {
+	return &model.PublishFileInfo{
+		HostIP: "eui.fake",
+	}, nil
+}
