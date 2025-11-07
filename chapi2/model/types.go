@@ -1,4 +1,4 @@
-// (c) Copyright 2019 Hewlett Packard Enterprise Development LP
+// (c) Copyright 2019,2025 Hewlett Packard Enterprise Development LP
 
 package model
 
@@ -27,6 +27,11 @@ const (
 
 	// AccessProtocolFC - Fibre Channel volume
 	AccessProtocolFC = "fc"
+
+	//CON-3057
+	// AccessProtocolNvmeotcp - NVMe over TCP volume
+    AccessProtocolNvmeotcp = "nvmeotcp"
+
 )
 
 const (
