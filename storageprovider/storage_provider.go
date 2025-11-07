@@ -38,6 +38,7 @@ type StorageProvider interface {
 	PublishVolume(id, hostUUID, accessProtocol string) (*model.PublishInfo, error) // Idempotent
 	PublishFileVolume(publishOptions *model.PublishFileOptions) (*model.PublishFileInfo, error)
 	UnpublishVolume(id, hostUUID string) error // Idempotent
+	UnPublishFileVolume(unPublishFileOptions *model.UnPublishFileOptions) (*model.PublishFileInfo, error)
 	ExpandVolume(id string, requestBytes int64) (*model.Volume, error)
 	GetSnapshot(id string) (*model.Snapshot, error)
 	GetSnapshotByName(name string, sourceVolID string) (*model.Snapshot, error)
@@ -49,6 +50,7 @@ type StorageProvider interface {
 	DeleteVolumeGroup(id string) error
 	CreateSnapshotGroup(name, sourceVolumeGroupID string, opts map[string]interface{}) (*model.SnapshotGroup, error)
 	DeleteSnapshotGroup(id string) error
+	GetStorageClusters() (*model.NfsServerIPRange, error)
 }
 
 // Credentials defines how a StorageProvider is accessed
