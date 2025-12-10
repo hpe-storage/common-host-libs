@@ -27,11 +27,6 @@ const (
 
 	// AccessProtocolFC - Fibre Channel volume
 	AccessProtocolFC = "fc"
-
-	//CON-3057
-	// AccessProtocolNvmeotcp - NVMe over TCP volume
-    AccessProtocolNvmeotcp = "nvmeotcp"
-
 )
 
 const (

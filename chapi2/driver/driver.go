@@ -12,7 +12,6 @@ import (
 	"github.com/hpe-storage/common-host-libs/chapi2/model"
 	"github.com/hpe-storage/common-host-libs/chapi2/mount"
 	"github.com/hpe-storage/common-host-libs/chapi2/multipath"
-	"github.com/hpe-storage/common-host-libs/chapi2/nvme"
 	"github.com/hpe-storage/common-host-libs/chapi2/virtualdevice"
 	log "github.com/hpe-storage/common-host-libs/logger"
 )
@@ -30,9 +29,6 @@ const (
 	errorMessageNoPartitionsOnVolume  = "no partitions found on volume"
 	errorMessageNotYetImplemented     = "not yet implemented"
 	errorMessageVolumeMounted         = "volume mounted"
-	errorMessageNoNvmeInitiatorsFound = "no nvme initiators found on host"
-	errorMessageNvmeConnectionFailed  = "failed to connect to nvme target"
-
 )
 
 // Driver provides a common interface for host related operations
@@ -176,24 +172,14 @@ func (driver *ChapiServer) GetHostInitiators() ([]*model.Initiator, error) {
 	if err != nil {
 		log.Trace("Error getting FcInitiator: ", err)
 	}
-	 // fetch nvme initiator details
-    nvmePlugin := nvme.NewNvmePlugin()
-    nvmeInits, err := nvmePlugin.GetNvmeInitiators()
-    if err != nil {
-        log.Trace("Error getting NvmeInitiator: ", err)
-    }
-
     if fcInits != nil {
         inits = append(inits, fcInits)
     }
     if iscsiInits != nil {
         inits = append(inits, iscsiInits)
     }
-    if nvmeInits != nil {
-        inits = append(inits, nvmeInits)
-    }
-
-    if fcInits == nil && iscsiInits == nil && nvmeInits == nil {
+	
+    if fcInits == nil && iscsiInits == nil {
         return nil, cerrors.NewChapiError(cerrors.NotFound, errorMessageNoInitiatorsFound)
     }
 
