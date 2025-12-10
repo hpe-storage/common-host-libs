@@ -51,10 +51,10 @@ func ApplyNvmeTcpTuning() error {
     var tuningErrors []string
 
     // Example: Increase network buffer sizes for high throughput
-    if err := setSysctl("net.core.rmem_max", "16777216"); err != nil {
+    if err := setSysctl("net.core.rmem_max", netCoreRmemMax); err != nil {
         tuningErrors = append(tuningErrors, err.Error())
     }
-    if err := setSysctl("net.core.wmem_max", "16777216"); err != nil {
+    if err := setSysctl("net.core.wmem_max", netCoreWmemMax); err != nil {
         tuningErrors = append(tuningErrors, err.Error())
     }
 
