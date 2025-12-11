@@ -172,16 +172,17 @@ func (driver *ChapiServer) GetHostInitiators() ([]*model.Initiator, error) {
 	if err != nil {
 		log.Trace("Error getting FcInitiator: ", err)
 	}
-	if fcInits != nil {
-		inits = append(inits, fcInits)
-	}
-	if iscsiInits != nil {
-		inits = append(inits, iscsiInits)
-	}
+    if fcInits != nil {
+        inits = append(inits, fcInits)
+    }
+    if iscsiInits != nil {
+        inits = append(inits, iscsiInits)
+    }
+	
+    if fcInits == nil && iscsiInits == nil {
+        return nil, cerrors.NewChapiError(cerrors.NotFound, errorMessageNoInitiatorsFound)
+    }
 
-	if fcInits == nil && iscsiInits == nil {
-		return nil, cerrors.NewChapiError(cerrors.NotFound, errorMessageNoInitiatorsFound)
-	}
 
 	// Log enumerated iSCSI and FC initiators
 	for _, initiator := range inits {
