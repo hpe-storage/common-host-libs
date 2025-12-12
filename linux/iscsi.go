@@ -312,6 +312,16 @@ func loginToTarget(targets model.IscsiTargets, targetIqn string, ifaces []*model
 	return nil
 }
 
+// formatIPWithPort formats an IP address with port, using brackets for IPv6
+func formatIPWithPort(ip string, port int) string {
+	if strings.Contains(ip, ":") {
+		// IPv6 address - needs brackets
+		return fmt.Sprintf("[%s]:%d", ip, port)
+	}
+	// IPv4 address
+	return fmt.Sprintf("%s:%d", ip, port)
+}
+
 func isReachable(initiatorIP, targetIP string) (reachable bool, err error) {
 	// Allocate a new ICMP ping object
 	pinger, err := ping.NewPinger(targetIP)
@@ -353,9 +363,11 @@ func isReachable(initiatorIP, targetIP string) (reachable bool, err error) {
 		local := &net.TCPAddr{IP: net.ParseIP(initiatorIP)}
 		dialer := net.Dialer{Timeout: PingTimeout, LocalAddr: local}
 
-		_, err = dialer.Dial("tcp", fmt.Sprintf("%s:%d", targetIP, DefaultIscsiPort))
+		// Format target address with bracket notation for IPv6
+		targetAddr := formatIPWithPort(targetIP, DefaultIscsiPort)
+		_, err = dialer.Dial("tcp", targetAddr)
 		if err != nil {
-			log.Warnf("TCP connection attempt failed %s --> (%s:%d), err %s", initiatorIP, targetIP, DefaultIscsiPort, err.Error())
+			log.Warnf("TCP connection attempt failed %s --> (%s), err %s", initiatorIP, targetAddr, err.Error())
 			return false, nil
 		}
 	}
@@ -1071,7 +1083,9 @@ func getMatchingIface(ifaces []*model.Iface, network *model.NetworkInterface) (i
 	for _, iface := range ifaces {
 		if network.AddressV4 == iface.NetworkInterface.AddressV4 {
 			return iface
-		}
+		} else if network.AddressV6 != "" && network.AddressV6 == iface.NetworkInterface.AddressV6 {
+            return iface
+        }
 	}
 	return nil
 }
