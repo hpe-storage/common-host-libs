@@ -762,10 +762,7 @@ func GetIscsiNodesFromIsciadm() (a model.IscsiTargets, err error) {
 		for _, line := range listOut {
 			result := util.FindStringSubmatchMap(line, r)
 			// Strip brackets from IPv6 addresses
-			address := result["address"]
-			if strings.HasPrefix(address, "[") && strings.HasSuffix(address, "]") {
-				address = address[1 : len(address)-1]
-			}
+			address := util.SanitizeIPAddress(result["address"])
 			target := &model.IscsiTarget{
 				Name:    result["target"],
 				Address: address,
@@ -828,10 +825,7 @@ func PerformDiscovery(discoveryIPs []string) (a model.IscsiTargets, err error) {
 		for _, line := range listOut {
 			result := util.FindStringSubmatchMap(line, r)
 			// Strip brackets from IPv6 addresses
-			address := result["address"]
-			if strings.HasPrefix(address, "[") && strings.HasSuffix(address, "]") {
-				address = address[1 : len(address)-1]
-			}
+			address := util.SanitizeIPAddress(result["address"])
 			target := &model.IscsiTarget{
 				Name:    result["target"],
 				Address: address,
