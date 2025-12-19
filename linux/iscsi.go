@@ -63,7 +63,7 @@ var (
 	targetVendorPatterns = []string{"com.nimblestorage", "com.3pardata", "org.truenas.ctl", "org.freenas.ctl", "com.hpe"}
 )
 
-//type of Scope (volume, group)
+// type of Scope (volume, group)
 type targetScope int
 
 const (
@@ -314,16 +314,27 @@ func loginToTarget(targets model.IscsiTargets, targetIqn string, ifaces []*model
 
 // formatIPWithPort formats an IP address with port, using brackets for IPv6
 func formatIPWithPort(ip string, port int) string {
-	if strings.Contains(ip, ":") {
-		// IPv6 address - needs brackets
-		return fmt.Sprintf("[%s]:%d", ip, port)
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		// Invalid IP, return as-is with port
+		log.Warnf("Invalid IP address format: %s", ip)
+		return fmt.Sprintf("%s:%d", ip, port)
 	}
-	// IPv4 address
-	return fmt.Sprintf("%s:%d", ip, port)
+
+	// Check if IPv4 using To4()
+	ipv4 := parsedIP.To4()
+	if ipv4 != nil {
+		// IPv4 address - return without brackets
+		return fmt.Sprintf("%s:%d", ip, port)
+	}
+
+	// IPv6 address - return with brackets
+	return fmt.Sprintf("[%s]:%d", ip, port)
 }
 
 func isReachable(initiatorIP, targetIP string) (reachable bool, err error) {
 	// Allocate a new ICMP ping object
+	targetIP = util.SanitizeIPAddress(targetIP)
 	pinger, err := ping.NewPinger(targetIP)
 	if err != nil {
 		log.Errorf("NewPinger creation failure, err=%v", err)
@@ -448,15 +459,25 @@ func addTarget(target *model.IscsiTarget, ifaces []*model.Iface, chapUser, chapP
 
 	if len(ifaces) > 0 {
 		for _, iface := range ifaces {
+			// Select source IP based on target IP type (IPv4 or IPv6)
+			sourceIP := iface.NetworkInterface.AddressV4
+			if net.ParseIP(target.Address).To4() == nil && iface.NetworkInterface.AddressV6 != "" {
+				// Target is IPv6, use IPv6 source address
+				sourceIP = iface.NetworkInterface.AddressV6
+			}
+			// Skip if source IP is empty
+			if sourceIP == "" {
+				continue
+			}
 			// verify if the target is reachable from this interface
-			reachable, err := isReachable(iface.NetworkInterface.AddressV4, target.Address)
+			reachable, err := isReachable(sourceIP, target.Address)
 			if err != nil {
-				log.Warnf("failed to run ping test from %s --> (%s)", iface.NetworkInterface.AddressV4, target.Address)
+				log.Warnf("failed to run ping test from %s --> (%s)", sourceIP, target.Address)
 				// if we cannot issue ping for some reason, proceed with iscsi login
 				reachable = true
 			}
 			if !reachable {
-				log.Errorf("ping test failed from %s --> (%s), skipping iscsi login on this portal to %s", iface.NetworkInterface.AddressV4, target.Address, target.Name)
+				log.Errorf("ping test failed from %s --> (%s), skipping iscsi login on this portal to %s", sourceIP, target.Address, target.Name)
 				continue
 			}
 			// login using each iface bound
@@ -740,9 +761,14 @@ func GetIscsiNodesFromIsciadm() (a model.IscsiTargets, err error) {
 		listOut := r.FindAllString(outItem, -1)
 		for _, line := range listOut {
 			result := util.FindStringSubmatchMap(line, r)
+			// Strip brackets from IPv6 addresses
+			address := result["address"]
+			if strings.HasPrefix(address, "[") && strings.HasSuffix(address, "]") {
+				address = address[1 : len(address)-1]
+			}
 			target := &model.IscsiTarget{
 				Name:    result["target"],
-				Address: result["address"],
+				Address: address,
 				Port:    result["port"],
 			}
 			log.Tracef("Name %s Address %s Port %s", target.Name, target.Address, target.Port)
@@ -767,6 +793,7 @@ func PerformDiscovery(discoveryIPs []string) (a model.IscsiTargets, err error) {
 	var outList []string
 	for _, discoveryIP := range discoveryIPs {
 		// find the first discovery ip which is reachable
+		discoveryIP = util.SanitizeIPAddress(discoveryIP)
 		isDiscoveryIpReachable, err = isReachable("", discoveryIP)
 		if err != nil {
 			continue
@@ -800,9 +827,14 @@ func PerformDiscovery(discoveryIPs []string) (a model.IscsiTargets, err error) {
 		listOut := r.FindAllString(outItem, -1)
 		for _, line := range listOut {
 			result := util.FindStringSubmatchMap(line, r)
+			// Strip brackets from IPv6 addresses
+			address := result["address"]
+			if strings.HasPrefix(address, "[") && strings.HasSuffix(address, "]") {
+				address = address[1 : len(address)-1]
+			}
 			target := &model.IscsiTarget{
 				Name:    result["target"],
-				Address: result["address"],
+				Address: address,
 				Port:    result["port"],
 			}
 			log.Tracef("Name %s Address %s Port %s", target.Name, target.Address, target.Port)
@@ -868,8 +900,7 @@ func iscsiGetTargetsOfDevice(dev *model.Device) (target []*model.IscsiTarget, er
 		}
 	}
 	return iscsiTargets, nil
-	
-	
+
 }
 
 func getIscsiTargetFromSessionID(dev *model.Device, host string, sessionID string) (*model.IscsiTarget, error) {
@@ -1081,11 +1112,11 @@ func addIscsiPortBinding(networks []*model.NetworkInterface) error {
 // returns iface matching the network address specified or nil otherwise
 func getMatchingIface(ifaces []*model.Iface, network *model.NetworkInterface) (iface *model.Iface) {
 	for _, iface := range ifaces {
-		if network.AddressV4 == iface.NetworkInterface.AddressV4 {
+		if network.AddressV4 == iface.NetworkInterface.AddressV4 && network.AddressV4 != "" {
 			return iface
-		} else if network.AddressV6 != "" && network.AddressV6 == iface.NetworkInterface.AddressV6 {
-            return iface
-        }
+		} else if network.AddressV6 == iface.NetworkInterface.AddressV6 && network.AddressV6 != "" {
+			return iface
+		}
 	}
 	return nil
 }
