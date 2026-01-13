@@ -1445,7 +1445,11 @@ func rescanNVMeDevice(devPath string) error {
 
     // 2) Primary: settle udev so block layer reflects new size
     log.Tracef("running udevadm settle after NVMe rescan for %s", devPath)
-    _, _, _ = util.ExecCommandOutput("udevadm", []string{"settle"})
+    out, exitStatus, err := util.ExecCommandOutput("udevadm", []string{"settle"})
+    if err != nil {
+        log.Errorf("udevadm settle failed for %s: %v (output: %s, exit code: %d)", devPath, err, out, exitStatus)
+        return err
+    }
     
 	return nil
 }
