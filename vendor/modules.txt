@@ -45,7 +45,7 @@ github.com/pmezard/go-difflib/difflib
 # github.com/satori/go.uuid v1.2.0
 ## explicit
 github.com/satori/go.uuid
-# github.com/sirupsen/logrus v1.8.1
+# github.com/sirupsen/logrus v1.8.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 # github.com/sparrc/go-ping v0.0.0-20190613174326-4e5b6552494c
