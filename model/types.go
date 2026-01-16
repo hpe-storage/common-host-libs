@@ -509,3 +509,14 @@ type PublishFileInfo struct {
 	MountPath string `json:"mount_path,omitempty"`
 	//TODO can contain more info if needed
 }
+
+type UnPublishFileOptions struct {
+	Name     string `json:"name,omitempty"`
+	AccessIP string `json:"access_ip,omitempty"`
+	VolumeID string `json:"volume_id,omitempty"`
+}
+
+// NfsServerIPRange represents the NFS server IP range information
+type NfsServerIPRange struct {
+	NfsServerIPRange string `json:"nfs_server_ip_range,omitempty"`
+}
