@@ -1509,13 +1509,13 @@ func rescanNVMeDevice(devPath string) error {
 				log.Warnf("Unable to write NVMe rescan to %s for device %s: %v (continuing, relying on kernel auto-resize)",
 					rescanPath, devPath, err)
 			} else {
-				log.Errorf("failed NVMe rescan for %s via %s: %v (continuing, relying on kernel auto-resize)", devPath, rescanPath, err)
+				log.Warnf("failed NVMe rescan for %s via %s: %v (continuing, relying on kernel auto-resize)", devPath, rescanPath, err)
 			}
 		} else {
 			log.Infof("Successfully triggered NVMe namespace rescan for %s via %s", devPath, rescanPath)
 		}
 	} else {
-		log.Tracef("Skipping explicit nvme namspace rescan for block devices and replying on kernal auto-resize")
+		log.Tracef("Skipping explicit nvme namespace rescan for block devices and replying on kernal auto-resize")
 	}
 
     // 2) Primary: settle udev so block layer reflects new size
