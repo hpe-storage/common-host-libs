@@ -570,6 +570,27 @@ func (provider *ContainerStorageProvider) UnpublishVolume(id, hostUUID string) e
 	return err
 }
 
+// UnPublishFileVolume will make a file volume invisible (remove an ACL) from the given host
+func (provider *ContainerStorageProvider) UnPublishFileVolume(unPublishFileOptions *model.UnPublishFileOptions) (*model.PublishFileInfo, error) {
+	response := &model.PublishFileInfo{}
+	var errorResponse *ErrorsPayload
+
+	status, err := provider.invoke(
+		&connectivity.Request{
+			Action:        "PUT",
+			Path:          fmt.Sprintf("/containers/v1/volumes/%s/actions/unpublish", unPublishFileOptions.VolumeID),
+			Payload:       unPublishFileOptions,
+			Response:      &response,
+			ResponseError: &errorResponse,
+		},
+	)
+	if errorResponse != nil {
+		return nil, handleError(status, errorResponse)
+	}
+
+	return response, err
+}
+
 // ExpandVolume will expand the volume to reqeusted size
 func (provider *ContainerStorageProvider) ExpandVolume(id string, requestBytes int64) (*model.Volume, error) {
 	log.Tracef(">>>>> ExpandVolume, id: %s, requestBytes: %d", id, requestBytes)
@@ -967,6 +988,38 @@ func getCspClient(credentials *storageprovider.Credentials) (*connectivity.Clien
 	// Setup HTTP client to the CSP service
 	cspClient := connectivity.NewHTTPClientWithTimeout(cspURI, cspHTTPClientTimeout)
 	return cspClient, nil
+}
+
+// GetStorageClusters retrieves the storage cluster information from CSP
+func (provider *ContainerStorageProvider) GetStorageClusters() (*model.NfsServerIPRange, error) {
+	log.Trace(">>>>> GetStorageClusters")
+	defer log.Trace("<<<<< GetStorageClusters")
+
+	response := &model.NfsServerIPRange{}
+	var errorResponse *ErrorsPayload
+
+	status, err := provider.invoke(
+		&connectivity.Request{
+			Action:        "GET",
+			Path:          "/containers/v1/storage-clusters",
+			Payload:       nil,
+			Response:      &response,
+			ResponseError: &errorResponse,
+		},
+	)
+
+	if errorResponse != nil {
+		log.Errorf("Failed to get storage clusters")
+		return nil, handleError(status, errorResponse)
+	}
+
+	if err != nil {
+		log.Errorf("Error getting storage clusters: %s", err.Error())
+		return nil, err
+	}
+
+	log.Tracef("Retrieved storage clusters with NFS server IP range: %s", response.NfsServerIPRange)
+	return response, nil
 }
 
 func handleError(httpStatus int, errorResponse *ErrorsPayload) error {
