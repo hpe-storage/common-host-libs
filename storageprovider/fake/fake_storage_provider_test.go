@@ -192,3 +192,32 @@ func deleteSnapshot(t *testing.T, provider *StorageProvider, snapshot *model.Sna
 	}
 	assert.Nil(t, snapshot)
 }
+
+func TestUnPublishFileVolume(t *testing.T) {
+	provider := fakeCsp()
+
+	result, err := provider.UnPublishFileVolume("file-vol-id", &model.UnPublishFileOptions{
+		Name:              "file-vol",
+		AccessControlList: "127.0.0.1",
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "eui.fake", result.ExportIP)
+	assert.Equal(t, "eui.fake", result.MountPath)
+}
+
+func TestPublishFileVolume(t *testing.T) {
+	provider := fakeCsp()
+
+	result, err := provider.PublishFileVolume("file-vol-id", &model.PublishFileOptions{
+		Name:              "file-vol",
+		AccessProtocol:    "nfs",
+		AccessControlList: "127.0.0.1",
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+	assert.Equal(t, "eui.fake", result.ExportIP)
+	assert.Equal(t, "eui.fake", result.MountPath)
+}
