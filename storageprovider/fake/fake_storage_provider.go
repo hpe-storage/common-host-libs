@@ -198,7 +198,7 @@ func (provider *StorageProvider) GetVolumes() ([]*model.Volume, error) {
 }
 
 // GetSnapshots returns the fake snapshots saved in the map
-func (provider *StorageProvider) GetSnapshots(sourceID string) ([]*model.Snapshot, error) {
+func (provider *StorageProvider) GetSnapshots(sourceID string, mode ...string) ([]*model.Snapshot, error) {
 	var snapshots []*model.Snapshot
 
 	for _, snapshot := range provider.snapshots {

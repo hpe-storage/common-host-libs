@@ -768,7 +768,7 @@ func (provider *ContainerStorageProvider) GetVolumes() ([]*model.Volume, error) 
 }
 
 // GetSnapshots returns all of the snapshots for the given source volume from the CSP
-func (provider *ContainerStorageProvider) GetSnapshots(volumeID string) ([]*model.Snapshot, error) {
+func (provider *ContainerStorageProvider) GetSnapshots(volumeID string, mode ...string) ([]*model.Snapshot, error) {
 	response := make([]*model.Snapshot, 0)
 	var errorResponse *ErrorsPayload
 
@@ -777,6 +777,9 @@ func (provider *ContainerStorageProvider) GetSnapshots(volumeID string) ([]*mode
 		path = fmt.Sprintf("/containers/v1/snapshots")
 	} else {
 		path = fmt.Sprintf("/containers/v1/snapshots?volume_id=%s", volumeID)
+		if len(mode) > 0 && mode[0] != "" {
+			path = fmt.Sprintf("%s&mode=%s", path, mode[0])
+		}
 	}
 
 	status, err := provider.invoke(
