@@ -859,14 +859,14 @@ func handleRemappedLun(volume *model.Volume) (err error) {
 		// format it into /proc/scsi/scsi format for matching eg: Lun: 00
 		lunID = "0" + volume.LunID
 	}
-	err = handleRemapForSpecificLunID(volume.SerialNumber, lunID, volume.AccessProtocol)
+	err = handleRemapForSpecificLunID(volume.SerialNumber, lunID, volume.AccessProtocol, volume.TargetNames())
 	if err != nil {
 		return err
 	}
 	lunIdArray := util.GetSecondaryArrayLUNIds(volume.SecondaryArrayDetails)
 	if len(lunIdArray) > 0 {
 		for _, secLunID := range lunIdArray {
-			err = handleRemapForSpecificLunID(volume.SerialNumber, "0"+strconv.Itoa(int(secLunID)), volume.AccessProtocol)
+			err = handleRemapForSpecificLunID(volume.SerialNumber, "0"+strconv.Itoa(int(secLunID)), volume.AccessProtocol, volume.TargetNames())
 			if err != nil {
 				return err
 			}
@@ -875,7 +875,7 @@ func handleRemappedLun(volume *model.Volume) (err error) {
 	return nil
 
 }
-func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string) (err error) {
+func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string, targetIqns []string) (err error) {
 	// example output from /proc/scsi/scsi
 	// Host: scsi7 Channel: 00 Id: 00 Lun: 00
 	procScsiRealPath := getProcScsiPath()
@@ -886,12 +886,32 @@ func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string) (er
 		return err
 	}
 
+	// For iSCSI, determine which hosts belong to this volume's targets.
+	// Only check paths on those hosts to avoid false remap detection when
+	// another array has a volume at the same LUN ID on different hosts.
+	var scopedHostSet map[string]bool
+	if !strings.EqualFold(accessProtocol, "fc") && len(targetIqns) > 0 {
+		scopedHosts, err := GetIscsiHostNumbersForTargetIqns(targetIqns)
+		if err == nil && len(scopedHosts) > 0 {
+			scopedHostSet = make(map[string]bool)
+			for _, h := range scopedHosts {
+				scopedHostSet[h] = true
+			}
+			log.Infof("remap check scoped to hosts %v for lun %s", scopedHosts, lunID)
+		}
+	}
+
 	for _, pathStr := range paths {
 		// parse h:c:t:l info
 		h, c, t, l, err := parseHctl(pathStr)
 		if err != nil {
 			log.Debugf("unable to parse h:c:t:l info from %s, err %s", procScsiRealPath, err.Error())
 			// continue with other paths as best effort
+			continue
+		}
+		// Skip paths on hosts that don't belong to this volume's targets
+		if scopedHostSet != nil && !scopedHostSet[h] {
+			log.Tracef("skipping remap check for host %s (not in scoped hosts)", h)
 			continue
 		}
 		// refresh path serial and update paths if its remapped lun
@@ -907,11 +927,21 @@ func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string) (er
 		}
 		// cleanup multipath device and all its paths, as we found its remapped with different LUN underneath
 		cleanupUnmappedDevice(oldSerial, lunID)
-		// perform SCSI lun rescan to discover new volume paths
+		// perform SCSI lun rescan to discover new volume paths.
+		// Scope the iSCSI rescan to hosts connected to this volume's targets.
 		if strings.EqualFold(accessProtocol, "fc") {
 			RescanFcTarget(l)
 		} else {
-			RescanIscsi(l)
+			if scopedHostSet != nil {
+				var hostList []string
+				for h := range scopedHostSet {
+					hostList = append(hostList, h)
+				}
+				log.Infof("scoped remap rescan to hosts %v for lun %s", hostList, l)
+				RescanIscsiHostsForLun(hostList, l)
+			} else {
+				RescanIscsi(l)
+			}
 		}
 		// we found the remapped volume, we can skip rest of the paths as they are cleaned up at once above
 		break

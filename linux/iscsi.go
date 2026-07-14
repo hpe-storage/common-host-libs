@@ -281,8 +281,19 @@ func handleIscsiDiscoveryForBackend(volume *model.Volume, isPrimaryBackend bool)
 		return nil
 	}
 
-	// perform SCSI rescan to create linux block devices
-	err = RescanIscsi(volume.LunID)
+	// perform SCSI rescan to create linux block devices.
+	// Scope the rescan to only iSCSI hosts that are logged in to this
+	// volume's target IQNs. This prevents cross-array interference when
+	// multiple arrays present volumes with the same Host LUN ID.
+	iscsiHosts, hostErr := GetIscsiHostNumbersForTargetIqns(volume.TargetNames())
+	if hostErr != nil || len(iscsiHosts) == 0 {
+		// Fallback: scan all iSCSI hosts if target-based lookup fails
+		log.Warnf("unable to scope iSCSI rescan by target IQNs (err=%v hosts=%v), falling back to full rescan", hostErr, iscsiHosts)
+		err = RescanIscsi(volume.LunID)
+	} else {
+		log.Infof("scoped iSCSI rescan to hosts %v for lun %s (targets %v)", iscsiHosts, volume.LunID, volume.TargetNames())
+		err = RescanIscsiHostsForLun(iscsiHosts, volume.LunID)
+	}
 	if err != nil {
 		log.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
 		return fmt.Errorf("Unable to rescan iscsi hosts, Error: %s", err.Error())
@@ -1033,6 +1044,99 @@ func RescanIscsi(lunID string) error {
 	return nil
 }
 
+
+
+
+// GetIscsiHostNumbersForTargetIqns returns the SCSI host numbers whose iSCSI
+// sessions are logged in to any of the given target IQNs. This is used to scope
+// SCSI rescans to only the hosts connected to the relevant array, even when
+// no multipath paths exist yet (e.g., after detach + re-attach).
+func GetIscsiHostNumbersForTargetIqns(targetIqns []string) ([]string, error) {
+	log.Tracef(">>> GetIscsiHostNumbersForTargetIqns called with targets=%v", targetIqns)
+	defer log.Trace("<<< GetIscsiHostNumbersForTargetIqns")
+
+	if len(targetIqns) == 0 {
+		return nil, nil
+	}
+
+	// Build a set of target IQNs for fast lookup
+	targetSet := make(map[string]bool)
+	for _, iqn := range targetIqns {
+		targetSet[strings.TrimSpace(iqn)] = true
+	}
+
+	// Enumerate all iSCSI hosts
+	iscsiHosts, err := getIscsiHosts()
+	if err != nil {
+		return nil, err
+	}
+
+	r := regexp.MustCompile(sessionIDPattern)
+	var matchingHosts []string
+
+	for _, iscsiHost := range iscsiHosts {
+		// iscsiHost is like "host33" -- extract the number
+		hostNum := strings.TrimPrefix(iscsiHost, "host")
+
+		// List files under /sys/class/scsi_host/host<N>/device/ to find session dirs
+		iscsiHostPath := fmt.Sprintf(hostDeviceFormat, hostNum)
+		args := []string{iscsiHostPath}
+		out, _, err := util.ExecCommandOutput(lscmd, args)
+		if err != nil {
+			log.Tracef("unable to list device dir for host %s: %s", hostNum, err.Error())
+			continue
+		}
+
+		if r.MatchString(out) {
+			lsOutMatch := r.FindStringSubmatch(out)
+			if len(lsOutMatch) < 2 {
+				continue
+			}
+			sessionID := lsOutMatch[1]
+			// Read the targetname for this session
+			hostTargetPath := fmt.Sprintf(hostTargetNameFormat, hostNum, sessionID, sessionID)
+			targetName, err := util.FileReadFirstLine(hostTargetPath)
+			if err != nil {
+				log.Tracef("unable to read targetname for host %s session %s: %s", hostNum, sessionID, err.Error())
+				continue
+			}
+			if targetSet[strings.TrimSpace(targetName)] {
+				log.Tracef("host %s matches target IQN %s", hostNum, targetName)
+				matchingHosts = append(matchingHosts, hostNum)
+			}
+		}
+	}
+
+	log.Tracef("iSCSI host numbers for target IQNs %v: %v", targetIqns, matchingHosts)
+	return matchingHosts, nil
+}
+
+// RescanIscsiHostsForLun rescans ONLY the specified iSCSI host numbers for lunID.
+// Does NOT fall back to full rescan if hostNumbers is empty -- caller decides.
+func RescanIscsiHostsForLun(hostNumbers []string, lunID string) error {
+	log.Tracef(">>> RescanIscsiHostsForLun called with hosts=%v lunID=%s", hostNumbers, lunID)
+	defer log.Trace("<<< RescanIscsiHostsForLun")
+
+	for _, hostNum := range hostNumbers {
+		iscsiHostScanPath := fmt.Sprintf(iscsiHostScanPathFormat, "host"+hostNum)
+		isIscsiHostScanPathExists, _, _ := util.FileExists(iscsiHostScanPath)
+		if !isIscsiHostScanPathExists {
+			log.Tracef("iscsi host scan path %s does not exist, skipping", iscsiHostScanPath)
+			continue
+		}
+		scanCmd := "- - " + lunID
+		if lunID == "" {
+			scanCmd = "- - -"
+		}
+		log.Tracef("scanning iscsi host %s with command %q", hostNum, scanCmd)
+		err := ioutil.WriteFile(iscsiHostScanPath, []byte(scanCmd), 0644)
+		if err != nil {
+			log.Errorf("unable to rescan for scsi devices on host %s lun %s err %s", hostNum, lunID, err.Error())
+			return err
+		}
+	}
+	return nil
+}
 // nolint: dupl
 func rescanIscsiHosts(iscsiHosts []string, lunID string) (err error) {
 	for _, iscsiHost := range iscsiHosts {
