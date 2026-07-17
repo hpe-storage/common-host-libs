@@ -27,6 +27,10 @@ const (
 	nvmeHostPathFormat   = "/sys/class/nvme/"
 	nvmeNamespacePattern = "nvme[0-9]+n[0-9]+"
 	nvmeHostPath         = "/etc/nvme/hostnqn"
+
+	// nvmeDiscoveryNQN is the well-known NVMe discovery subsystem NQN. Discovery
+	// controllers created by "nvme discover" register under this NQN.
+	nvmeDiscoveryNQN = "nqn.2014-08.org.nvmexpress.discovery"
 )
 
 // GetNvmeInitiator gets the NVMe host NQN
@@ -75,6 +79,10 @@ func ApplyNvmeTcpTuning() error {
 // nvmeCoreMultipathPath is the sysfs path for the nvme_core native multipath
 // module parameter. It is a variable so unit tests can override it.
 var nvmeCoreMultipathPath = "/sys/module/nvme_core/parameters/multipath"
+
+// nvmeExecCommandOutput runs an external command and returns its stdout, return
+// code, and error. It is a variable so unit tests can override it.
+var nvmeExecCommandOutput = util.ExecCommandOutput
 
 // isNvmeMultipathEnabled reports whether native NVMe multipath is currently
 // enabled on this node by reading the read-only nvme_core.multipath module
@@ -260,6 +268,12 @@ func discoverNvmeEndpoints(nqn string, discoveryIPs []string) ([]nvmeEndpoint, e
 	if len(discoveryIPs) == 0 {
 		return eps, fmt.Errorf("no discovery IPs provided")
 	}
+	// "nvme discover" leaves a persistent discovery controller behind on every
+	// call. Reap them once discovery is done so they don't accumulate as orphaned
+	// "live" discovery controllers - otherwise they pile up (thousands over time)
+	// and make every subsequent NVMe operation on the node extremely slow because
+	// the kernel has to walk every controller.
+	defer reapNvmeDiscoveryControllers()
 	for _, ip := range discoveryIPs {
 		// Sanitize IP address (remove whitespace,* and other invalid format)
 		ip = util.SanitizeIPAddress(ip)
@@ -269,7 +283,7 @@ func discoverNvmeEndpoints(nqn string, discoveryIPs []string) ([]nvmeEndpoint, e
 			"-a", ip,
 			"-s", nvmeDiscoveryPort,
 		}
-		out, rc, err := util.ExecCommandOutput(nvmecmd, args)
+		out, rc, err := nvmeExecCommandOutput(nvmecmd, args)
 		if err != nil || rc != 0 {
 			log.Warnf("NVMe discover failed on %s:%s: %v", ip, nvmeDiscoveryPort, err)
 			continue
@@ -278,6 +292,20 @@ func discoverNvmeEndpoints(nqn string, discoveryIPs []string) ([]nvmeEndpoint, e
 		eps = append(eps, parsed...)
 	}
 	return eps, nil
+}
+
+// reapNvmeDiscoveryControllers disconnects all NVMe discovery controllers
+// (subsystem NQN nqn.2014-08.org.nvmexpress.discovery). Discovery controllers
+// carry no namespaces, so disconnecting them is always safe. This prevents the
+// unbounded accumulation of orphaned discovery controllers created by
+// "nvme discover" on every NodeStageVolume.
+func reapNvmeDiscoveryControllers() {
+	out, _, err := nvmeExecCommandOutput(nvmecmd, []string{"disconnect", "-n", nvmeDiscoveryNQN})
+	if err != nil {
+		log.Tracef("No NVMe discovery controllers to reap (or disconnect failed): %v (%s)", err, strings.TrimSpace(out))
+		return
+	}
+	log.Debugf("Reaped NVMe discovery controllers (%s): %s", nvmeDiscoveryNQN, strings.TrimSpace(out))
 }
 
 // parseDiscoveryOutput extracts traddr/trsvcid/subnqn entries from nvme discover output
