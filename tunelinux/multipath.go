@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/hpe-storage/common-host-libs/linux"
 	log "github.com/hpe-storage/common-host-libs/logger"
@@ -23,7 +24,9 @@ import (
 )
 
 const (
-	multipath = "multipath"
+	multipath                  = "multipath"
+	multipathTimeoutMaxTries   = 3
+	multipathTimeoutRetrySleep = 2 * time.Second
 
 	// uxsockTimeoutParam is the multipath.conf defaults-section key that controls
 	// the unix domain socket timeout (in milliseconds) used by multipathd.
@@ -50,6 +53,7 @@ var (
 	umountMutex             sync.Mutex
 	staleDeviceRemovalMutex sync.Mutex
 	readProcMountsMutex     sync.Mutex
+	ErrMultipathTimeout     = errors.New("multipathd timeout")
 )
 
 // GetMultipathConfigFile returns path of the template multipath.conf file according to OS distro
@@ -387,10 +391,29 @@ func GetMultipathDevices() (multipathDevices []model.MultipathDevice, err error)
 	log.Tracef(">>>> getMultipathDevices ")
 	defer log.Trace("<<<<< getMultipathDevices")
 
-	out, _, err := util.ExecCommandOutput("multipathd", []string{"show", "multipaths", "json"})
+	for try := 1; try <= multipathTimeoutMaxTries; try++ {
+		out, _, cmdErr := util.ExecCommandOutput("multipathd", []string{"show", "multipaths", "json"})
 
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get the multipath devices due to the error: %s", err.Error())
+		multipathDevices, err = parseMultipathDevices(out)
+		if errors.Is(err, ErrMultipathTimeout) {
+			if try == multipathTimeoutMaxTries {
+				return nil, fmt.Errorf("failed to get the multipath devices after %d attempts: %w", multipathTimeoutMaxTries, err)
+			}
+			log.Warnf("Transient multipathd timeout while getting multipath devices; retrying attempt %d of %d", try+1, multipathTimeoutMaxTries)
+			time.Sleep(multipathTimeoutRetrySleep)
+			continue
+		}
+		if cmdErr != nil {
+			return nil, fmt.Errorf("failed to get the multipath devices due to the error: %s", cmdErr.Error())
+		}
+		return multipathDevices, err
+	}
+	return nil, ErrMultipathTimeout
+}
+
+func parseMultipathDevices(out string) (multipathDevices []model.MultipathDevice, err error) {
+	if linux.IsMultipathTimeoutError(out) {
+		return nil, ErrMultipathTimeout
 	}
 
 	out = strings.TrimSpace(out)
@@ -437,7 +460,7 @@ func GetMultipathDevices() (multipathDevices []model.MultipathDevice, err error)
 			multipathDevices = append(multipathDevices, mapItem)
 		}
 	}
-	log.Infof("Found %d multipath devices (%d unhealthy, %d orphan)", len(multipathDevices), unhealthyDeviceCount, orphanDeviceCount)
+	log.Infof("Found %d multipath devices (%d unhealthy, of which %d are orphan)", len(multipathDevices), unhealthyDeviceCount, orphanDeviceCount)
 	return multipathDevices, nil
 }
 
