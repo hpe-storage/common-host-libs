@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -222,7 +221,7 @@ func GetMultipathRecommendations() (settings []DeviceRecommendation, err error) 
 			return deviceRecommendations, err
 		}
 		// Obtain contents of /etc/multipath.conf
-		content, err := ioutil.ReadFile(linux.MultipathConf)
+		content, err := os.ReadFile(linux.MultipathConf)
 		if err != nil {
 			log.Error(err.Error())
 			return nil, err
