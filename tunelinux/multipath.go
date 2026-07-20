@@ -410,7 +410,10 @@ func GetMultipathDevices() (multipathDevices []model.MultipathDevice, err error)
 		if cmdErr != nil {
 			return nil, fmt.Errorf("failed to get the multipath devices due to the error: %s", cmdErr.Error())
 		}
-		return multipathDevices, err
+		if err != nil {
+			return nil, err
+		}
+		return multipathDevices, nil
 	}
 	return nil, ErrMultipathTimeout
 }
