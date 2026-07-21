@@ -8,6 +8,7 @@ import (
 	"github.com/hpe-storage/common-host-libs/model"
 	"github.com/hpe-storage/common-host-libs/util"
 	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -18,6 +19,9 @@ const fcHostScanPathFormat = "/sys/class/scsi_host/host%s/scan"
 
 // FcHostLIPNameFormat :
 const FcHostLIPNameFormat = "/sys/class/fc_host/host%s/issue_lip"
+
+const fcRemotePortBasePath = "/sys/class/fc_remote_ports"
+const fcRemotePortNameFormat = "/sys/class/fc_remote_ports/%s/port_name"
 
 // GetHostPort get the host port details for given host number from H:C:T:L of device
 func GetHostPort(hostNumber string) (hostPort *model.FcHostPort, err error) {
@@ -127,6 +131,104 @@ func RescanFcTarget(lunID string) (err error) {
 		}
 		if err != nil {
 			log.Errorf("unable to rescan for fc devices on host port :%s lun: %s err %s", fcHost.HostNumber, lunID, err.Error())
+			return err
+		}
+	}
+	return nil
+}
+
+// GetFcHostNumbersForTargetWwpns returns FC host numbers that have remote port
+// connections to the specified target WWPNs. This allows scoping SCSI rescans
+// to only the hosts connected to a specific storage array.
+func GetFcHostNumbersForTargetWwpns(targetWwpns []string) ([]string, error) {
+	log.Tracef(">>> GetFcHostNumbersForTargetWwpns called with targets %v", targetWwpns)
+	defer log.Trace("<<< GetFcHostNumbersForTargetWwpns")
+
+	if len(targetWwpns) == 0 {
+		return nil, fmt.Errorf("no target WWPNs provided")
+	}
+
+	// Build a set of target WWPNs for fast lookup (normalize to lowercase, strip 0x)
+	targetSet := make(map[string]bool)
+	for _, t := range targetWwpns {
+		normalized := strings.ToLower(strings.TrimPrefix(t, "0x"))
+		targetSet[normalized] = true
+	}
+
+	// List all rport directories under /sys/class/fc_remote_ports/
+	entries, err := os.ReadDir(fcRemotePortBasePath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read %s: %s", fcRemotePortBasePath, err.Error())
+	}
+
+	hostSet := make(map[string]bool)
+	for _, entry := range entries {
+		name := entry.Name()
+		// rport directories are named rport-H:B-T (e.g., rport-5:0-0)
+		if !strings.HasPrefix(name, "rport-") {
+			continue
+		}
+
+		// Read the remote port's port_name (target WWPN)
+		portNamePath := fmt.Sprintf(fcRemotePortNameFormat, name)
+		portName, err := util.FileReadFirstLine(portNamePath)
+		if err != nil {
+			log.Debugf("unable to read port_name for %s: %s", name, err.Error())
+			continue
+		}
+		normalizedPort := strings.ToLower(strings.TrimPrefix(portName, "0x"))
+
+		if !targetSet[normalizedPort] {
+			continue
+		}
+
+		// Extract host number from rport-H:B-T
+		// The H part is after "rport-" and before the first ":"
+		parts := strings.TrimPrefix(name, "rport-")
+		colonIdx := strings.Index(parts, ":")
+		if colonIdx < 0 {
+			continue
+		}
+		hostNum := parts[:colonIdx]
+		hostSet[hostNum] = true
+		log.Infof("FC remote port %s (wwpn %s) maps to host %s", name, normalizedPort, hostNum)
+	}
+
+	if len(hostSet) == 0 {
+		return nil, fmt.Errorf("no FC hosts found for target WWPNs %v", targetWwpns)
+	}
+
+	var hostNumbers []string
+	for h := range hostSet {
+		hostNumbers = append(hostNumbers, h)
+	}
+	log.Infof("FC hosts for target WWPNs: %v", hostNumbers)
+	return hostNumbers, nil
+}
+
+// RescanFcHostsForLun rescans only the specified FC host adapters for the given LUN ID.
+// This avoids disturbing unrelated volumes on other arrays sharing the same LUN ID.
+func RescanFcHostsForLun(hostNumbers []string, lunID string) error {
+	log.Tracef(">>> RescanFcHostsForLun called with hosts %v lun %s", hostNumbers, lunID)
+	defer log.Trace("<<< RescanFcHostsForLun")
+
+	for _, hostNum := range hostNumbers {
+		fcHostScanPath := fmt.Sprintf(fcHostScanPathFormat, hostNum)
+		isFCHostScanPathExists, _, _ := util.FileExists(fcHostScanPath)
+		if !isFCHostScanPathExists {
+			log.Tracef("fc host scan path %s does not exist", fcHostScanPath)
+			continue
+		}
+		var scanCmd string
+		if lunID == "" {
+			scanCmd = "- - -"
+		} else {
+			scanCmd = "- - " + lunID
+		}
+		log.Infof("scanning FC host %s for lun %s (path %s)", hostNum, lunID, fcHostScanPath)
+		err := ioutil.WriteFile(fcHostScanPath, []byte(scanCmd), 0644)
+		if err != nil {
+			log.Errorf("unable to rescan FC host %s for lun %s: %s", hostNum, lunID, err.Error())
 			return err
 		}
 	}

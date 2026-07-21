@@ -410,7 +410,12 @@ func rescanLoginVolume(volume *model.Volume) error {
 	primaryVolObj.SerialNumber = volume.SerialNumber
 	primaryVolObj.Networks = volume.Networks
 	primaryVolObj.Nqn = volume.Nqn
-	primaryVolObj.TargetAddress = strings.Join(volume.DiscoveryIPs, ",")
+	if strings.EqualFold(volume.AccessProtocol, "fc") {
+		// For FC, preserve the original TargetAddress which contains target port WWPNs
+		primaryVolObj.TargetAddress = volume.TargetAddress
+	} else {
+		primaryVolObj.TargetAddress = strings.Join(volume.DiscoveryIPs, ",")
+	}
 	primaryVolObj.TargetPort = volume.TargetPort
 
 	err = rescanLoginVolumeForBackend(primaryVolObj)
@@ -449,9 +454,21 @@ func rescanLoginVolumeForBackend(volObj *model.Volume) error {
 	log.Traceln("Called rescanLoginVolumeForBackend", volObj, "and accessProtocol", volObj.AccessProtocol)
 	var err error
 	if strings.EqualFold(volObj.AccessProtocol, "fc") {
-		// FC volume
-
-		err = RescanFcTarget(volObj.LunID)
+		// FC volume — scope rescan to hosts connected to this volume's target ports
+		fcTargetWwpns := getFcTargetWwpns(volObj)
+		if len(fcTargetWwpns) > 0 {
+			fcHosts, fcErr := GetFcHostNumbersForTargetWwpns(fcTargetWwpns)
+			if fcErr == nil && len(fcHosts) > 0 {
+				log.Infof("scoped FC rescan to hosts %v for lun %s", fcHosts, volObj.LunID)
+				err = RescanFcHostsForLun(fcHosts, volObj.LunID)
+			} else {
+				log.Warnf("unable to scope FC rescan by target WWPNs (%v), falling back to full rescan", fcErr)
+				err = RescanFcTarget(volObj.LunID)
+			}
+		} else {
+			log.Infof("no FC target WWPNs available, performing full FC rescan for lun %s", volObj.LunID)
+			err = RescanFcTarget(volObj.LunID)
+		}
 		if err != nil {
 			return err
 		}
@@ -844,6 +861,23 @@ func handleOrphanPathsForSerialAndLunId(serialNumber, lunID string) error {
 // find if an existing lun has been remapped with new lun provided
 // if found, remove old paths and rescan new lun paths
 // nolint : gocyclo
+// getFcTargetWwpns extracts FC target port WWPNs from the volume's TargetAddress field.
+// Returns nil if the volume is not FC or has no target address.
+func getFcTargetWwpns(volume *model.Volume) []string {
+	if !strings.EqualFold(volume.AccessProtocol, "fc") || volume.TargetAddress == "" {
+		return nil
+	}
+	wwpns := strings.Split(volume.TargetAddress, ",")
+	var result []string
+	for _, w := range wwpns {
+		w = strings.TrimSpace(w)
+		if w != "" {
+			result = append(result, w)
+		}
+	}
+	return result
+}
+
 func handleRemappedLun(volume *model.Volume) (err error) {
 	log.Tracef(">>> handleRemappedLun called with volume %s serial %s lun %s", volume.Name, volume.SerialNumber, volume.LunID)
 	defer log.Tracef("<<< handleRemappedLun")
@@ -859,14 +893,14 @@ func handleRemappedLun(volume *model.Volume) (err error) {
 		// format it into /proc/scsi/scsi format for matching eg: Lun: 00
 		lunID = "0" + volume.LunID
 	}
-	err = handleRemapForSpecificLunID(volume.SerialNumber, lunID, volume.AccessProtocol, volume.TargetNames())
+	err = handleRemapForSpecificLunID(volume.SerialNumber, lunID, volume.AccessProtocol, volume.TargetNames(), getFcTargetWwpns(volume))
 	if err != nil {
 		return err
 	}
 	lunIdArray := util.GetSecondaryArrayLUNIds(volume.SecondaryArrayDetails)
 	if len(lunIdArray) > 0 {
 		for _, secLunID := range lunIdArray {
-			err = handleRemapForSpecificLunID(volume.SerialNumber, "0"+strconv.Itoa(int(secLunID)), volume.AccessProtocol, volume.TargetNames())
+			err = handleRemapForSpecificLunID(volume.SerialNumber, "0"+strconv.Itoa(int(secLunID)), volume.AccessProtocol, volume.TargetNames(), getFcTargetWwpns(volume))
 			if err != nil {
 				return err
 			}
@@ -875,7 +909,7 @@ func handleRemappedLun(volume *model.Volume) (err error) {
 	return nil
 
 }
-func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string, targetIqns []string) (err error) {
+func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string, targetIqns []string, fcTargetWwpns []string) (err error) {
 	// example output from /proc/scsi/scsi
 	// Host: scsi7 Channel: 00 Id: 00 Lun: 00
 	procScsiRealPath := getProcScsiPath()
@@ -886,11 +920,19 @@ func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string, tar
 		return err
 	}
 
-	// For iSCSI, determine which hosts belong to this volume's targets.
-	// Only check paths on those hosts to avoid false remap detection when
-	// another array has a volume at the same LUN ID on different hosts.
+	// Determine which hosts belong to this volume's targets to avoid false
+	// remap detection when another array has a volume at the same LUN ID.
 	var scopedHostSet map[string]bool
-	if !strings.EqualFold(accessProtocol, "fc") && len(targetIqns) > 0 {
+	if strings.EqualFold(accessProtocol, "fc") && len(fcTargetWwpns) > 0 {
+		scopedHosts, err := GetFcHostNumbersForTargetWwpns(fcTargetWwpns)
+		if err == nil && len(scopedHosts) > 0 {
+			scopedHostSet = make(map[string]bool)
+			for _, h := range scopedHosts {
+				scopedHostSet[h] = true
+			}
+			log.Infof("remap check scoped to FC hosts %v for lun %s", scopedHosts, lunID)
+		}
+	} else if !strings.EqualFold(accessProtocol, "fc") && len(targetIqns) > 0 {
 		scopedHosts, err := GetIscsiHostNumbersForTargetIqns(targetIqns)
 		if err == nil && len(scopedHosts) > 0 {
 			scopedHostSet = make(map[string]bool)
@@ -930,7 +972,17 @@ func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string, tar
 		// perform SCSI lun rescan to discover new volume paths.
 		// Scope the iSCSI rescan to hosts connected to this volume's targets.
 		if strings.EqualFold(accessProtocol, "fc") {
-			RescanFcTarget(l)
+			if len(fcTargetWwpns) > 0 {
+				fcHosts, fcErr := GetFcHostNumbersForTargetWwpns(fcTargetWwpns)
+				if fcErr == nil && len(fcHosts) > 0 {
+					log.Infof("scoped FC remap rescan to hosts %v for lun %s", fcHosts, l)
+					RescanFcHostsForLun(fcHosts, l)
+				} else {
+					RescanFcTarget(l)
+				}
+			} else {
+				RescanFcTarget(l)
+			}
 		} else {
 			if scopedHostSet != nil {
 				var hostList []string
