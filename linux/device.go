@@ -858,9 +858,6 @@ func handleOrphanPathsForSerialAndLunId(serialNumber, lunID string) error {
 	return nil
 }
 
-// find if an existing lun has been remapped with new lun provided
-// if found, remove old paths and rescan new lun paths
-// nolint : gocyclo
 // getFcTargetWwpns extracts FC target port WWPNs from the volume's TargetAddress field.
 // Returns nil if the volume is not FC or has no target address.
 func getFcTargetWwpns(volume *model.Volume) []string {
@@ -878,6 +875,9 @@ func getFcTargetWwpns(volume *model.Volume) []string {
 	return result
 }
 
+// find if an existing lun has been remapped with new lun provided
+// if found, remove old paths and rescan new lun paths
+//nolint:gocyclo
 func handleRemappedLun(volume *model.Volume) (err error) {
 	log.Tracef(">>> handleRemappedLun called with volume %s serial %s lun %s", volume.Name, volume.SerialNumber, volume.LunID)
 	defer log.Tracef("<<< handleRemappedLun")
@@ -972,16 +972,16 @@ func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string, tar
 		// perform SCSI lun rescan to discover new volume paths.
 		// Scope the rescan to hosts connected to this volume's targets.
 		if strings.EqualFold(accessProtocol, "fc") {
-                        if scopedHostSet != nil {
-                                var hostList []string
-                                for h := range scopedHostSet {
-                                        hostList = append(hostList, h)
-                                }
-                                log.Infof("scoped FC remap rescan to hosts %v for lun %s", hostList, l)
-                                RescanFcHostsForLun(hostList, l)
-                        } else {
-                                RescanFcTarget(l)
-                        }
+			if scopedHostSet != nil {
+				var hostList []string
+				for h := range scopedHostSet {
+					hostList = append(hostList, h)
+				}
+				log.Infof("scoped FC remap rescan to hosts %v for lun %s", hostList, l)
+				RescanFcHostsForLun(hostList, l)
+			} else {
+				RescanFcTarget(l)
+			}
 		} else {
 			if scopedHostSet != nil {
 				var hostList []string
