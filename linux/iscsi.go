@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -1003,13 +1004,13 @@ func iscsiDeleteNode(target *model.IscsiTarget) (err error) {
 }
 
 func getIscsiHosts() ([]string, error) {
-	exists, _, err := util.FileExists(iscsiHostPathFormat)
+	exists, _, err := util.FileExists(iscsiHostRootPath)
 	if !exists {
 		log.Errorf("no iscsi hosts found")
 		return nil, fmt.Errorf("no iscsi hosts found")
 	}
 
-	listOfFiles, err := ioutil.ReadDir(iscsiHostPathFormat)
+	listOfFiles, err := ioutil.ReadDir(iscsiHostRootPath)
 	if err != nil {
 		log.Errorf("unable to get list of iscsi hosts, error %s", err.Error())
 		return nil, fmt.Errorf("unable to get list of iscsi hosts, error %s", err.Error())
@@ -1044,13 +1045,22 @@ func RescanIscsi(lunID string) error {
 	return nil
 }
 
+// Overridable sysfs roots (vars, not consts) so unit tests can point the
+// host-scoped iSCSI rescan lookups at a fake tree instead of real /sys.
+var (
+	scsiHostBasePath  = "/sys/class/scsi_host"
+	iscsiHostRootPath = iscsiHostPathFormat
+)
 
-
+// iscsiSessionDirRegexp matches an iSCSI session directory name, e.g. "session33".
+var iscsiSessionDirRegexp = regexp.MustCompile(`^session(\d+)$`)
 
 // GetIscsiHostNumbersForTargetIqns returns the SCSI host numbers whose iSCSI
 // sessions are logged in to any of the given target IQNs. This is used to scope
 // SCSI rescans to only the hosts connected to the relevant array, even when
 // no multipath paths exist yet (e.g., after detach + re-attach).
+//
+// Returns (nil, nil) when no target IQNs are supplied or when no host matches.
 func GetIscsiHostNumbersForTargetIqns(targetIqns []string) ([]string, error) {
 	log.Tracef(">>> GetIscsiHostNumbersForTargetIqns called with targets=%v", targetIqns)
 	defer log.Trace("<<< GetIscsiHostNumbersForTargetIqns")
@@ -1071,30 +1081,30 @@ func GetIscsiHostNumbersForTargetIqns(targetIqns []string) ([]string, error) {
 		return nil, err
 	}
 
-	r := regexp.MustCompile(sessionIDPattern)
 	var matchingHosts []string
-
 	for _, iscsiHost := range iscsiHosts {
 		// iscsiHost is like "host33" -- extract the number
 		hostNum := strings.TrimPrefix(iscsiHost, "host")
 
-		// List files under /sys/class/scsi_host/host<N>/device/ to find session dirs
-		iscsiHostPath := fmt.Sprintf(hostDeviceFormat, hostNum)
-		args := []string{iscsiHostPath}
-		out, _, err := util.ExecCommandOutput(lscmd, args)
+		// List session directories directly under
+		// /sys/class/scsi_host/host<N>/device/ (os.ReadDir, no shelling out).
+		deviceDir := filepath.Join(scsiHostBasePath, "host"+hostNum, "device")
+		entries, err := os.ReadDir(deviceDir)
 		if err != nil {
 			log.Tracef("unable to list device dir for host %s: %s", hostNum, err.Error())
 			continue
 		}
 
-		if r.MatchString(out) {
-			lsOutMatch := r.FindStringSubmatch(out)
-			if len(lsOutMatch) < 2 {
+		// A host may carry more than one session; check them all.
+		for _, entry := range entries {
+			m := iscsiSessionDirRegexp.FindStringSubmatch(entry.Name())
+			if m == nil {
 				continue
 			}
-			sessionID := lsOutMatch[1]
+			sessionID := m[1]
 			// Read the targetname for this session
-			hostTargetPath := fmt.Sprintf(hostTargetNameFormat, hostNum, sessionID, sessionID)
+			hostTargetPath := filepath.Join(scsiHostBasePath, "host"+hostNum, "device",
+				"session"+sessionID, "iscsi_session", "session"+sessionID, "targetname")
 			targetName, err := util.FileReadFirstLine(hostTargetPath)
 			if err != nil {
 				log.Tracef("unable to read targetname for host %s session %s: %s", hostNum, sessionID, err.Error())
@@ -1103,6 +1113,7 @@ func GetIscsiHostNumbersForTargetIqns(targetIqns []string) ([]string, error) {
 			if targetSet[strings.TrimSpace(targetName)] {
 				log.Tracef("host %s matches target IQN %s", hostNum, targetName)
 				matchingHosts = append(matchingHosts, hostNum)
+				break
 			}
 		}
 	}
@@ -1137,6 +1148,7 @@ func RescanIscsiHostsForLun(hostNumbers []string, lunID string) error {
 	}
 	return nil
 }
+
 // nolint: dupl
 func rescanIscsiHosts(iscsiHosts []string, lunID string) (err error) {
 	for _, iscsiHost := range iscsiHosts {

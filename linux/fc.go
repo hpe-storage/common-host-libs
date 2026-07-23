@@ -4,12 +4,14 @@ package linux
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+	"strings"
+
 	log "github.com/hpe-storage/common-host-libs/logger"
 	"github.com/hpe-storage/common-host-libs/model"
 	"github.com/hpe-storage/common-host-libs/util"
-	"io/ioutil"
-	"os"
-	"strings"
 )
 
 const fcHostBasePath = "/sys/class/fc_host"
@@ -20,8 +22,7 @@ const fcHostScanPathFormat = "/sys/class/scsi_host/host%s/scan"
 // FcHostLIPNameFormat :
 const FcHostLIPNameFormat = "/sys/class/fc_host/host%s/issue_lip"
 
-const fcRemotePortBasePath = "/sys/class/fc_remote_ports"
-const fcRemotePortNameFormat = "/sys/class/fc_remote_ports/%s/port_name"
+var fcRemotePortBasePath = "/sys/class/fc_remote_ports"
 
 // GetHostPort get the host port details for given host number from H:C:T:L of device
 func GetHostPort(hostNumber string) (hostPort *model.FcHostPort, err error) {
@@ -97,7 +98,7 @@ func GetAllFcHostPortWWN() (portWWNs []string, err error) {
 }
 
 // RescanFcTarget rescans host ports for new Fibre Channel devices
-//nolint: dupl
+// nolint: dupl
 func RescanFcTarget(lunID string) (err error) {
 	log.Tracef(">>> RescanFcTarget called on lunID %s", lunID)
 	defer log.Traceln("<<< RescanFcTarget")
@@ -137,22 +138,37 @@ func RescanFcTarget(lunID string) (err error) {
 	return nil
 }
 
+// normalizeWwpn canonicalizes an FC WWPN for comparison: lowercase, with any
+// leading "0x" prefix and ":" separators removed. The array/CSP may report a
+// WWPN as "20410002AC07EE45" while sysfs reports "0x20410002ac07ee45", and some
+// sources may use a colon-separated form.
+func normalizeWwpn(wwpn string) string {
+	w := strings.ToLower(strings.TrimSpace(wwpn))
+	w = strings.TrimPrefix(w, "0x")
+	w = strings.ReplaceAll(w, ":", "")
+	return w
+}
+
 // GetFcHostNumbersForTargetWwpns returns FC host numbers that have remote port
 // connections to the specified target WWPNs. This allows scoping SCSI rescans
 // to only the hosts connected to a specific storage array.
+//
+// Returns (nil, nil) when no target WWPNs are supplied or when no FC host is
+// yet logged in to any of them (e.g. first attach), mirroring
+// GetIscsiHostNumbersForTargetIqns; callers treat that as "fall back to a full
+// rescan". A non-nil error is returned only for a genuine sysfs read failure.
 func GetFcHostNumbersForTargetWwpns(targetWwpns []string) ([]string, error) {
 	log.Tracef(">>> GetFcHostNumbersForTargetWwpns called with targets %v", targetWwpns)
 	defer log.Trace("<<< GetFcHostNumbersForTargetWwpns")
 
 	if len(targetWwpns) == 0 {
-		return nil, fmt.Errorf("no target WWPNs provided")
+		return nil, nil
 	}
 
-	// Build a set of target WWPNs for fast lookup (normalize to lowercase, strip 0x)
+	// Build a set of target WWPNs for fast lookup
 	targetSet := make(map[string]bool)
 	for _, t := range targetWwpns {
-		normalized := strings.ToLower(strings.TrimPrefix(t, "0x"))
-		targetSet[normalized] = true
+		targetSet[normalizeWwpn(t)] = true
 	}
 
 	// List all rport directories under /sys/class/fc_remote_ports/
@@ -170,13 +186,13 @@ func GetFcHostNumbersForTargetWwpns(targetWwpns []string) ([]string, error) {
 		}
 
 		// Read the remote port's port_name (target WWPN)
-		portNamePath := fmt.Sprintf(fcRemotePortNameFormat, name)
+		portNamePath := filepath.Join(fcRemotePortBasePath, name, "port_name")
 		portName, err := util.FileReadFirstLine(portNamePath)
 		if err != nil {
 			log.Debugf("unable to read port_name for %s: %s", name, err.Error())
 			continue
 		}
-		normalizedPort := strings.ToLower(strings.TrimPrefix(portName, "0x"))
+		normalizedPort := normalizeWwpn(portName)
 
 		if !targetSet[normalizedPort] {
 			continue
@@ -195,7 +211,7 @@ func GetFcHostNumbersForTargetWwpns(targetWwpns []string) ([]string, error) {
 	}
 
 	if len(hostSet) == 0 {
-		return nil, fmt.Errorf("no FC hosts found for target WWPNs %v", targetWwpns)
+		return nil, nil
 	}
 
 	var hostNumbers []string

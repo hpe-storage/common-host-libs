@@ -462,7 +462,7 @@ func rescanLoginVolumeForBackend(volObj *model.Volume) error {
 				log.Infof("scoped FC rescan to hosts %v for lun %s", fcHosts, volObj.LunID)
 				err = RescanFcHostsForLun(fcHosts, volObj.LunID)
 			} else {
-				log.Warnf("unable to scope FC rescan by target WWPNs (%v), falling back to full rescan", fcErr)
+				log.Infof("no scoped FC hosts for target WWPNs (err=%v); falling back to full rescan for lun %s", fcErr, volObj.LunID)
 				err = RescanFcTarget(volObj.LunID)
 			}
 		} else {
@@ -970,19 +970,18 @@ func handleRemapForSpecificLunID(serialNumber, lunID, accessProtocol string, tar
 		// cleanup multipath device and all its paths, as we found its remapped with different LUN underneath
 		cleanupUnmappedDevice(oldSerial, lunID)
 		// perform SCSI lun rescan to discover new volume paths.
-		// Scope the iSCSI rescan to hosts connected to this volume's targets.
+		// Scope the rescan to hosts connected to this volume's targets.
 		if strings.EqualFold(accessProtocol, "fc") {
-			if len(fcTargetWwpns) > 0 {
-				fcHosts, fcErr := GetFcHostNumbersForTargetWwpns(fcTargetWwpns)
-				if fcErr == nil && len(fcHosts) > 0 {
-					log.Infof("scoped FC remap rescan to hosts %v for lun %s", fcHosts, l)
-					RescanFcHostsForLun(fcHosts, l)
-				} else {
-					RescanFcTarget(l)
-				}
-			} else {
-				RescanFcTarget(l)
-			}
+                        if scopedHostSet != nil {
+                                var hostList []string
+                                for h := range scopedHostSet {
+                                        hostList = append(hostList, h)
+                                }
+                                log.Infof("scoped FC remap rescan to hosts %v for lun %s", hostList, l)
+                                RescanFcHostsForLun(hostList, l)
+                        } else {
+                                RescanFcTarget(l)
+                        }
 		} else {
 			if scopedHostSet != nil {
 				var hostList []string
