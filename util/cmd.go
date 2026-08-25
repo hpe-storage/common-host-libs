@@ -55,9 +55,12 @@ func execCommandOutputWithTimeout(cmd string, args []string, stdinArgs []string,
 	log.Trace("execCommandOutputWithTimeout called with ", cmd, log.Scrubber(args), timeout)
 	var err error
 	c := exec.Command(cmd, args...)
-	var b bytes.Buffer
-	c.Stdout = &b
-	c.Stderr = &b
+	// Capture stdout and stderr separately so that, on success, tools which emit
+	// warnings to stderr (e.g. multipath/multipathd v0.15.0+ deprecation notices)
+	// do not corrupt callers that parse stdout as JSON/structured data (csi-driver #566).
+	var stdout, stderr bytes.Buffer
+	c.Stdout = &stdout
+	c.Stderr = &stderr
 	if len(stdinArgs) > 0 {
 		c.Stdin = strings.NewReader(strings.Join(stdinArgs, "\n"))
 	}
@@ -76,7 +79,7 @@ func execCommandOutputWithTimeout(cmd string, args []string, stdinArgs []string,
 			log.Errorf("failed to kill process %v: error =  %v", c.Process.Pid, err)
 		}
 		err = fmt.Errorf("command %s with pid: %v killed as timeout of %d seconds reached", cmd, c.Process.Pid, timeout)
-		log.Errorf(err.Error())
+		log.Errorf("%s", err.Error())
 	case err = <-done:
 		if err != nil {
 			log.Errorf("process with pid : %v finished with error = %v", c.Process.Pid, err)
@@ -84,20 +87,27 @@ func execCommandOutputWithTimeout(cmd string, args []string, stdinArgs []string,
 			log.Tracef("process with pid: %v finished successfully", c.Process.Pid)
 		}
 	}
-	out := string(b.Bytes())
-	log.Trace(out)
+	stdoutStr := stdout.String()
+	stderrStr := stderr.String()
+	// Combined output is retained for error diagnostics and logging only.
+	combined := stdoutStr + stderrStr
+	log.Trace(combined)
 	if err != nil {
 		//check the rc of the exec
 		if badnews, ok := err.(*exec.ExitError); ok {
 			if status, ok := badnews.Sys().(syscall.WaitStatus); ok {
-				// send the error code and stderr content to the caller
-				return out, status.ExitStatus(), fmt.Errorf("command %s failed with rc=%d err=%s", cmd, status.ExitStatus(), out)
+				// On failure, send the error code and combined stdout+stderr to the caller.
+				return combined, status.ExitStatus(), fmt.Errorf("command %s failed with rc=%d err=%s", cmd, status.ExitStatus(), combined)
 			}
 		} else {
-			return out, 888, fmt.Errorf("error %s", err.Error())
+			return combined, 888, fmt.Errorf("error %s", err.Error())
 		}
 	}
-	return out, 0, nil
+	if stderrStr != "" {
+		log.Tracef("command %s succeeded (rc=0); stderr not returned to caller: %s", cmd, stderrStr)
+	}
+	// On success (rc=0) return stdout only, so stderr warnings never reach output parsers.
+	return stdoutStr, 0, nil
 }
 
 // ExecCommandOutputWithTimeout  executes ExecCommandOutput with the specified timeout
@@ -105,17 +115,20 @@ func ExecCommandOutputWithTimeout(cmd string, args []string, timeout int) (strin
 	return execCommandOutputWithTimeout(cmd, args, []string{}, timeout)
 }
 
-// ExecCommandOutput returns stdout and stderr in a single string, the return code, and error.
-// If the return code is not zero, error will not be nil.
-// Stdout and Stderr are dumped to the log at the debug level.
+// ExecCommandOutput runs a command and returns its output, the return code, and error.
+// On success (rc=0) only stdout is returned, so warnings a tool writes to stderr do not
+// corrupt callers that parse the output. On failure (rc!=0) the combined stdout+stderr is
+// returned to aid diagnostics, and error will not be nil.
+// Stdout and Stderr are dumped to the log at the trace level.
 // Return code of 999 indicates an error starting the command.
 func ExecCommandOutput(cmd string, args []string) (string, int, error) {
 	return ExecCommandOutputWithTimeout(cmd, args, defaultTimeout)
 }
 
-// ExecCommandOutputWithStdinArgs returns stdout and stderr in a single string, the return code, and error.
-// If the return code is not zero, error will not be nil.
-// Stdout and Stderr are dumped to the log at the debug level.
+// ExecCommandOutputWithStdinArgs runs a command with stdin and returns its output, the return
+// code, and error. On success (rc=0) only stdout is returned; on failure (rc!=0) the combined
+// stdout+stderr is returned and error will not be nil.
+// Stdout and Stderr are dumped to the log at the trace level.
 // Return code of 999 indicates an error starting the command.
 func ExecCommandOutputWithStdinArgs(cmd string, args []string, stdInArgs []string) (string, int, error) {
 	return execCommandOutputWithTimeout(cmd, args, stdInArgs, defaultTimeout)

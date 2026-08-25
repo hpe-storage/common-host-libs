@@ -126,3 +126,36 @@ func TestFailExecCommandOutput(t *testing.T) {
 		)
 	}
 }
+
+// A tool can succeed (rc=0) while writing warnings to stderr, e.g. multipath/multipathd
+// v0.15.0+ deprecation notices. On success only stdout must be returned so those warnings
+// never corrupt callers that parse the output as JSON (csi-driver issue #566).
+func TestExecCommandOutput_SuccessReturnsStdoutOnly(t *testing.T) {
+	out, rc, err := ExecCommandOutput("sh", []string{"-c", "echo stdout-line; echo stderr-line 1>&2"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if rc != 0 {
+		t.Fatalf("unexpected rc=%d", rc)
+	}
+	if strings.TrimSpace(out) != "stdout-line" {
+		t.Fatalf("on success out must contain stdout only; got %q", out)
+	}
+	if strings.Contains(out, "stderr-line") {
+		t.Fatalf("on success stderr must not be returned; got %q", out)
+	}
+}
+
+// On failure (rc!=0) the combined stdout+stderr is returned to aid diagnostics.
+func TestExecCommandOutput_FailureReturnsCombined(t *testing.T) {
+	out, rc, err := ExecCommandOutput("sh", []string{"-c", "echo out-line; echo err-line 1>&2; exit 3"})
+	if err == nil {
+		t.Fatalf("expected error for non-zero exit")
+	}
+	if rc != 3 {
+		t.Fatalf("expected rc=3, got %d", rc)
+	}
+	if !strings.Contains(out, "out-line") || !strings.Contains(out, "err-line") {
+		t.Fatalf("on failure combined stdout+stderr expected; got %q", out)
+	}
+}
