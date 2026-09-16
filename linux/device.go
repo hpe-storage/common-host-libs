@@ -436,6 +436,18 @@ func rescanLoginVolume(volume *model.Volume) error {
 		return fmt.Errorf("no iSCSI targets available for volume %s and no secondary backends configured", volume.SerialNumber)
 	}
 
+	// CON-4955: a replicated iSCSI volume whose CSP-supplied secondary payload carries no
+	// usable peer backends attaches with primary-only paths and no failover. Non-replicated
+	// volumes and genuine primary-failover both leave SecondaryArrayDetails empty, so this warns
+	// only for the true missing-peer case, which was previously silent.
+	if !strings.EqualFold(volume.AccessProtocol, "fc") &&
+		!strings.EqualFold(volume.AccessProtocol, nvmetcp) &&
+		volume.SecondaryArrayDetails != "" &&
+		len(secondaryBackends) == 0 {
+		log.Warnf("CON-4955: replicated volume %s came up with no secondary-array paths "+
+			"(primary-only, no failover); SecondaryArrayDetails=%q", volume.SerialNumber, volume.SecondaryArrayDetails)
+	}
+
 	for _, secondaryLunInfo := range secondaryBackends {
 		if secondaryLunInfo.LunID < 0 {
 			return fmt.Errorf("invalid secondary LUN ID %d for volume %s", secondaryLunInfo.LunID, volume.SerialNumber)
