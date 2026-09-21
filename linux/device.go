@@ -445,7 +445,7 @@ func rescanLoginVolume(volume *model.Volume) error {
 		volume.SecondaryArrayDetails != "" &&
 		len(secondaryBackends) == 0 {
 		log.Warnf("replicated volume %s came up with no secondary-array paths "+
-			"(primary-only, no failover); SecondaryArrayDetails=%q", volume.SerialNumber, volume.SecondaryArrayDetails)
+			"(primary-only, no failover)", volume.SerialNumber)
 	}
 
 	for _, secondaryLunInfo := range secondaryBackends {
