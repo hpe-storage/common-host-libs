@@ -31,7 +31,11 @@ func TestNewRequiresLeaseNameAndNamespace(t *testing.T) {
 
 func TestStartAcquiresLeaseAndInvokesOnStartedLeading(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
-	var gotCtx context.Context
+	// Buffered channel, not a plain variable: OnStartedLeading runs on client-go's own goroutine
+	// (started via `go` in LeaderElector.Run), so a plain write here would race against this
+	// goroutine's read below - IsLeader() becoming true only synchronizes the atomic itself, not
+	// gotCtx, which is written after it.
+	gotCtx := make(chan context.Context, 1)
 	e, err := New(clientset, "pod-a", Config{
 		LeaseName:     "test-lease",
 		Namespace:     testNamespace,
@@ -39,7 +43,7 @@ func TestStartAcquiresLeaseAndInvokesOnStartedLeading(t *testing.T) {
 		RenewDeadline: 60 * time.Millisecond,
 		RetryPeriod:   20 * time.Millisecond,
 		OnStartedLeading: func(ctx context.Context) {
-			gotCtx = ctx
+			gotCtx <- ctx
 		},
 	})
 	assert.NoError(t, err)
@@ -49,7 +53,12 @@ func TestStartAcquiresLeaseAndInvokesOnStartedLeading(t *testing.T) {
 	assert.NoError(t, e.Start(ctx))
 
 	assert.Eventually(t, e.IsLeader, time.Second, 5*time.Millisecond)
-	assert.NotNil(t, gotCtx)
+	select {
+	case got := <-gotCtx:
+		assert.NotNil(t, got)
+	case <-time.After(time.Second):
+		t.Fatal("OnStartedLeading was never invoked")
+	}
 }
 
 func TestExternalContextCancellationIsTreatedAsGracefulNotUnexpectedLoss(t *testing.T) {
