@@ -181,3 +181,82 @@ func TestGetFcHostNumbersForTargetWwpns_MatchAndScope(t *testing.T) {
 		t.Fatalf("expected no hosts for no-match, got %v", hosts)
 	}
 }
+
+// ---- fcHostChannelTargetKey tests ----
+
+func TestFcHostChannelTargetKey(t *testing.T) {
+	if got := fcHostChannelTargetKey("6", "0", "0"); got != "6:0:0" {
+		t.Errorf("fcHostChannelTargetKey(6,0,0) = %q, want %q", got, "6:0:0")
+	}
+}
+
+// ---- GetFcHostChannelTargetsForTargetWwpns tests (ESC-18223 defect #1) ----
+
+func TestGetFcHostChannelTargetsForTargetWwpns_EmptyInput(t *testing.T) {
+	set, err := GetFcHostChannelTargetsForTargetWwpns(nil)
+	if err != nil {
+		t.Errorf("expected no error for nil input, got %v", err)
+	}
+	if len(set) != 0 {
+		t.Errorf("expected empty set for nil input, got %v", set)
+	}
+}
+
+// TestGetFcHostChannelTargetsForTargetWwpns_SameHostDifferentArrays reproduces the
+// ESC-18223 topology: two different arrays' rports are visible over the SAME FC
+// host (HBA), each with its own target id. Scoping must distinguish between them
+// by host:channel:target, not just host number.
+func TestGetFcHostChannelTargetsForTargetWwpns_SameHostDifferentArrays(t *testing.T) {
+	tmp := t.TempDir()
+	orig := fcRemotePortBasePath
+	fcRemotePortBasePath = tmp
+	defer func() { fcRemotePortBasePath = orig }()
+
+	writePort := func(rport, wwpn string) {
+		dir := filepath.Join(tmp, rport)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "port_name"), []byte(wwpn+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Array A and Array B both have a remote port over host 6, but at different targets.
+	writePort("rport-6:0-0", "0x20410002ac07ee45") // array A
+	writePort("rport-6:0-1", "0x20420002ac07ee46") // array B
+
+	set, err := GetFcHostChannelTargetsForTargetWwpns([]string{"20410002AC07EE45"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(set) != 1 || !set[fcHostChannelTargetKey("6", "0", "0")] {
+		t.Fatalf("expected only host:channel:target 6:0:0 for array A, got %v", set)
+	}
+	// Array B's host:channel:target must NOT be present, even though it shares host 6.
+	if set[fcHostChannelTargetKey("6", "0", "1")] {
+		t.Fatalf("array B's rport 6:0:1 must not be scoped in for array A's WWPN, got %v", set)
+	}
+}
+
+func TestGetFcHostChannelTargetsForTargetWwpns_NoMatch(t *testing.T) {
+	tmp := t.TempDir()
+	orig := fcRemotePortBasePath
+	fcRemotePortBasePath = tmp
+	defer func() { fcRemotePortBasePath = orig }()
+
+	dir := filepath.Join(tmp, "rport-6:0-0")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "port_name"), []byte("0x20410002ac07ee45\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	set, err := GetFcHostChannelTargetsForTargetWwpns([]string{"dead0000dead0000"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(set) != 0 {
+		t.Fatalf("expected empty set for no-match, got %v", set)
+	}
+}
