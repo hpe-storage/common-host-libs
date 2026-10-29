@@ -184,8 +184,6 @@ func (provider *ContainerStorageProvider) invokeWithRelogin(request *connectivit
 		// Clear the caller's decoded 401 payload but keep the pointer so the retry's error is still decoded.
 		if p, ok := request.ResponseError.(**ErrorsPayload); ok && p != nil {
 			*p = nil
-		} else {
-			request.ResponseError = nil
 		}
 		log.Tracef("Re-attempting the request: Action=%s Path=%s", request.Action, request.Path)
 		return provider.invokeWithRelogin(request, reloginsLeft-1) // Recursive invoke call with new token
