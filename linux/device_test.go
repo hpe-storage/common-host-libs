@@ -1,8 +1,88 @@
 package linux
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+	"reflect"
 	"testing"
+
+	"github.com/hpe-storage/common-host-libs/model"
 )
+
+// TestSecondaryRemapScopes covers CON-5018 FIX-1b: each secondary (replicated / APP)
+// backend's remap check must be scoped to that backend's OWN target names, routed by
+// protocol (FC -> WWPNs, else -> IQNs), not the primary array's.
+func TestSecondaryRemapScopes(t *testing.T) {
+	marshal := func(backends ...*model.SecondaryLunInfo) string {
+		b, err := json.Marshal(model.SecondaryBackendDetails{PeerArrayDetails: backends})
+		if err != nil {
+			t.Fatalf("marshal: %v", err)
+		}
+		return string(b)
+	}
+
+	fcDetails := marshal(&model.SecondaryLunInfo{LunID: 5, TargetNames: []string{"20410002ac07ee45", "20420002ac07ee46"}})
+	iscsiDetails := marshal(&model.SecondaryLunInfo{LunID: 3, TargetNames: []string{"iqn.2000-05.com.3pardata:21"}})
+
+	t.Run("fc routes target names to WWPNs", func(t *testing.T) {
+		scopes := secondaryRemapScopes("fc", fcDetails)
+		if len(scopes) != 1 {
+			t.Fatalf("expected 1 scope, got %d", len(scopes))
+		}
+		if scopes[0].lunID != "05" {
+			t.Errorf("lunID = %q, want %q", scopes[0].lunID, "05")
+		}
+		if !reflect.DeepEqual(scopes[0].fcWwpns, []string{"20410002ac07ee45", "20420002ac07ee46"}) {
+			t.Errorf("fcWwpns = %v, want the secondary WWPNs", scopes[0].fcWwpns)
+		}
+		if scopes[0].targetIqns != nil {
+			t.Errorf("targetIqns must be nil for FC, got %v", scopes[0].targetIqns)
+		}
+	})
+
+	t.Run("iscsi routes target names to IQNs", func(t *testing.T) {
+		scopes := secondaryRemapScopes("iscsi", iscsiDetails)
+		if len(scopes) != 1 {
+			t.Fatalf("expected 1 scope, got %d", len(scopes))
+		}
+		if scopes[0].lunID != "03" {
+			t.Errorf("lunID = %q, want %q", scopes[0].lunID, "03")
+		}
+		if !reflect.DeepEqual(scopes[0].targetIqns, []string{"iqn.2000-05.com.3pardata:21"}) {
+			t.Errorf("targetIqns = %v, want the secondary IQNs", scopes[0].targetIqns)
+		}
+		if scopes[0].fcWwpns != nil {
+			t.Errorf("fcWwpns must be nil for iSCSI, got %v", scopes[0].fcWwpns)
+		}
+	})
+
+	t.Run("no secondary details yields no scopes", func(t *testing.T) {
+		if scopes := secondaryRemapScopes("fc", ""); scopes != nil {
+			t.Errorf("expected nil scopes for empty details, got %v", scopes)
+		}
+	})
+
+	// Multi-digit LUNs (every APP secondary LUN is >= 855) must be formatted to
+	// match /proc/scsi/scsi ("Lun: 858"), not "0858" — otherwise the remap check
+	// finds no paths and the whole secondary scoping is silently a no-op.
+	t.Run("multi-digit APP LUN is not zero-prefixed", func(t *testing.T) {
+		appDetails := marshal(
+			&model.SecondaryLunInfo{LunID: 858, TargetNames: []string{"20420002ac02fd01"}},
+			&model.SecondaryLunInfo{LunID: 0, TargetNames: []string{"20420002ac02fd02"}},
+		)
+		scopes := secondaryRemapScopes("fc", appDetails)
+		if len(scopes) != 2 {
+			t.Fatalf("expected 2 scopes, got %d", len(scopes))
+		}
+		if scopes[0].lunID != "858" {
+			t.Errorf("multi-digit lunID = %q, want %q (must match 'Lun: 858')", scopes[0].lunID, "858")
+		}
+		if scopes[1].lunID != "00" {
+			t.Errorf("zero lunID = %q, want %q", scopes[1].lunID, "00")
+		}
+	})
+}
 
 var parseHctlTests = []struct {
 	name      string
@@ -59,5 +139,207 @@ func TestParseHctl(t *testing.T) {
 				)
 			}
 		})
+	}
+}
+
+// ---- isPathInRemapScope tests (ESC-18223 defect #1) ----
+
+func TestIsPathInRemapScope(t *testing.T) {
+	cases := []struct {
+		name                       string
+		h, c, tg                   string
+		scopedHostSet              map[string]bool
+		scopedHostChannelTargetSet map[string]bool
+		want                       bool
+	}{
+		{"no scoping configured", "6", "0", "0", nil, nil, true},
+		{"host matches, no host:channel:target set", "6", "0", "0", map[string]bool{"6": true}, nil, true},
+		{"host does not match", "9", "0", "0", map[string]bool{"6": true}, nil, false},
+		{"host matches but different target (ESC-18223)", "6", "0", "1", map[string]bool{"6": true}, map[string]bool{"6:0:0": true}, false},
+		{"host and host:channel:target both match", "6", "0", "0", map[string]bool{"6": true}, map[string]bool{"6:0:0": true}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := isPathInRemapScope(tc.h, tc.c, tc.tg, tc.scopedHostSet, tc.scopedHostChannelTargetSet)
+			if got != tc.want {
+				t.Errorf("isPathInRemapScope(%s,%s,%s) = %v, want %v", tc.h, tc.c, tc.tg, got, tc.want)
+			}
+		})
+	}
+}
+
+// ---- checkRemappedLunPath tests (ESC-18223 defect #2) ----
+
+func writeScsiDeviceAttr(t *testing.T, base, hctl, attr, content string) {
+	t.Helper()
+	dir := filepath.Join(base, hctl, "device")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, attr), []byte(content+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCheckRemappedLunPath_3PAR_SameSerial_NotRemapped(t *testing.T) {
+	tmp := t.TempDir()
+	orig := scsiDeviceBasePath
+	scsiDeviceBasePath = tmp
+	defer func() { scsiDeviceBasePath = orig }()
+
+	writeScsiDeviceAttr(t, tmp, "6:0:0:5", "state", "running")
+	writeScsiDeviceAttr(t, tmp, "6:0:0:5", "vendor", "3PARdata")
+	writeScsiDeviceAttr(t, tmp, "6:0:0:5", "wwid", "naa.60002ac0000000000a0066ef0001db2c")
+
+	found, _, err := checkRemappedLunPath("6", "0", "0", "5", "60002ac0000000000a0066ef0001db2c", "5")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if found {
+		t.Fatalf("expected not remapped when wwid already matches the expected serial")
+	}
+}
+
+func TestCheckRemappedLunPath_3PAR_Offline_Remapped(t *testing.T) {
+	tmp := t.TempDir()
+	orig := scsiDeviceBasePath
+	scsiDeviceBasePath = tmp
+	defer func() { scsiDeviceBasePath = orig }()
+
+	writeScsiDeviceAttr(t, tmp, "6:0:0:5", "state", "offline")
+	writeScsiDeviceAttr(t, tmp, "6:0:0:5", "vendor", "3PARdata")
+	writeScsiDeviceAttr(t, tmp, "6:0:0:5", "wwid", "naa.oldserial")
+
+	found, oldSerial, err := checkRemappedLunPath("6", "0", "0", "5", "newserial", "5")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !found || oldSerial != "oldserial" {
+		t.Fatalf("expected remapped=true oldSerial=%q, got remapped=%v oldSerial=%q", "oldserial", found, oldSerial)
+	}
+}
+
+// TestCheckRemappedLunPath_3PAR_ForeignArray_NotRemapped reproduces the
+// ESC-18223 defect #2 false positive: a stable, healthy, DIFFERENT array's
+// volume shares this host LUN ID. The wwid mismatches the volume being
+// staged, but a live re-read of VPD page 0x80 shows the same value as the
+// cached sysfs reading (nothing has actually changed at this address since
+// the kernel last probed it), so this must NOT be classified as a remap.
+func TestCheckRemappedLunPath_3PAR_ForeignArray_NotRemapped(t *testing.T) {
+	tmp := t.TempDir()
+	origBase := scsiDeviceBasePath
+	scsiDeviceBasePath = tmp
+	defer func() { scsiDeviceBasePath = origBase }()
+
+	origFunc := getDeviceSerialByHctlFunc
+	defer func() { getDeviceSerialByHctlFunc = origFunc }()
+
+	writeScsiDeviceAttr(t, tmp, "6:0:1:5", "state", "running")
+	writeScsiDeviceAttr(t, tmp, "6:0:1:5", "vendor", "3PARdata")
+	writeScsiDeviceAttr(t, tmp, "6:0:1:5", "wwid", "naa.foreignarrayserial")
+	writeScsiDeviceAttr(t, tmp, "6:0:1:5", "vpd_pg80", "x stableid123")
+
+	getDeviceSerialByHctlFunc = func(h, c, tg, l string) (string, error) {
+		return "stableid123", nil // live read matches cached -> nothing has changed here
+	}
+
+	found, _, err := checkRemappedLunPath("6", "0", "1", "5", "myexpectedserial", "5")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if found {
+		t.Fatalf("expected foreign array's stable volume to NOT be classified as remapped (ESC-18223 defect #2)")
+	}
+}
+
+// TestCheckRemappedLunPath_3PAR_GenuineRemap_Remapped verifies that when the
+// live VPD80 read diverges from the cached one (the physical device at this
+// address has actually changed since the kernel's last probe), the mismatch
+// is still correctly confirmed as a genuine remap, preserving pre-existing
+// 3PAR remap-detection capability.
+func TestCheckRemappedLunPath_3PAR_GenuineRemap_Remapped(t *testing.T) {
+	tmp := t.TempDir()
+	origBase := scsiDeviceBasePath
+	scsiDeviceBasePath = tmp
+	defer func() { scsiDeviceBasePath = origBase }()
+
+	origFunc := getDeviceSerialByHctlFunc
+	defer func() { getDeviceSerialByHctlFunc = origFunc }()
+
+	writeScsiDeviceAttr(t, tmp, "6:0:0:5", "state", "running")
+	writeScsiDeviceAttr(t, tmp, "6:0:0:5", "vendor", "3PARdata")
+	writeScsiDeviceAttr(t, tmp, "6:0:0:5", "wwid", "naa.oldserial")
+	writeScsiDeviceAttr(t, tmp, "6:0:0:5", "vpd_pg80", "x cachedid")
+
+	getDeviceSerialByHctlFunc = func(h, c, tg, l string) (string, error) {
+		return "livedivergedid", nil // live read differs from cached -> something changed here
+	}
+
+	found, oldSerial, err := checkRemappedLunPath("6", "0", "0", "5", "newserial", "5")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !found || oldSerial != "oldserial" {
+		t.Fatalf("expected genuine remap confirmed with oldSerial %q, got found=%v oldSerial=%q", "oldserial", found, oldSerial)
+	}
+}
+
+// TestCheckRemappedLunPath_NonVendor_StableMismatch_NotRemapped is a regression
+// check that the pre-existing non-3PAR confirmation behavior is unaffected.
+func TestCheckRemappedLunPath_NonVendor_StableMismatch_NotRemapped(t *testing.T) {
+	tmp := t.TempDir()
+	origBase := scsiDeviceBasePath
+	scsiDeviceBasePath = tmp
+	defer func() { scsiDeviceBasePath = origBase }()
+
+	origFunc := getDeviceSerialByHctlFunc
+	defer func() { getDeviceSerialByHctlFunc = origFunc }()
+
+	writeScsiDeviceAttr(t, tmp, "4:0:0:2", "state", "running")
+	writeScsiDeviceAttr(t, tmp, "4:0:0:2", "vendor", "NIMBLE")
+	writeScsiDeviceAttr(t, tmp, "4:0:0:2", "vpd_pg80", "x othervolumeid")
+
+	getDeviceSerialByHctlFunc = func(h, c, tg, l string) (string, error) {
+		return "othervolumeid", nil // live re-read still doesn't match our expected volume
+	}
+
+	found, _, err := checkRemappedLunPath("4", "0", "0", "2", "myexpectedserial", "2")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if found {
+		t.Fatalf("expected non-3PAR confirm step to reject a stable mismatch")
+	}
+}
+
+// TestCheckRemappedLunPath_3PAR_CacheUnreadable_NotRemapped covers review
+// follow-up Medium-2: when the cached vpd_pg80 can't be read, there is
+// nothing to corroborate the bare wwid mismatch against, so the fix must
+// fail safe (not a remap) rather than fall back to the old, pre-fix
+// behavior of trusting the wwid mismatch alone.
+func TestCheckRemappedLunPath_3PAR_CacheUnreadable_NotRemapped(t *testing.T) {
+	tmp := t.TempDir()
+	origBase := scsiDeviceBasePath
+	scsiDeviceBasePath = tmp
+	defer func() { scsiDeviceBasePath = origBase }()
+
+	origFunc := getDeviceSerialByHctlFunc
+	defer func() { getDeviceSerialByHctlFunc = origFunc }()
+
+	writeScsiDeviceAttr(t, tmp, "6:0:1:5", "state", "running")
+	writeScsiDeviceAttr(t, tmp, "6:0:1:5", "vendor", "3PARdata")
+	writeScsiDeviceAttr(t, tmp, "6:0:1:5", "wwid", "naa.foreignarrayserial")
+	// no vpd_pg80 written: getVpd80FromSysfs will fail to read it
+
+	getDeviceSerialByHctlFunc = func(h, c, tg, l string) (string, error) {
+		return "liveid", nil // live read succeeds, but there is nothing cached to compare it to
+	}
+
+	found, _, err := checkRemappedLunPath("6", "0", "1", "5", "myexpectedserial", "5")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if found {
+		t.Fatalf("expected unreadable cached vpd_pg80 to fail safe (not remapped), got remapped=true")
 	}
 }
