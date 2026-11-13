@@ -44,6 +44,10 @@ func TestGetEnvBool(t *testing.T) {
 		{name: "zero", value: "0", set: true, defaultVal: true, want: false},
 		{name: "one", value: "1", set: true, defaultVal: false, want: true},
 		{name: "invalid uses default", value: "nope", set: true, defaultVal: true, want: true},
+		{name: "uppercase", value: "TRUE", set: true, defaultVal: false, want: true},
+		{name: "padded false", value: " false ", set: true, defaultVal: true, want: false},
+		{name: "trailing newline", value: "true\n", set: true, defaultVal: false, want: true},
+		{name: "whitespace only uses default", value: "  ", set: true, defaultVal: true, want: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
