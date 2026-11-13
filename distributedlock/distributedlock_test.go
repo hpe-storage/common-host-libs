@@ -27,6 +27,34 @@ const testDedupNamespace = "hpe-storage"
 // noMaxHold is used by tests that aren't exercising the max-hold-duration ceiling.
 const noMaxHold = time.Hour
 
+func TestGetEnvBool(t *testing.T) {
+	const envVar = "DISTRIBUTEDLOCK_TEST_BOOL"
+	tests := []struct {
+		name       string
+		value      string
+		set        bool
+		defaultVal bool
+		want       bool
+	}{
+		{name: "unset uses default true", defaultVal: true, want: true},
+		{name: "unset uses default false", defaultVal: false, want: false},
+		{name: "empty uses default", value: "", set: true, defaultVal: true, want: true},
+		{name: "false", value: "false", set: true, defaultVal: true, want: false},
+		{name: "true", value: "true", set: true, defaultVal: false, want: true},
+		{name: "zero", value: "0", set: true, defaultVal: true, want: false},
+		{name: "one", value: "1", set: true, defaultVal: false, want: true},
+		{name: "invalid uses default", value: "nope", set: true, defaultVal: true, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.set {
+				t.Setenv(envVar, tt.value)
+			}
+			assert.Equal(t, tt.want, GetEnvBool(envVar, tt.defaultVal))
+		})
+	}
+}
+
 func TestTryAcquireRelease(t *testing.T) {
 	clientset := fake.NewSimpleClientset()
 	d := New(testDedupNamespace, "pod-a", clientset, time.Minute, noMaxHold)

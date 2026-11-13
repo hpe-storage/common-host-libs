@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -131,6 +132,18 @@ func GetEnvDuration(envVarName string, defaultVal time.Duration) time.Duration {
 			return parsed
 		}
 		log.Warnf("Invalid %s=%q, using default %s", envVarName, envVal, defaultVal)
+	}
+	return defaultVal
+}
+
+// GetEnvBool reads a boolean from envVarName (strconv.ParseBool syntax), falling back to
+// defaultVal if unset or invalid.
+func GetEnvBool(envVarName string, defaultVal bool) bool {
+	if envVal := os.Getenv(envVarName); envVal != "" {
+		if parsed, err := strconv.ParseBool(envVal); err == nil {
+			return parsed
+		}
+		log.Warnf("Invalid %s=%q, using default %t", envVarName, envVal, defaultVal)
 	}
 	return defaultVal
 }
