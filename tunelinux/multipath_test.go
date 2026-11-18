@@ -65,8 +65,13 @@ func TestReconfigureMultipathdIfConfigNotAppliedRetriesAfterFailure(t *testing.T
 		return "ok", nil
 	}
 
-	if err := reconfigureMultipathdIfConfigNotApplied(configPath, appliedHashPath, reconfigure); err == nil {
+	err := reconfigureMultipathdIfConfigNotApplied(configPath, appliedHashPath, reconfigure)
+	if err == nil {
 		t.Fatal("first reconfigureMultipathdIfConfigNotApplied() error = nil, want error")
+	}
+	// ESC-18251 Q8: the failure must be identifiable so node-init can continue.
+	if !errors.Is(err, ErrMultipathdReconfigure) {
+		t.Fatalf("first error = %v, want it to wrap ErrMultipathdReconfigure", err)
 	}
 	if err := reconfigureMultipathdIfConfigNotApplied(configPath, appliedHashPath, reconfigure); err != nil {
 		t.Fatalf("retry reconfigureMultipathdIfConfigNotApplied() error = %v, want nil", err)
@@ -84,6 +89,9 @@ func TestReconfigureMultipathdIfConfigNotAppliedReturnsReadError(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("reconfigureMultipathdIfConfigNotApplied() error = nil, want read error")
+	}
+	if errors.Is(err, ErrMultipathdReconfigure) {
+		t.Fatalf("a read error must not be classified as a reconfigure failure: %v", err)
 	}
 }
 
