@@ -10,10 +10,7 @@ import (
 	"time"
 )
 
-// ESC-18251: `systemctl is-active` must gate the systemd interactions. Only the
-// literal "active" answer counts as active; "inactive", "activating" and a
-// query that fails quickly are all "not active". A query that PID 1 did not
-// answer is covered by TestSystemdNoAnswerLeavesUnitUntouched.
+// ESC-18251: only the literal "active" answer counts as active.
 func TestIsSystemdUnitActive(t *testing.T) {
 	orig := systemctlExec
 	t.Cleanup(func() { systemctlExec = orig })
@@ -46,8 +43,7 @@ func TestIsSystemdUnitActive(t *testing.T) {
 	}
 }
 
-// ESC-18251: the socket check must only accept a *listening* socket with the
-// exact name, and must never need systemctl when it finds one.
+// ESC-18251: only a listening socket with the exact name counts, and finding one needs no systemctl call.
 func TestIsServiceSocketListening(t *testing.T) {
 	origPath, origExec := procNetUnixPath, systemctlExec
 	t.Cleanup(func() { procNetUnixPath, systemctlExec = origPath, origExec })
@@ -111,8 +107,7 @@ func TestIsServiceSocketListening(t *testing.T) {
 	}
 }
 
-// fakeSystemctl replaces systemctlExec with fn, hides the daemon sockets so the
-// systemctl path is taken, and records the systemctl verbs that were run.
+// fakeSystemctl swaps systemctlExec for fn, hides the daemon sockets and records the systemctl verbs run.
 func fakeSystemctl(t *testing.T, fn func(verb string) (string, int, error)) *[]string {
 	t.Helper()
 	origExec, origAfter, origPath := systemctlExec, systemctlNoAnswerAfter, procNetUnixPath
@@ -126,8 +121,7 @@ func fakeSystemctl(t *testing.T, fn func(verb string) (string, int, error)) *[]s
 	return verbs
 }
 
-// ESC-18251: an is-active query that PID 1 did not answer is not "inactive".
-// The unit must be left untouched: no daemon-reload, no enable.
+// ESC-18251: an is-active query that PID 1 did not answer leaves the unit untouched: no daemon-reload, no enable.
 func TestSystemdNoAnswerLeavesUnitUntouched(t *testing.T) {
 	verbs := fakeSystemctl(t, func(verb string) (string, int, error) {
 		time.Sleep(40 * time.Millisecond)
@@ -171,8 +165,7 @@ func TestEnableSystemdServiceWhenNotActive(t *testing.T) {
 	}
 }
 
-// ESC-18251: a systemctl call that times out is not fatal and nothing more is
-// asked of PID 1; any other failure is still returned.
+// ESC-18251: a systemctl timeout is not fatal and ends the calls to PID 1; any other failure is still returned.
 func TestEnableSystemdServiceTimeoutNotFatal(t *testing.T) {
 	reloadErr := errors.New("command systemctl failed with rc=1 err=Failed to execute operation: Connection timed out")
 	verbs := fakeSystemctl(t, func(verb string) (string, int, error) {
