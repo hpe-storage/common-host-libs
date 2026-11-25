@@ -65,8 +65,13 @@ func TestReconfigureMultipathdIfConfigNotAppliedRetriesAfterFailure(t *testing.T
 		return "ok", nil
 	}
 
-	if err := reconfigureMultipathdIfConfigNotApplied(configPath, appliedHashPath, reconfigure); err == nil {
+	err := reconfigureMultipathdIfConfigNotApplied(configPath, appliedHashPath, reconfigure)
+	if err == nil {
 		t.Fatal("first reconfigureMultipathdIfConfigNotApplied() error = nil, want error")
+	}
+	// ESC-18251 Q8: the failure must be identifiable so node-init can continue.
+	if !errors.Is(err, errMultipathdReconfigure) {
+		t.Fatalf("first error = %v, want it to wrap errMultipathdReconfigure", err)
 	}
 	if err := reconfigureMultipathdIfConfigNotApplied(configPath, appliedHashPath, reconfigure); err != nil {
 		t.Fatalf("retry reconfigureMultipathdIfConfigNotApplied() error = %v, want nil", err)
@@ -84,6 +89,9 @@ func TestReconfigureMultipathdIfConfigNotAppliedReturnsReadError(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("reconfigureMultipathdIfConfigNotApplied() error = nil, want read error")
+	}
+	if errors.Is(err, errMultipathdReconfigure) {
+		t.Fatalf("a read error must not be classified as a reconfigure failure: %v", err)
 	}
 }
 
@@ -162,7 +170,7 @@ func TestParseMultipathDevices(t *testing.T) {
 func TestParseMultipathDevicesClassifiesUnhealthyAndOrphan(t *testing.T) {
 	devices, err := parseMultipathDevices(`{
 		"maps": [
-			{"name":"healthy","vend":"Nimble","paths":2},
+			{"name":"healthy","vend":"Nimble","paths":2,"path_groups":[{"paths":[{"dev":"sdb"},{"dev":"sdd"}]}]},
 			{"name":"unhealthy","vend":"Nimble","paths":0,"path_faults":1},
 			{"name":"orphan","queueing":"off","features":"0"}
 		]
