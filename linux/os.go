@@ -379,38 +379,6 @@ func InstallPackage(packageType string) error {
 	return nil
 }
 
-func applySuseWorkaround() (err error) {
-	// apply workaround for SuSE for multipathd.service, NLT-1226
-	if _, err = os.Stat("/usr/lib/systemd/system/multipathd.service"); err == nil {
-		args := []string{"-i", "s/^ConditionKernelCommandLine=!multipath=off/#ConditionKernelCommandLine=!multipath=off/", "/usr/lib/systemd/system/multipathd.service"}
-		_, _, err = util.ExecCommandOutput("sed", args)
-		if err != nil {
-			log.Errorf("unable to apply suse workaround for multipathd.service package %v", err.Error())
-			return err
-		}
-		args = []string{"-i", "s/^ConditionKernelCommandLine=!nompath/#ConditionKernelCommandLine=!nompath/", "/usr/lib/systemd/system/multipathd.service"}
-		_, _, err = util.ExecCommandOutput("sed", args)
-		if err != nil {
-			log.Errorf("unable to apply suse workaround for multipathd.service package %v", err.Error())
-			return err
-		}
-		args = []string{"-i", "s/multipath=off/multipath=on/", "/boot/grub2/grub.cfg"}
-		_, _, err = util.ExecCommandOutput("sed", args)
-		if err != nil {
-			log.Errorf("unable to apply suse workaround for multipathd.service package %v", err.Error())
-			return err
-		}
-		// reload service with changes
-		args = []string{"daemon-reload"}
-		_, _, err = util.ExecCommandOutput("systemctl", args)
-		if err != nil {
-			log.Errorf("unable to reload systemd after multipathd.service changes for sles %v\n", err.Error())
-			return err
-		}
-	}
-	return nil
-}
-
 func getPackageCommandArgs(osInfo *OsInfo, packageType string, operation string) (cmd string, args []string) {
 	switch osInfo.GetOsDistro() {
 	case OsTypeRedhat, OsTypeCentos, OsTypeOracle, OsTypeAmazon:
@@ -522,6 +490,22 @@ func EnableService(serviceType string) (err error) {
 	return err
 }
 
+func IsSystemdServiceEnabled(serviceName string) (active bool) {
+	args := []string{"-q", "is-enabled", serviceName}
+	_, rc, err := util.ExecCommandOutputWithTimeout("systemctl", args, 30)
+
+	if err != nil {
+		log.Errorf("unable to check if %s service is enabled (ignoring) %v\n", serviceName, err.Error())
+		return true
+	}
+
+	if rc != 0 {
+		log.Infof("%s service is not enabled", serviceName)
+		return false
+	}
+	return true
+}
+
 func enableSystemdService(osInfo *OsInfo, serviceType string) (err error) {
 	var serviceName string
 	if serviceType == iscsi {
@@ -532,14 +516,11 @@ func enableSystemdService(osInfo *OsInfo, serviceType string) (err error) {
 		return errors.New("unknown service type " + serviceType + " provided to enable")
 	}
 
-	args := []string{"daemon-reload"}
-	_, _, err = util.ExecCommandOutput("systemctl", args)
-	if err != nil {
-		log.Errorf("unable to enable %s service %v\n", serviceName, err.Error())
-		return err
+	if IsSystemdServiceEnabled(serviceName) {
+		return nil
 	}
 
-	args = []string{"enable", serviceName}
+	args := []string{"enable", serviceName}
 	_, _, err = util.ExecCommandOutput("systemctl", args)
 	if err != nil {
 		log.Errorf("unable to enable %s service %v\n", serviceName, err.Error())
@@ -551,12 +532,7 @@ func enableSystemdService(osInfo *OsInfo, serviceType string) (err error) {
 func enableInitVService(osInfo *OsInfo, serviceType string) (err error) {
 	var serviceName string
 	if serviceType == iscsi {
-		if osInfo.GetOsDistro() == OsTypeSuse && osInfo.GetOsMajorVersion() == "11" {
-			// SUSE 11 has open-iscsi and SUSE 12 has iscsid. Only this OS has exception
-			serviceName = openIscsi
-		} else {
-			serviceName = "iscsid"
-		}
+		serviceName = "iscsid"
 	} else if serviceType == multipath {
 		serviceName = "multipathd"
 	} else {
@@ -625,14 +601,6 @@ func ServiceCommand(serviceType string, operationType string) (err error) {
 		log.Errorln("unable to get host os information ", err.Error())
 	}
 
-	if osInfo.GetOsDistro() == OsTypeSuse && serviceType == multipath {
-		// apply workaround for SuSE for multipathd.service, NLT-1226
-		err = applySuseWorkaround()
-		if err != nil {
-			return err
-		}
-	}
-
 	// get suitable command args based on os type, package type and install operation
 	cmd, args := getServiceCommandArgs(osInfo, serviceType, operationType)
 	log.Traceln("running command ", cmd, " args: ", args)
@@ -656,13 +624,7 @@ func getServiceCommandArgs(osInfo *OsInfo, packageType string, operation string)
 			args = append(args, multipathd)
 		}
 	} else if packageType == iscsi {
-		// get distro specific iscsi service names
-		if osInfo.GetOsDistro() == OsTypeSuse && osInfo.GetOsMajorVersion() == "11" {
-			// suse 11.* has open-iscsi and 12.* has iscsid
-			args = append(args, openIscsi)
-		} else {
-			args = append(args, iscsid)
-		}
+		args = append(args, iscsid)
 	}
 
 	if osInfo.IsSystemdSupported() {
